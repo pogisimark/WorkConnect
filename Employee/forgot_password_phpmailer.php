@@ -7,12 +7,18 @@ ini_set('display_errors', 0);
 ob_start();
 
 require_once 'db.php';
-require_once '../vendor/autoload.php';
-require_once '../Employer/email_config.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+// Check if PHPMailer is available
+$phpmailer_available = false;
+if (file_exists('../vendor/autoload.php')) {
+    require_once '../vendor/autoload.php';
+    require_once '../Employer/email_config.php';
+    $phpmailer_available = true;
+    
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\SMTP;
+    use PHPMailer\PHPMailer\Exception;
+}
 
 // Set content type to JSON
 header('Content-Type: application/json');
@@ -120,34 +126,49 @@ try {
             </html>
             ";
             
-            // Use PHPMailer to send email
-            $mail = new PHPMailer(true);
-            
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = SMTP_HOST;
-                $mail->SMTPAuth   = true;
-                $mail->Username   = SMTP_USERNAME;
-                $mail->Password   = SMTP_PASSWORD;
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = SMTP_PORT;
+            // Send email using available method
+            if ($phpmailer_available) {
+                // Use PHPMailer to send email
+                $mail = new PHPMailer(true);
                 
-                // Recipients
-                $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-                $mail->addAddress($email);
+                try {
+                    // Server settings
+                    $mail->isSMTP();
+                    $mail->Host       = SMTP_HOST;
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = SMTP_USERNAME;
+                    $mail->Password   = SMTP_PASSWORD;
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = SMTP_PORT;
+                    
+                    // Recipients
+                    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                    $mail->addAddress($email);
+                    
+                    // Content
+                    $mail->isHTML(true);
+                    $mail->CharSet = 'UTF-8';
+                    $mail->Subject = $subject;
+                    $mail->Body    = $message;
+                    
+                    $mail->send();
+                    sendResponse(true, 'Password reset link has been sent to your email.');
+                    
+                } catch (Exception $e) {
+                    sendResponse(false, 'Failed to send email. Please try again later.');
+                }
+            } else {
+                // Fallback to basic PHP mail() function
+                $headers = "MIME-Version: 1.0" . "\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+                $headers .= "Reply-To: noreply@workconnect.com" . "\r\n";
                 
-                // Content
-                $mail->isHTML(true);
-                $mail->CharSet = 'UTF-8';
-                $mail->Subject = $subject;
-                $mail->Body    = $message;
-                
-                $mail->send();
-                sendResponse(true, 'Password reset link has been sent to your email.');
-                
-            } catch (Exception $e) {
-                sendResponse(false, 'Failed to send email. Please try again later.');
+                if (mail($email, $subject, $message, $headers)) {
+                    sendResponse(true, 'Password reset link has been sent to your email.');
+                } else {
+                    sendResponse(false, 'Failed to send email. Please try again later.');
+                }
             }
         } else {
             sendResponse(false, 'Failed to process reset request. Please try again.');
