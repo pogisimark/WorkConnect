@@ -1,0 +1,474 @@
+<?php
+header('Content-Type: application/json');
+
+// Include PHPMailer
+require_once '../vendor/autoload.php';
+require_once 'email_config.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+
+$host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
+$user = "admin";
+$pass = "Pogisimark";
+$db   = "WorkConnect";
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_error) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($input['jobseeker_id'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Missing jobseeker ID']);
+        exit;
+    }
+    
+    $jobseeker_id = intval($input['jobseeker_id']);
+    $employer_email = isset($input['employer_email']) ? $conn->real_escape_string($input['employer_email']) : 'employer@workconnect.com';
+    
+    // Get jobseeker data with calculated age
+    $sql = "SELECT *, YEAR(CURDATE())-YEAR(dob) - (DATE_FORMAT(CURDATE(),'%m%d') < DATE_FORMAT(dob,'%m%d')) AS age FROM jobseeker WHERE id = $jobseeker_id";
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows > 0) {
+        $jobseeker = $result->fetch_assoc();
+        
+        // Create professional email content
+        $subject = "New Jobseeker Application - " . $jobseeker['firstname'] . " " . $jobseeker['surname'];
+        
+        // Helper function to format boolean values
+        function formatBoolean($value) {
+            return ($value == 1 || $value === '1' || $value === true) ? 'Yes' : 'No';
+        }
+        
+        // Helper function to format skills
+        function formatSkills($jobseeker) {
+            $skills = [];
+            if ($jobseeker['skill_auto_mechanic']) $skills[] = 'Auto Mechanic';
+            if ($jobseeker['skill_electrician']) $skills[] = 'Electrician';
+            if ($jobseeker['skill_photography']) $skills[] = 'Photography';
+            if ($jobseeker['skill_beautician']) $skills[] = 'Beautician';
+            if ($jobseeker['skill_embroidery']) $skills[] = 'Embroidery';
+            if ($jobseeker['skill_plumbing']) $skills[] = 'Plumbing';
+            if ($jobseeker['skill_carpentry']) $skills[] = 'Carpentry';
+            if ($jobseeker['skill_gardening']) $skills[] = 'Gardening';
+            if ($jobseeker['skill_sewing']) $skills[] = 'Sewing';
+            if ($jobseeker['skill_computer']) $skills[] = 'Computer Literacy';
+            if ($jobseeker['skill_masonry']) $skills[] = 'Masonry';
+            if ($jobseeker['skill_stenography']) $skills[] = 'Stenography';
+            if ($jobseeker['skill_domestic']) $skills[] = 'Domestic Work';
+            if ($jobseeker['skill_painter']) $skills[] = 'Painting/Art';
+            if ($jobseeker['skill_tailoring']) $skills[] = 'Tailoring';
+            if ($jobseeker['skill_driver']) $skills[] = 'Driving';
+            if ($jobseeker['skill_painting']) $skills[] = 'Painting';
+            if ($jobseeker['skill_others'] && $jobseeker['skill_others'] !== 'n/a') {
+                $skills[] = 'Others: ' . $jobseeker['skill_others'];
+            }
+            return empty($skills) ? 'None specified' : implode(', ', $skills);
+        }
+        
+        // Helper function to format disability
+        function formatDisability($jobseeker) {
+            if (!$jobseeker['hasDisability'] || $jobseeker['hasDisability'] == 0) return 'No';
+            
+            $disabilities = [];
+            if ($jobseeker['disability_speech']) $disabilities[] = 'Speech';
+            if ($jobseeker['disability_hearing']) $disabilities[] = 'Hearing';
+            if ($jobseeker['disability_visual']) $disabilities[] = 'Visual';
+            if ($jobseeker['disability_mental']) $disabilities[] = 'Mental';
+            if ($jobseeker['disability_others']) {
+                if ($jobseeker['disability_other'] && $jobseeker['disability_other'] !== 'n/a') {
+                    $disabilities[] = 'Others: ' . $jobseeker['disability_other'];
+                } else {
+                    $disabilities[] = 'Others';
+                }
+            }
+            return empty($disabilities) ? 'Yes (not specified)' : implode(', ', $disabilities);
+        }
+        
+        $message = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <title>Jobseeker Application Details</title>
+            <style>
+                body { 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    line-height: 1.6; 
+                    color: #333; 
+                    margin: 0; 
+                    padding: 0; 
+                    background-color: #f5f5f5;
+                }
+                .email-container { 
+                    max-width: 800px; 
+                    margin: 0 auto; 
+                    background: white; 
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+                .header { 
+                    background: linear-gradient(135deg, #233a8b 0%, #1976d2 100%); 
+                    color: white; 
+                    padding: 30px; 
+                    text-align: center; 
+                }
+                .header h1 { 
+                    margin: 0; 
+                    font-size: 28px; 
+                    font-weight: 300;
+                }
+                .header p { 
+                    margin: 10px 0 0 0; 
+                    font-size: 16px; 
+                    opacity: 0.9;
+                }
+                .content { 
+                    padding: 30px; 
+                }
+                .section { 
+                    margin-bottom: 25px; 
+                    padding: 20px; 
+                    background: #f8f9fa; 
+                    border-radius: 8px; 
+                    border-left: 4px solid #1976d2;
+                }
+                .section h3 { 
+                    color: #233a8b; 
+                    margin: 0 0 15px 0; 
+                    font-size: 18px; 
+                    font-weight: 600;
+                }
+                .field { 
+                    margin-bottom: 10px; 
+                    display: flex;
+                }
+                .field strong { 
+                    color: #233a8b; 
+                    min-width: 150px; 
+                    font-weight: 600;
+                }
+                .field span { 
+                    color: #555;
+                }
+                .resume-section { 
+                    text-align: center; 
+                    padding: 20px; 
+                    background: #e3f2fd; 
+                    border-radius: 8px; 
+                    margin-top: 20px;
+                }
+                .resume-link { 
+                    background: #1976d2; 
+                    color: white; 
+                    padding: 12px 24px; 
+                    text-decoration: none; 
+                    border-radius: 6px; 
+                    display: inline-block; 
+                    font-weight: 600;
+                    transition: background-color 0.3s;
+                }
+                .resume-link:hover { 
+                    background: #1565c0; 
+                }
+                .footer { 
+                    background: #f8f9fa; 
+                    padding: 20px; 
+                    text-align: center; 
+                    color: #666; 
+                    font-size: 14px;
+                }
+                .highlight { 
+                    background: #fff3cd; 
+                    padding: 15px; 
+                    border-radius: 6px; 
+                    border-left: 4px solid #ffc107; 
+                    margin: 20px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class='email-container'>
+                <div class='header'>
+                    <h1>New Jobseeker Application</h1>
+                    <p>WorkConnect - Jobseeker Profile Details</p>
+                </div>
+                
+                <div class='content'>
+                    <div class='highlight'>
+                        <strong>Application Summary:</strong> " . $jobseeker['firstname'] . " " . $jobseeker['surname'] . " has been accepted for employment consideration. Please review their complete profile below.
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>I. PERSONAL INFORMATION</h3>
+                        <div class='field'><strong>Full Name:</strong> <span>" . $jobseeker['firstname'] . " " . $jobseeker['middlename'] . " " . $jobseeker['surname'] . "</span></div>
+                        <div class='field'><strong>Age:</strong> <span>" . (!empty($jobseeker['age']) ? $jobseeker['age'] . " years old" : "Not specified") . "</span></div>
+                        <div class='field'><strong>Gender:</strong> <span>" . ucfirst($jobseeker['sex']) . "</span></div>
+                        <div class='field'><strong>Date of Birth:</strong> <span>" . $jobseeker['dob'] . "</span></div>
+                        <div class='field'><strong>Civil Status:</strong> <span>" . $jobseeker['civilstatus'] . "</span></div>
+                        <div class='field'><strong>Religion:</strong> <span>" . $jobseeker['religion'] . "</span></div>
+                        <div class='field'><strong>Address:</strong> <span>" . $jobseeker['street'] . ", " . $jobseeker['barangay'] . ", " . $jobseeker['municipality'] . ", " . $jobseeker['province'] . "</span></div>
+                        <div class='field'><strong>Contact Number:</strong> <span>" . $jobseeker['contact'] . "</span></div>
+                        <div class='field'><strong>Email Address:</strong> <span>" . $jobseeker['email'] . "</span></div>
+                        <div class='field'><strong>TIN Number:</strong> <span>" . $jobseeker['tin'] . "</span></div>
+                        <div class='field'><strong>Height:</strong> <span>" . $jobseeker['height'] . " ft.</span></div>
+                        <div class='field'><strong>Disability Status:</strong> <span>" . formatDisability($jobseeker) . "</span></div>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>II. EMPLOYMENT STATUS</h3>";
+        
+        // Employment Status Section
+        if ($jobseeker['employed']) {
+            $message .= "<div class='field'><strong>Employment Status:</strong> <span>Employed</span></div>";
+            if ($jobseeker['employment_type_wage']) $message .= "<div class='field'><strong>Wage Employed:</strong> <span>" . formatBoolean($jobseeker['employment_type_wage']) . "</span></div>";
+            if ($jobseeker['employment_type_self']) {
+                $message .= "<div class='field'><strong>Self-Employed:</strong> <span>" . formatBoolean($jobseeker['employment_type_self']) . "</span></div>";
+                if ($jobseeker['self_type_voluntary']) $message .= "<div class='field'><strong>PhilHealth Member (Voluntary):</strong> <span>" . formatBoolean($jobseeker['self_type_voluntary']) . "</span></div>";
+                if ($jobseeker['self_type_vendor']) $message .= "<div class='field'><strong>Vendor/Retailer:</strong> <span>" . formatBoolean($jobseeker['self_type_vendor']) . "</span></div>";
+                if ($jobseeker['self_type_homebased']) $message .= "<div class='field'><strong>Home-based Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_homebased']) . "</span></div>";
+                if ($jobseeker['self_type_transport']) $message .= "<div class='field'><strong>Transport:</strong> <span>" . formatBoolean($jobseeker['self_type_transport']) . "</span></div>";
+                if ($jobseeker['self_type_domestic']) $message .= "<div class='field'><strong>Domestic Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_domestic']) . "</span></div>";
+                if ($jobseeker['self_type_fisherfolk']) $message .= "<div class='field'><strong>Fisherfolk:</strong> <span>" . formatBoolean($jobseeker['self_type_fisherfolk']) . "</span></div>";
+                if ($jobseeker['self_type_others'] && $jobseeker['self_type_other']) $message .= "<div class='field'><strong>Other Self-Employment:</strong> <span>" . $jobseeker['self_type_other'] . "</span></div>";
+            }
+        }
+        
+        if ($jobseeker['unemployed']) {
+            $message .= "<div class='field'><strong>Employment Status:</strong> <span>Unemployed</span></div>";
+            if ($jobseeker['unemployed_months']) $message .= "<div class='field'><strong>Duration Looking for Work:</strong> <span>" . $jobseeker['unemployed_months'] . " months</span></div>";
+            if ($jobseeker['unemployed_type_first']) $message .= "<div class='field'><strong>First-time Jobseeker/Graduate:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_first']) . "</span></div>";
+            if ($jobseeker['unemployed_type_local']) $message .= "<div class='field'><strong>Local Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_local']) . "</span></div>";
+            if ($jobseeker['unemployed_type_resigned']) $message .= "<div class='field'><strong>Resigned:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_resigned']) . "</span></div>";
+            if ($jobseeker['unemployed_type_finished']) $message .= "<div class='field'><strong>Finished Contract (OFW):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_finished']) . "</span></div>";
+            if ($jobseeker['unemployed_type_public']) $message .= "<div class='field'><strong>Public Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_public']) . "</span></div>";
+            if ($jobseeker['unemployed_type_retired']) $message .= "<div class='field'><strong>Retired:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_retired']) . "</span></div>";
+            if ($jobseeker['unemployed_type_terminated']) $message .= "<div class='field'><strong>Terminated/Laid off (Local):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_terminated']) . "</span></div>";
+        }
+        
+        if ($jobseeker['ofw']) $message .= "<div class='field'><strong>OFW Status:</strong> <span>" . $jobseeker['ofw'] . "</span></div>";
+        if ($jobseeker['ofw_country']) $message .= "<div class='field'><strong>OFW Country:</strong> <span>" . $jobseeker['ofw_country'] . "</span></div>";
+        if ($jobseeker['returnee']) $message .= "<div class='field'><strong>OFW Returnee:</strong> <span>" . $jobseeker['returnee'] . "</span></div>";
+        if ($jobseeker['deployment_country']) $message .= "<div class='field'><strong>Deployment Country:</strong> <span>" . $jobseeker['deployment_country'] . "</span></div>";
+        if ($jobseeker['return_month'] && $jobseeker['return_year']) $message .= "<div class='field'><strong>Return to Philippines:</strong> <span>" . $jobseeker['return_month'] . " " . $jobseeker['return_year'] . "</span></div>";
+        if ($jobseeker['abroad']) $message .= "<div class='field'><strong>Employed Abroad in Philippines:</strong> <span>" . $jobseeker['abroad'] . "</span></div>";
+        if ($jobseeker['beneficiary']) $message .= "<div class='field'><strong>Job Beneficiary:</strong> <span>" . $jobseeker['beneficiary'] . "</span></div>";
+        if ($jobseeker['household_id']) $message .= "<div class='field'><strong>Household ID:</strong> <span>" . $jobseeker['household_id'] . "</span></div>";
+        
+        $message .= "
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>III. JOB PREFERENCE</h3>
+                        <div class='field'><strong>Preferred Occupations:</strong> <span>" . $jobseeker['occupation1'] . ", " . $jobseeker['occupation2'] . ", " . $jobseeker['occupation3'] . "</span></div>
+                        <div class='field'><strong>Local Work Locations:</strong> <span>" . $jobseeker['local1'] . ", " . $jobseeker['local2'] . ", " . $jobseeker['local3'] . "</span></div>
+                        <div class='field'><strong>Overseas Work Locations:</strong> <span>" . $jobseeker['overseas1'] . ", " . $jobseeker['overseas2'] . ", " . $jobseeker['overseas3'] . "</span></div>
+                        <div class='field'><strong>Employment Type:</strong> <span>" . (formatBoolean($jobseeker['fulltime']) == 'Yes' ? 'Full-time' : '') . (formatBoolean($jobseeker['parttime']) == 'Yes' ? (formatBoolean($jobseeker['fulltime']) == 'Yes' ? ', ' : '') . 'Part-time' : '') . "</span></div>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>IV. LANGUAGE / DIALECT PROFICIENCY</h3>";
+        
+        // Language Proficiency Section
+        if ($jobseeker['english_read'] || $jobseeker['english_write'] || $jobseeker['english_speak'] || $jobseeker['english_understand']) {
+            $english_skills = [];
+            if ($jobseeker['english_read']) $english_skills[] = 'Read';
+            if ($jobseeker['english_write']) $english_skills[] = 'Write';
+            if ($jobseeker['english_speak']) $english_skills[] = 'Speak';
+            if ($jobseeker['english_understand']) $english_skills[] = 'Understand';
+            $message .= "<div class='field'><strong>English:</strong> <span>" . implode(', ', $english_skills) . "</span></div>";
+        }
+        
+        if ($jobseeker['filipino_read'] || $jobseeker['filipino_write'] || $jobseeker['filipino_speak'] || $jobseeker['filipino_understand']) {
+            $filipino_skills = [];
+            if ($jobseeker['filipino_read']) $filipino_skills[] = 'Read';
+            if ($jobseeker['filipino_write']) $filipino_skills[] = 'Write';
+            if ($jobseeker['filipino_speak']) $filipino_skills[] = 'Speak';
+            if ($jobseeker['filipino_understand']) $filipino_skills[] = 'Understand';
+            $message .= "<div class='field'><strong>Filipino:</strong> <span>" . implode(', ', $filipino_skills) . "</span></div>";
+        }
+        
+        if ($jobseeker['mandarin_read'] || $jobseeker['mandarin_write'] || $jobseeker['mandarin_speak'] || $jobseeker['mandarin_understand']) {
+            $mandarin_skills = [];
+            if ($jobseeker['mandarin_read']) $mandarin_skills[] = 'Read';
+            if ($jobseeker['mandarin_write']) $mandarin_skills[] = 'Write';
+            if ($jobseeker['mandarin_speak']) $mandarin_skills[] = 'Speak';
+            if ($jobseeker['mandarin_understand']) $mandarin_skills[] = 'Understand';
+            $message .= "<div class='field'><strong>Mandarin:</strong> <span>" . implode(', ', $mandarin_skills) . "</span></div>";
+        }
+        
+        if ($jobseeker['other_language'] && ($jobseeker['other_read'] || $jobseeker['other_write'] || $jobseeker['other_speak'] || $jobseeker['other_understand'])) {
+            $other_skills = [];
+            if ($jobseeker['other_read']) $other_skills[] = 'Read';
+            if ($jobseeker['other_write']) $other_skills[] = 'Write';
+            if ($jobseeker['other_speak']) $other_skills[] = 'Speak';
+            if ($jobseeker['other_understand']) $other_skills[] = 'Understand';
+            $message .= "<div class='field'><strong>" . $jobseeker['other_language'] . ":</strong> <span>" . implode(', ', $other_skills) . "</span></div>";
+        }
+        
+        $message .= "
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>V. EDUCATIONAL BACKGROUND</h3>
+                        <div class='field'><strong>Currently in School:</strong> <span>" . $jobseeker['inschool'] . "</span></div>
+                        <div class='field'><strong>Education Level:</strong> <span>" . $jobseeker['level'] . "</span></div>
+                        <div class='field'><strong>Course/Program:</strong> <span>" . $jobseeker['course'] . "</span></div>
+                        <div class='field'><strong>Year Graduated:</strong> <span>" . $jobseeker['year_graduated'] . "</span></div>
+                        <div class='field'><strong>Level Reached:</strong> <span>" . $jobseeker['level_reached'] . "</span></div>
+                        <div class='field'><strong>Last Attended:</strong> <span>" . $jobseeker['last_attended'] . "</span></div>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>VI. TECHNICAL/VOCATIONAL AND OTHER TRAINING</h3>";
+        
+        // Technical/Vocational Training Section
+        if ($jobseeker['training_course_1']) {
+            $message .= "<div class='field'><strong>Training Course 1:</strong> <span>" . $jobseeker['training_course_1'] . "</span></div>";
+            if ($jobseeker['training_hours_1']) $message .= "<div class='field'><strong>Training Hours 1:</strong> <span>" . $jobseeker['training_hours_1'] . "</span></div>";
+            if ($jobseeker['training_institution_1']) $message .= "<div class='field'><strong>Training Institution 1:</strong> <span>" . $jobseeker['training_institution_1'] . "</span></div>";
+            if ($jobseeker['training_skills_1']) $message .= "<div class='field'><strong>Training Skills 1:</strong> <span>" . $jobseeker['training_skills_1'] . "</span></div>";
+            if ($jobseeker['training_cert_1']) $message .= "<div class='field'><strong>Training Certificate 1:</strong> <span>" . $jobseeker['training_cert_1'] . "</span></div>";
+        }
+        
+        if ($jobseeker['training_course_2']) {
+            $message .= "<div class='field'><strong>Training Course 2:</strong> <span>" . $jobseeker['training_course_2'] . "</span></div>";
+            if ($jobseeker['training_hours_2']) $message .= "<div class='field'><strong>Training Hours 2:</strong> <span>" . $jobseeker['training_hours_2'] . "</span></div>";
+            if ($jobseeker['training_institution_2']) $message .= "<div class='field'><strong>Training Institution 2:</strong> <span>" . $jobseeker['training_institution_2'] . "</span></div>";
+            if ($jobseeker['training_skills_2']) $message .= "<div class='field'><strong>Training Skills 2:</strong> <span>" . $jobseeker['training_skills_2'] . "</span></div>";
+            if ($jobseeker['training_cert_2']) $message .= "<div class='field'><strong>Training Certificate 2:</strong> <span>" . $jobseeker['training_cert_2'] . "</span></div>";
+        }
+        
+        if ($jobseeker['training_course_3']) {
+            $message .= "<div class='field'><strong>Training Course 3:</strong> <span>" . $jobseeker['training_course_3'] . "</span></div>";
+            if ($jobseeker['training_hours_3']) $message .= "<div class='field'><strong>Training Hours 3:</strong> <span>" . $jobseeker['training_hours_3'] . "</span></div>";
+            if ($jobseeker['training_institution_3']) $message .= "<div class='field'><strong>Training Institution 3:</strong> <span>" . $jobseeker['training_institution_3'] . "</span></div>";
+            if ($jobseeker['training_skills_3']) $message .= "<div class='field'><strong>Training Skills 3:</strong> <span>" . $jobseeker['training_skills_3'] . "</span></div>";
+            if ($jobseeker['training_cert_3']) $message .= "<div class='field'><strong>Training Certificate 3:</strong> <span>" . $jobseeker['training_cert_3'] . "</span></div>";
+        }
+        
+        $message .= "
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>VII. ELIGIBILITY/PROFESSIONAL LICENSE</h3>";
+        
+        // Eligibility/Professional License Section
+        if ($jobseeker['eligibility_1']) $message .= "<div class='field'><strong>Eligibility 1:</strong> <span>" . $jobseeker['eligibility_1'] . "</span></div>";
+        if ($jobseeker['eligibility_date_1']) $message .= "<div class='field'><strong>Eligibility Date 1:</strong> <span>" . $jobseeker['eligibility_date_1'] . "</span></div>";
+        if ($jobseeker['eligibility_2']) $message .= "<div class='field'><strong>Eligibility 2:</strong> <span>" . $jobseeker['eligibility_2'] . "</span></div>";
+        if ($jobseeker['eligibility_date_2']) $message .= "<div class='field'><strong>Eligibility Date 2:</strong> <span>" . $jobseeker['eligibility_date_2'] . "</span></div>";
+        if ($jobseeker['prc_1']) $message .= "<div class='field'><strong>PRC License 1:</strong> <span>" . $jobseeker['prc_1'] . "</span></div>";
+        if ($jobseeker['prc_valid_1']) $message .= "<div class='field'><strong>PRC Valid Until 1:</strong> <span>" . $jobseeker['prc_valid_1'] . "</span></div>";
+        if ($jobseeker['prc_2']) $message .= "<div class='field'><strong>PRC License 2:</strong> <span>" . $jobseeker['prc_2'] . "</span></div>";
+        if ($jobseeker['prc_valid_2']) $message .= "<div class='field'><strong>PRC Valid Until 2:</strong> <span>" . $jobseeker['prc_valid_2'] . "</span></div>";
+        
+        $message .= "
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>VIII. WORK EXPERIENCE</h3>";
+        
+        if ($jobseeker['company_name_1']) {
+            $message .= "<div class='field'><strong>Experience 1:</strong> <span>" . $jobseeker['company_name_1'] . " - " . $jobseeker['position_1'] . " (" . $jobseeker['months_1'] . " months)</span></div>";
+        }
+        if ($jobseeker['company_name_2']) {
+            $message .= "<div class='field'><strong>Experience 2:</strong> <span>" . $jobseeker['company_name_2'] . " - " . $jobseeker['position_2'] . " (" . $jobseeker['months_2'] . " months)</span></div>";
+        }
+        if ($jobseeker['company_name_3']) {
+            $message .= "<div class='field'><strong>Experience 3:</strong> <span>" . $jobseeker['company_name_3'] . " - " . $jobseeker['position_3'] . " (" . $jobseeker['months_3'] . " months)</span></div>";
+        }
+        
+        $message .= "
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>IX. OTHER SKILLS ACQUIRED</h3>
+                        <div class='field'><strong>Technical Skills:</strong> <span>" . formatSkills($jobseeker) . "</span></div>
+                    </div>";
+        
+        if ($jobseeker['resume_file']) {
+            $resume_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/../uploads/resumes/" . $jobseeker['resume_file'];
+            $message .= "
+                    <div class='resume-section'>
+                        <h3>📄 Resume Document</h3>
+                        <p>Download the complete resume and supporting documents:</p>
+                        <a href='" . $resume_url . "' class='resume-link'>📥 Download Resume</a>
+                    </div>";
+        } else {
+            $message .= "
+                    <div class='resume-section'>
+                        <h3>📄 Resume Document</h3>
+                        <p>No resume file uploaded by the jobseeker.</p>
+                    </div>";
+        }
+        
+        if ($jobseeker['esignature_file']) {
+            $esignature_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/../uploads/esignatures/" . $jobseeker['esignature_file'];
+            $message .= "
+                    <div class='resume-section'>
+                        <h3>✍️ E-Signature</h3>
+                        <p>Download the jobseeker's electronic signature:</p>
+                        <a href='" . $esignature_url . "' class='resume-link'>📥 Download E-Signature</a>
+                    </div>";
+        }
+        
+        $message .= "
+                </div>
+                
+                <div class='footer'>
+                    <p><strong>WorkConnect</strong> - Connecting Talent with Opportunity</p>
+                    <p>This email was generated automatically. Please contact the system administrator if you have any questions.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+        
+        // Create PHPMailer instance
+        $mail = new PHPMailer(true);
+        
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = SMTP_USERNAME;
+            $mail->Password   = SMTP_PASSWORD;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = SMTP_PORT;
+            
+            // Recipients
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->addAddress($employer_email);
+            
+            // Content
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = $subject;
+            $mail->Body    = $message;
+            
+            $mail->send();
+            echo json_encode(['success' => true, 'message' => 'Email sent successfully to ' . $employer_email]);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Email could not be sent. Error: ' . $mail->ErrorInfo]);
+        }
+        
+    } else {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Jobseeker not found']);
+    }
+} else {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+}
+
+$conn->close();
+?>

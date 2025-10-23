@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkConnect Login</title>
+    <link rel="icon" href="..assets/image/PESO Logo circle.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px;
+        }
+
+        /* Acer TravelMate P2 Specific (1366x768) */
+        @media (max-width: 1366px) and (min-width: 1200px) {
+            .login-container {
+                padding: 30px 28px;
+                margin: 15px;
+                max-width: 380px;
+                border-radius: 10px;
+            }
+            
+            .logo {
+                height: 50px;
+                margin-bottom: 8px;
+            }
+            
+            .brand {
+                font-size: 1.5rem;
+            }
+            
+            .login-title {
+                font-size: 1.3rem;
+                margin-bottom: 25px;
+            }
+            
+            .form-group {
+                margin-bottom: 18px;
+            }
+            
+            .form-group input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+            
+            .login-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-bottom: 18px;
+            }
+            
+            .signup-link {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Acer TravelMate P2 Exact Resolution (1366x768) */
+        @media (max-width: 1366px) and (max-height: 768px) {
+            .login-container {
+                padding: 25px 24px;
+                margin: 12px;
+                max-width: 360px;
+                border-radius: 8px;
+            }
+            
+            .logo {
+                height: 45px;
+                margin-bottom: 6px;
+            }
+            
+            .brand {
+                font-size: 1.4rem;
+            }
+            
+            .login-title {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group input {
+                padding: 9px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .login-btn {
+                padding: 9px;
+                font-size: 0.9rem;
+                margin-bottom: 16px;
+            }
+            
+            .signup-link {
+                font-size: 0.85rem;
+            }
+            
+            .back-home {
+                margin-top: 15px;
+            }
+        }
+
+        /* Laptop Responsive (1024px - 1366px) */
+        @media (max-width: 1366px) and (min-width: 1024px) {
+            .login-container {
+                padding: 36px 32px;
+                margin: 18px;
+                max-width: 420px;
+            }
+            
+            .logo {
+                height: 56px;
+            }
+            
+            .brand {
+                font-size: 1.7rem;
+            }
+            
+            .login-title {
+                font-size: 1.4rem;
+            }
+        }
+
+        /* Tablet Responsive (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 768px) {
+            .login-container {
+                padding: 32px 28px;
+                margin: 16px;
+                max-width: 400px;
+            }
+            
+            .logo {
+                height: 52px;
+            }
+            
+            .brand {
+                font-size: 1.6rem;
+            }
+            
+            .login-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Mobile Responsive - App-like Design */
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 40px 32px;
+                margin: 20px;
+                max-width: 90%;
+                border-radius: 16px;
+            }
+            
+            .logo {
+                height: 64px;
+            }
+            
+            .brand {
+                font-size: 1.8rem;
+            }
+            
+            .login-title {
+                font-size: 1.5rem;
+                margin-bottom: 32px;
+            }
+            
+            .form-group {
+                margin-bottom: 24px;
+            }
+            
+            .form-group input {
+                padding: 14px 18px;
+                font-size: 1.1rem;
+                border-radius: 12px;
+            }
+            
+            .login-btn {
+                padding: 14px;
+                font-size: 1.1rem;
+                border-radius: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 36px 28px;
+                margin: 16px;
+                max-width: 95%;
+                border-radius: 14px;
+            }
+            
+            .logo {
+                height: 60px;
+            }
+            
+            .brand {
+                font-size: 1.7rem;
+            }
+            
+            .login-title {
+                font-size: 1.4rem;
+                margin-bottom: 28px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .form-group input {
+                padding: 12px 16px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+            
+            .login-btn {
+                padding: 12px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .brand {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1a3876;
+            margin: 0;
+        }
+
+        .login-title {
+            text-align: center;
+            color: #1a3876;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        /* Responsive Logo and Title */
+        @media (max-width: 768px) {
+            .logo {
+                height: 50px;
+            }
+            
+            .brand {
+                font-size: 1.6rem;
+            }
+            
+            .login-title {
+                font-size: 1.3rem;
+                margin-bottom: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                height: 45px;
+            }
+            
+            .brand {
+                font-size: 1.4rem;
+            }
+            
+            .login-title {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a3876;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #1a3876;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Form Elements */
+        @media (max-width: 768px) {
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+            
+            .login-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-bottom: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-group {
+                margin-bottom: 14px;
+            }
+            
+            .form-group input {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .login-btn {
+                padding: 8px;
+                font-size: 0.9rem;
+                margin-bottom: 14px;
+            }
+        }
+
+        .login-btn:hover {
+            background: #2c5aa0;
+        }
+
+        .signup-link {
+            text-align: center;
+            color: #666;
+        }
+
+        .signup-link a {
+            color: #1a3876;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #fcc;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #363;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #cfc;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-home a {
+            color: #1a3876;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-home a:hover {
+            text-decoration: underline;
+        }
+
+        .forgot {
+            display: block;
+            text-align: right;
+            color: #1a3876;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .forgot:hover {
+            text-decoration: underline;
+        }
+
+        #loginError {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #fcc;
+        }
+
+        /* Loading Spinner Styles */
+        .login-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+        }
+
+        .btn-text {
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .spinner-inner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .login-btn:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        /* Password Toggle Styles */
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #666;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #1a3876;
+        }
+
+        .password-toggle:focus {
+            outline: none;
+        }
+
+        /* Responsive password toggle */
+        @media (max-width: 768px) {
+            .password-toggle {
+                right: 10px;
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .password-toggle {
+                right: 8px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
+            <h1 class="brand">WorkConnect</h1>
+        </div>
+        
+        <h2 class="login-title">Welcome Back</h2>
+        
+        <!-- Success/Error Messages -->
+        <div id="successMessage" style="display:none;background:#efe;color:#363;padding:10px;border-radius:6px;margin-bottom:20px;text-align:center;border:1px solid #cfc;"></div>
+        <div id="errorMessage" style="display:none;background:#fee;color:#c33;padding:10px;border-radius:6px;margin-bottom:20px;text-align:center;border:1px solid #fcc;"></div>
+        
+        <form id="adminLoginForm" autocomplete="off">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" type="text" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input id="password" type="password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
+                </div>
+            </div>
+            
+            <a href="#" class="forgot" id="forgotPasswordLink">Forgot password?</a>
+            <div id="loginError" style="display:none;"></div>
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span class="btn-text">Login</span>
+                <div class="spinner" id="loginSpinner" style="display: none;">
+                    <div class="spinner-inner"></div>
+                </div>
+            </button>
+        </form>
+        
+       
+        
+        <!-- Forgot Password Modal -->
+        <div id="forgotPasswordModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
+                <div style="font-size:3rem;margin-bottom:16px;">🔑</div>
+                <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Reset Password</h3>
+                <p style="color:#666;margin-bottom:24px;font-size:1rem;">Enter your username to reset your password</p>
+                
+                <form id="forgotPasswordForm">
+                    <div style="margin-bottom:20px;text-align:left;">
+                        <label style="display:block;margin-bottom:8px;font-weight:bold;color:#333;">Username:</label>
+                        <input type="text" id="forgotUsername" placeholder="Enter your username" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:1rem;" required>
+                    </div>
+                    
+                    <div id="forgotError" style="display:none;background:#fee;color:#c33;padding:10px;border-radius:6px;margin-bottom:20px;text-align:center;border:1px solid #fcc;"></div>
+                    
+                    <div style="display:flex;gap:12px;justify-content:center;">
+                        <button type="submit" id="checkUsernameBtn" style="background:#233a8b;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;">
+                            <span class="btn-text">Check Username</span>
+                            <div class="spinner" id="checkUsernameSpinner" style="display: none;align-items:center;justify-content:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+                                <div class="spinner-inner" style="width:20px;height:20px;border:2px solid #ffffff;border-top:2px solid transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+                            </div>
+                        </button>
+                        <button type="button" id="cancelForgotBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+       
+    </div>
+    <script>
+    // Handle URL parameters for success/error messages
+    window.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const success = urlParams.get('success');
+        const error = urlParams.get('error');
+        
+        const successDiv = document.getElementById('successMessage');
+        const errorDiv = document.getElementById('errorMessage');
+        
+        if (success === 'password_reset') {
+            successDiv.textContent = 'Password reset successfully! You can now login with your new password.';
+            successDiv.style.display = 'block';
+        }
+        
+        if (error === 'invalid_username') {
+            errorDiv.textContent = 'Invalid username. Please try again.';
+            errorDiv.style.display = 'block';
+        } else if (error === 'database_error') {
+            errorDiv.textContent = 'Database error occurred. Please try again.';
+            errorDiv.style.display = 'block';
+        } else if (error === 'no_username') {
+            errorDiv.textContent = 'No username provided. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+        
+        // Clear URL parameters after showing message
+        if (success || error) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    });
+
+    document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.querySelector('.btn-text');
+        const spinner = document.getElementById('loginSpinner');
+        
+        // Show loading state
+        loginBtn.disabled = true;
+        btnText.style.display = 'none';
+        spinner.style.display = 'flex';
+        
+        var user = document.getElementById('username').value.trim();
+        var pass = document.getElementById('password').value;
+        var errorDiv = document.getElementById('loginError');
+        
+        fetch('login.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username: user, password: pass})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                errorDiv.style.display = 'none';
+                window.location.href = d.redirect || 'Dashboard.php';
+            } else {
+                // Reset button state on error
+                loginBtn.disabled = false;
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+                
+                errorDiv.textContent = d.message || 'Invalid username or password.';
+                errorDiv.style.display = 'block';
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        })
+        .catch(() => {
+            // Reset button state on error
+            loginBtn.disabled = false;
+            btnText.style.display = 'block';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'Server error.';
+            errorDiv.style.display = 'block';
+        });
+    });
+
+    // Forgot Password Modal Functionality
+    document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('forgotPasswordModal').style.display = 'flex';
+    });
+
+    document.getElementById('cancelForgotBtn').addEventListener('click', function() {
+        document.getElementById('forgotPasswordModal').style.display = 'none';
+        document.getElementById('forgotPasswordForm').reset();
+        document.getElementById('forgotError').style.display = 'none';
+        
+        // Reset button state
+        var checkBtn = document.getElementById('checkUsernameBtn');
+        var btnText = document.querySelector('#checkUsernameBtn .btn-text');
+        var spinner = document.getElementById('checkUsernameSpinner');
+        
+        checkBtn.disabled = false;
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
+    });
+
+    document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var username = document.getElementById('forgotUsername').value.trim();
+        var errorDiv = document.getElementById('forgotError');
+        var checkBtn = document.getElementById('checkUsernameBtn');
+        var btnText = document.querySelector('#checkUsernameBtn .btn-text');
+        var spinner = document.getElementById('checkUsernameSpinner');
+        
+        if (!username) {
+            errorDiv.textContent = 'Please enter your username.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Show loading state
+        checkBtn.disabled = true;
+        btnText.style.display = 'none';
+        spinner.style.display = 'flex';
+
+        // Check if username exists
+        fetch('forgot_password_handler.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username: username})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                // Username exists, redirect to reset password page
+                window.location.href = 'reset_password.php?username=' + encodeURIComponent(username);
+            } else {
+                // Reset button state on error
+                checkBtn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+                
+                errorDiv.textContent = d.message || 'Username not found.';
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            // Reset button state on error
+            checkBtn.disabled = false;
+            btnText.style.display = 'inline';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'Server error. Please try again.';
+            errorDiv.style.display = 'block';
+        });
+    });
+
+    // Close modal on outside click
+    window.onclick = function(e) {
+        if (e.target === document.getElementById('forgotPasswordModal')) {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            document.getElementById('forgotPasswordForm').reset();
+            document.getElementById('forgotError').style.display = 'none';
+            
+            // Reset button state
+            var checkBtn = document.getElementById('checkUsernameBtn');
+            var btnText = document.querySelector('#checkUsernameBtn .btn-text');
+            var spinner = document.getElementById('checkUsernameSpinner');
+            
+            checkBtn.disabled = false;
+            btnText.style.display = 'inline';
+            spinner.style.display = 'none';
+        }
+    };
+
+    // Password Toggle Functionality
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.querySelector('.password-toggle');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+    </script>
+</body>
+</html>

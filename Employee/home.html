@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WorkConnect Home</title>
+  <link rel="stylesheet" href="../assets/css/Employee-home.css">
+  <style>
+    /* Enhanced Carousel Styles */
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      height: 60vh;
+      min-height: 400px;
+      overflow: hidden;
+      border-radius: 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      background: #f0f0f0; /* Fallback background */
+    }
+    
+    .carousel-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    
+    .carousel {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .carousel-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #ddd; /* Debug background */
+    }
+    
+    .carousel-slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      z-index: 1;
+    }
+    
+    .carousel-slide.prev {
+      transform: translateX(-100%);
+    }
+    
+    .carousel-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+      display: block;
+      z-index: 1;
+    }
+    
+    .carousel-slide:hover .carousel-img {
+      transform: scale(1.05);
+    }
+    
+    .carousel-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+      color: white;
+      padding: 40px 20px 20px;
+      text-align: center;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+    
+    .carousel-slide.active .carousel-caption {
+      transform: translateY(0);
+    }
+    
+    .carousel-caption h3 {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin: 0 0 10px 0;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .carousel-caption p {
+      font-size: 1.2rem;
+      margin: 0;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      font-size: 2rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .carousel-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
+    
+    .carousel-btn.prev {
+      left: 20px;
+    }
+    
+    .carousel-btn.next {
+      right: 20px;
+    }
+    
+    .carousel-indicators {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+    
+    .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .indicator.active {
+      background: white;
+      transform: scale(1.2);
+    }
+    
+    .indicator:hover {
+      background: rgba(255, 255, 255, 0.8);
+    }
+    
+    .carousel-controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+    }
+    
+    .autoplay-toggle {
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .autoplay-toggle:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: scale(1.1);
+    }
+    
+    .play-icon {
+      font-size: 1.2rem;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .carousel-container {
+        height: 50vh;
+        min-height: 300px;
+      }
+      
+      .carousel-caption h3 {
+        font-size: 1.8rem;
+      }
+      
+      .carousel-caption p {
+        font-size: 1rem;
+      }
+      
+      .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+      }
+      
+      .carousel-btn.prev {
+        left: 10px;
+      }
+      
+      .carousel-btn.next {
+        right: 10px;
+      }
+      
+      .carousel-controls {
+        top: 10px;
+        right: 10px;
+      }
+      
+      .autoplay-toggle {
+        width: 35px;
+        height: 35px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .carousel-container {
+        height: 40vh;
+        min-height: 250px;
+      }
+      
+      .carousel-caption {
+        padding: 20px 15px 15px;
+      }
+      
+      .carousel-caption h3 {
+        font-size: 1.5rem;
+      }
+      
+      .carousel-caption p {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <!-- HEADER -->
+    <header>
+      <div class="navbar">
+  <div class="logo-brand">
+    <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
+    <span class="brand">WorkConnect</span>
+  </div>
+  <nav>
+    <a href="#" class="active">Home</a>
+    <a href="peso.html">Peso</a>
+    <a href="register.html">Register</a>
+    <a href="about.html">About</a>
+    <button class="apply-btn" onclick="window.location.href='login.php'">Login</button>
+  </nav>
+</div>
+
+    </header>
+
+    <!-- ENHANCED CAROUSEL (FULL WIDTH) -->
+    <div class="carousel-container full">
+      <div class="carousel-wrapper">
+        <button class="carousel-btn prev" aria-label="Previous image">&#10094;</button>
+        <div class="carousel">
+          <div class="carousel-slide active">
+            <img src="../assets/image/workconnectsamplepic.jpg" class="carousel-img" alt="WorkConnect Event 1">
+            <div class="carousel-caption">
+              <h3>Welcome to WorkConnect</h3>
+              <p>Your gateway to employment opportunities</p>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="../assets/image/image 29.png" class="carousel-img" alt="WorkConnect Event 2">
+            <div class="carousel-caption">
+              <h3>PESO Services</h3>
+              <p>Comprehensive employment assistance at your fingertips</p>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-btn next" aria-label="Next image">&#10095;</button>
+      </div>
+      
+      <!-- Carousel Indicators -->
+      <div class="carousel-indicators">
+        <span class="indicator active" data-slide="0"></span>
+        <span class="indicator" data-slide="1"></span>
+      </div>
+      
+      <!-- Auto-play toggle -->
+      <div class="carousel-controls">
+        <button class="autoplay-toggle" aria-label="Toggle autoplay">
+          <span class="play-icon">⏸</span>
+        </button>
+      </div>
+    </div>
+
+   
+    <div class="info-banner" style="margin-top: 10%;">
+      <p>
+        <strong>Visit your nearest PESO office</strong><br>
+        The Public Employment Service Office (PESO) is a non-fee charging multi-employment service<br>
+        facility where people could seek assistance for employment.
+      </p>
+    </div>
+    <!-- IMAGE VIEWER MODAL -->
+<div id="imageModal" class="image-modal">
+  <span id="closeModal" class="close-btn">← Back</span>
+  <img id="modalImage" class="modal-content">
+</div>
+
+
+    
+
+  <!-- Enhanced JS -->
+  <script>
+    class EnhancedCarousel {
+      constructor() {
+        this.currentIndex = 0;
+        this.slides = document.querySelectorAll('.carousel-slide');
+        this.indicators = document.querySelectorAll('.indicator');
+        this.total = this.slides.length;
+        this.autoSlideInterval = null;
+        this.isAutoPlaying = true;
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+        
+        this.init();
+      }
+      
+      init() {
+        console.log('Initializing carousel with', this.total, 'slides');
+        this.setupEventListeners();
+        this.showSlide(0);
+        this.startAutoSlide();
+        this.setupKeyboardNavigation();
+        this.setupTouchGestures();
+        
+        // Ensure first slide is visible
+        if (this.slides.length > 0) {
+          this.slides[0].classList.add('active');
+        }
+      }
+      
+      setupEventListeners() {
+        // Navigation buttons
+        document.querySelector('.carousel-btn.next').addEventListener('click', () => {
+          this.nextSlide();
+          this.resetAutoSlide();
+        });
+        
+        document.querySelector('.carousel-btn.prev').addEventListener('click', () => {
+          this.prevSlide();
+          this.resetAutoSlide();
+        });
+        
+        // Indicators
+        this.indicators.forEach((indicator, index) => {
+          indicator.addEventListener('click', () => {
+            this.goToSlide(index);
+            this.resetAutoSlide();
+          });
+        });
+        
+        // Auto-play toggle
+        document.querySelector('.autoplay-toggle').addEventListener('click', () => {
+          this.toggleAutoPlay();
+        });
+        
+        // Pause on hover (but don't change the play/pause button state)
+        document.querySelector('.carousel-container').addEventListener('mouseenter', () => {
+          this.pauseForHover();
+        });
+        
+        document.querySelector('.carousel-container').addEventListener('mouseleave', () => {
+          if (this.isAutoPlaying) {
+            this.startAutoSlide();
+          }
+        });
+      }
+      
+      setupKeyboardNavigation() {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft') {
+            this.prevSlide();
+            this.resetAutoSlide();
+          } else if (e.key === 'ArrowRight') {
+            this.nextSlide();
+            this.resetAutoSlide();
+          } else if (e.key === ' ') {
+            e.preventDefault();
+            this.toggleAutoPlay();
+          }
+        });
+      }
+      
+      setupTouchGestures() {
+        const carousel = document.querySelector('.carousel');
+        
+        carousel.addEventListener('touchstart', (e) => {
+          this.touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        carousel.addEventListener('touchend', (e) => {
+          this.touchEndX = e.changedTouches[0].screenX;
+          this.handleSwipe();
+        });
+      }
+      
+      handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = this.touchStartX - this.touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0) {
+            this.nextSlide();
+          } else {
+            this.prevSlide();
+          }
+          this.resetAutoSlide();
+        }
+      }
+      
+      showSlide(index) {
+        // Remove active class from all slides and indicators
+        this.slides.forEach(slide => slide.classList.remove('active', 'prev'));
+        this.indicators.forEach(indicator => indicator.classList.remove('active'));
+        
+        // Add active class to current slide and indicator
+        if (this.slides[index]) {
+          this.slides[index].classList.add('active');
+        }
+        if (this.indicators[index]) {
+          this.indicators[index].classList.add('active');
+        }
+        
+        this.currentIndex = index;
+      }
+      
+      nextSlide() {
+        const nextIndex = (this.currentIndex + 1) % this.total;
+        this.showSlide(nextIndex);
+      }
+      
+      prevSlide() {
+        const prevIndex = (this.currentIndex - 1 + this.total) % this.total;
+        this.showSlide(prevIndex);
+      }
+      
+      goToSlide(index) {
+        this.showSlide(index);
+      }
+      
+      startAutoSlide() {
+        this.stopAutoSlide();
+        this.autoSlideInterval = setInterval(() => {
+          this.nextSlide();
+        }, 4000);
+        this.isAutoPlaying = true;
+        this.updatePlayButton();
+      }
+      
+      stopAutoSlide() {
+        clearInterval(this.autoSlideInterval);
+        this.isAutoPlaying = false;
+        this.updatePlayButton();
+      }
+      
+      pauseAutoSlide() {
+        this.stopAutoSlide();
+      }
+      
+      pauseForHover() {
+        clearInterval(this.autoSlideInterval);
+        // Don't change button state or isAutoPlaying flag for hover pause
+      }
+      
+      toggleAutoPlay() {
+        if (this.isAutoPlaying) {
+          this.stopAutoSlide();
+        } else {
+          this.startAutoSlide();
+        }
+      }
+      
+      resetAutoSlide() {
+        this.stopAutoSlide();
+        this.startAutoSlide();
+      }
+      
+      updatePlayButton() {
+        const playIcon = document.querySelector('.play-icon');
+        playIcon.textContent = this.isAutoPlaying ? '⏸' : '▶';
+      }
+    }
+    
+    // Initialize enhanced carousel
+    const carousel = new EnhancedCarousel();
+    
+    // IMAGE VIEWER (Enhanced)
+    const modal = document.getElementById("imageModal");
+    const modalImg = document.getElementById("modalImage");
+    const closeModal = document.getElementById("closeModal");
+    
+    // Open modal when image clicked
+    document.querySelectorAll('.carousel-img').forEach(img => {
+      img.addEventListener("click", () => {
+        modal.style.display = "flex";
+        modalImg.src = img.src;
+        carousel.pauseAutoSlide(); // pause carousel when viewing
+      });
+    });
+    
+    // Close modal
+    closeModal.addEventListener("click", () => {
+      modal.style.display = "none";
+      if (carousel.isAutoPlaying) {
+        carousel.startAutoSlide(); // resume carousel
+      }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        modal.style.display = "none";
+        if (carousel.isAutoPlaying) {
+          carousel.startAutoSlide();
+        }
+      }
+    });
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+        if (carousel.isAutoPlaying) {
+          carousel.startAutoSlide();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

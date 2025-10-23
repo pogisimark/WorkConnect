@@ -1,0 +1,976 @@
+<?php include 'session_protect.php'; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkConnect Skill Registry</title>
+<style>
+    .add-modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.18);
+        justify-content: center;
+        align-items: center;
+    }
+    .add-modal-content {
+        background: #fff;
+        border-radius: 16px;
+        padding: 32px 32px 24px 32px;
+        max-width: 600px;
+        width: 98vw;
+        max-height: 95vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 24px rgba(35,58,139,0.18);
+        position: relative;
+    }
+    .add-modal-close {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #233a8b;
+        cursor: pointer;
+        font-weight: bold;
+        z-index: 10;
+    }
+    .add-modal-form label {
+        font-weight: bold;
+        margin-bottom: 2px;
+        display: block;
+        font-size: 1rem;
+    }
+    .add-modal-form input[type="text"],
+    .add-modal-form input[type="date"],
+    .add-modal-form input[type="number"],
+    .add-modal-form select {
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 8px;
+        border: 1px solid #b3c6e0;
+        margin-bottom: 12px;
+        font-size: 1rem;
+        background: #f4f6fa;
+    }
+    .add-modal-form .row {
+        display: flex;
+        gap: 18px;
+        margin-bottom: 0;
+    }
+    .add-modal-form .row > div {
+        flex: 1;
+    }
+    .add-modal-form .section-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin: 18px 0 8px 0;
+    }
+    .add-modal-form .radio-group {
+        display: flex;
+        gap: 18px;
+        margin-bottom: 12px;
+        align-items: center;
+    }
+    .add-modal-form .radio-group label {
+        font-weight: normal;
+        margin-bottom: 0;
+        font-size: 1rem;
+    }
+    .add-modal-form .legend {
+        font-size: 0.95rem;
+        color: #333;
+        margin-top: 18px;
+    }
+    .add-modal-form .submit-btn {
+        background: #233a8b;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 36px;
+        font-size: 1.08rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 18px;
+        float: right;
+        box-shadow: 0 1px 4px rgba(35,58,139,0.10);
+        transition: background 0.18s;
+    }
+    .add-modal-form .submit-btn:hover {
+        background: #1a2760;
+    }
+    .modal-actions {
+        position: absolute;
+        top: 16px;
+        right: 24px;
+        display: flex;
+        gap: 12px;
+        z-index: 20;
+    }
+    .modal-actions button {
+        background: #233a8b;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 7px 18px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.18s;
+        box-shadow: 0 1px 4px rgba(35,58,139,0.10);
+    }
+    .modal-actions button:hover {
+        background: #1a2760;
+    }
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: auto;
+        background: rgba(0,0,0,0.18);
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-content {
+        background: #fff;
+        border-radius: 16px;
+        padding: 32px 24px 24px 24px;
+        max-width: 98vw;
+        width: 95vw;
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: 0 4px 24px rgba(35,58,139,0.18);
+        position: relative;
+    }
+    .modal-close {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #233a8b;
+        cursor: pointer;
+        font-weight: bold;
+        z-index: 10;
+    }
+    .barangay-title-modal {
+        color: #233a8b;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 12px;
+        margin-left: 32px;
+    }
+    .barangay-table-form {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 1600px;
+    font-size: 0.98rem;
+    background: #fff;
+    table-layout: auto; /* Auto-adjust columns to fit content */
+    border: 1px solid #b0c4de;
+}
+    .barangay-table-form td {
+    min-width: 0;
+    border: 1px solid #b0c4de;
+    padding: 6px 4px;
+    text-align: center;
+    vertical-align: middle;
+    word-break: break-word;
+    background: #fff;
+}
+    .barangay-table-form th {
+    white-space: nowrap;
+    background: #d1e3fa;
+    color: #233a8b;
+    font-size: 0.98rem;
+    font-weight: bold;
+    border: 1px solid #b0c4de;
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 4px;
+    }
+    .barangay-table-form input, .barangay-table-form select {
+    min-width: 0;
+    width: auto;
+    border: none;
+    background: transparent;
+    font-size: 0.97rem;
+    text-align: center;
+    outline: none;
+    overflow-x: auto;
+    white-space: pre-line;
+    box-sizing: border-box;
+}
+.barangay-table-scroll {
+    overflow-x: auto !important;
+    width: 100%;
+    padding-bottom: 8px;
+    max-width: 100vw;
+}
+    @media (max-width: 900px) {
+        .modal-content {
+            padding: 12px 2vw 12px 2vw;
+        }
+        .barangay-title-modal {
+            margin-left: 0;
+        }
+    }
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #fafafa;
+        overflow: hidden; /* Prevent double scrollbars */
+    }
+    .header {
+        background: #233a8b;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        padding: 12px 24px;
+        height: 64px;
+    }
+    .header img {
+        height: 48px;
+        margin-right: 16px;
+        border-radius: 50%;
+        background: none;
+        border: none;
+    }
+    .header-title {
+        font-size: 1.7rem;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+    .layout {
+    display: flex;
+    min-height: calc(100vh - 64px);
+}
+    .sidebar {
+    background: #e3eaff;
+    width: 240px;
+    height: calc(100vh - 64px); /* Full height minus header */
+    position: fixed;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 0 0 24px;
+    z-index: 10;
+    box-sizing: border-box;
+    /* Prevent overflow below the viewport */
+    overflow-y: auto;
+}
+    .sidebar a {
+        font-weight: bold;
+        color: #222;
+        text-decoration: none;
+        margin-bottom: 28px;
+        font-size: 1.08rem;
+        letter-spacing: 0.5px;
+        transition: color 0.2s;
+    }
+    .sidebar a:hover {
+        color: #233a8b;
+    }
+    .sidebar .logout {
+        margin-top: auto;
+        margin-bottom: 32px;
+        color: #222;
+        font-weight: bold;
+        display: block;
+        width: 90%;
+        text-align: left;
+    }
+    .sidebar a:hover {
+        color: #233a8b;
+        background: #d1dbfa; 
+        border-radius: 8px;   
+        padding-left: 10px;   
+    }
+    .sidebar a:hover,
+    .sidebar a.active {
+        color: #fff;
+        background: #233a8b;
+        border-radius: 16px;
+        padding-left: 24px;
+        padding-right: 24px;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.10);
+        font-weight: bold;
+        padding: 10px;
+    }
+    .main-content {
+    flex: 1;
+    padding: 32px;
+    background: #fff;
+    min-height: 100vh;
+    margin-left: 240px; /* Offset for fixed sidebar */
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+    .barangay-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 32px 24px;
+        margin-top: 16px;
+    }
+    .barangay-card {
+        background: #e3eaff;
+        border-radius: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 18px 10px 10px 10px;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    .barangay-card:hover {
+        transform: scale(1.07);
+        box-shadow: 0 6px 18px rgba(35,58,139,0.18);
+        background: #d1dbfa;
+    }
+    .barangay-card img {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 12px;
+        background: #fff;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 4px rgba(35,58,139,0.10);
+    }
+    .barangay-name {
+        font-size: 1.05rem;
+        font-weight: bold;
+        color: #233a8b;
+        text-align: center;
+        margin-top: 6px;
+    }
+    @media (max-width: 1200px) {
+        .barangay-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    @media (max-width: 800px) {
+        .layout {
+            flex-direction: column;
+        }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: static;
+            flex-direction: row;
+            padding: 16px 0 0 0;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 16px;
+            height: auto;
+        }
+        .barangay-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .sidebar .logout {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
+    .barangay-table-form td:last-child input[type="text"] {
+    min-width: 120px;
+    max-width: 320px;
+}
+</style>
+<!-- ...existing code... -->
+<!-- ...existing code... -->
+</head>
+<body>
+    <div class="header">
+        <img src="../assets/image/PESO Logo circle.png" alt="Logo">
+        <span class="header-title">WorkConnect</span>
+    </div>
+    <div class="layout">
+        <div class="sidebar">
+            <a href="dashboard.html" >DASHBOARD</a>
+            <a href="job.html">JOB APPLICANTS</a>
+            <a href="#"class="active">SKILL REGISTRY</a>
+            <a href="btec.html">BTEC MONTHLY REPORT</a>
+            <a href="add.html">ADD ACCOUNT</a>
+            <a href="analytics.html">Analytics</a>
+            <a href="logout.php" class="logout">Logout</a>
+        </div>
+        <!-- ...existing code... -->
+<div class="main-content">
+
+    <!-- Add Modal for new entry -->
+    <div class="add-modal" id="addModal">
+        <div class="add-modal-content">
+            <button class="add-modal-close" id="closeAddModalBtn">&#8592;</button>
+            <form class="add-modal-form" id="addSkillForm">
+                <div style="text-align:center; font-weight:bold; font-size:1.15rem; margin-bottom:10px;">PUBLIC EMPLOYMENT SERVICE OFFICE<br>SKILLS REGISTRY SYSTEM</div>
+                <div class="row">
+                    <div>
+                        <label>City/Municipality:</label>
+                        <input type="text" name="city" id="addCity" value="Norzagaray" readonly style="background:#e9ecef;cursor:not-allowed;" />
+                    </div>
+                    <div>
+                        <label>Barangay:</label>
+                        <input type="text" name="barangay" id="addBarangay" readonly style="background:#e9ecef;cursor:not-allowed;" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>Date of Survey:</label>
+                        <input type="date" name="survey_date" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="flex:2;">
+                        <label>Printed Name <span style="font-weight:normal;">(Surname, First Name, Middle Initial)</span>:</label>
+                        <input type="text" name="printed_name" />
+                    </div>
+                    <div>
+                        <label>Date of Birth (MM/DD/YYYY):</label>
+                        <input type="date" name="dob" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>First-Time Jobseeker</label>
+                        <div class="radio-group">
+                            <input type="radio" name="ftjs" value="yes" id="ftjs_yes"><label for="ftjs_yes">Yes</label>
+                            <input type="radio" name="ftjs" value="no" id="ftjs_no"><label for="ftjs_no">No</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label>COVID-19 Displaced Workers</label>
+                        <div class="radio-group">
+                            <input type="radio" name="covid" value="yes" id="covid_yes"><label for="covid_yes">Yes</label>
+                            <input type="radio" name="covid" value="no" id="covid_no"><label for="covid_no">No</label>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Marital Status</label>
+                        <input type="text" name="marital" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="flex:2;">
+                        <label>House #/ Sitio/ Purok/ Street</label>
+                        <input type="text" name="address" />
+                    </div>
+                    <div>
+                        <label>Contact # Cell/Tel</label>
+                        <input type="text" name="contact" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="flex:2;">
+                        <label>Educational Attainment <span style="font-weight:normal;">(Please specify level & course)</span></label>
+                        <input type="text" name="education" />
+                    </div>
+                    <div>
+                        <label>Age</label>
+                        <input type="number" name="age" min="0" />
+                    </div>
+                    <div>
+                        <label>Sex</label>
+                        <input type="text" name="sex" />
+                    </div>
+                </div>
+                <div class="section-title">Employment</div>
+                <div class="row">
+                    <div>
+                        <label>WE (position):</label>
+                        <input type="text" name="we_position" />
+                    </div>
+                    <div>
+                        <label># of mos./years</label>
+                        <input type="text" name="we_months" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>SE (Livelihood/Business):</label>
+                        <input type="text" name="se_business" />
+                    </div>
+                    <div>
+                        <label># of mos./years</label>
+                        <input type="text" name="se_months" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label>UE (unemployed)</label>
+                        <div class="radio-group">
+                            <input type="checkbox" name="ue" id="ue_checkbox" value="yes">
+                            <label for="ue_checkbox">Yes</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="flex:2;">
+                        <label>Skills</label>
+                        <input type="text" name="skills" />
+                    </div>
+                </div>
+                <div class="legend">
+                    <strong>Legend:</strong><br>
+                    "E" refers to employed, "WE" refers to wage-employed, "SE" refers to self-employed, "UE" refers to unemployed
+                </div>
+                <button type="submit" class="submit-btn">SUBMIT</button>
+            </form>
+        </div>
+    </div>
+    <h2 style="color:#233a8b; font-size:1.5rem; font-weight:bold; margin-bottom:24px;">Barangay</h2>
+    <div class="barangay-grid">
+        <div class="barangay-card" data-barangay="Bangkal">
+            <img src="../assets/image/bangkal logo.png" alt="Bangkal">
+            <div class="barangay-name">Bangkal</div>
+        </div>
+        <div class="barangay-card" data-barangay="Baraka">
+            <img src="../assets/image/baraka logo.png" alt="Baraka">
+            <div class="barangay-name">Baraka</div>
+        </div>
+        <div class="barangay-card" data-barangay="Bigte">
+            <img src="../assets/image/bigte logo.png" alt="Bigte">
+            <div class="barangay-name">Bigte</div>
+        </div>
+        <div class="barangay-card" data-barangay="Bitungol">
+            <img src="../assets/image/bitungol logo.png" alt="Bitungol">
+            <div class="barangay-name">Bitungol</div>
+        </div>
+        <div class="barangay-card" data-barangay="Friendship Village Resources (FVR)">
+            <img src="../assets/image/fvr logo.png" alt="Friendship Village Resources (FVR)">
+            <div class="barangay-name">Friendship Villaga Resources (FVR)</div>
+        </div>
+        <div class="barangay-card" data-barangay="Matictic">
+            <img src="../assets/image/matictic logo.png" alt="Matictic">
+            <div class="barangay-name">Matictic</div>
+        </div>
+        <div class="barangay-card" data-barangay="Minuyan">
+            <img src="../assets/image/minuyan logo.png" alt="Minuyan">
+            <div class="barangay-name">Minuyan</div>
+        </div>
+        <div class="barangay-card" data-barangay="Partida">
+            <img src="../assets/image/partida logo.png" alt="Partida">
+            <div class="barangay-name">Partida</div>
+        </div>
+        <div class="barangay-card" data-barangay="Pinagtulayan">
+            <img src="../assets/image/pinagtulayan logo.png" alt="Pinagtulayan">
+            <div class="barangay-name">Pinagtulayan</div>
+        </div>
+        <div class="barangay-card" data-barangay="Poblacion">
+            <img src="../assets/image/poblacion logo.png" alt="Poblacion">
+            <div class="barangay-name">Poblacion</div>
+        </div>
+        <div class="barangay-card" data-barangay="San Lorenzo">
+            <img src="../assets/image/san lorenzo logo.png" alt="San Lorenzo">
+            <div class="barangay-name">San Lorenzo</div>
+        </div>
+        <div class="barangay-card" data-barangay="San Mateo">
+            <img src="../assets/image/san mateo logo.png" alt="San Mateo">
+            <div class="barangay-name">San Mateo</div>
+        </div>
+        <div class="barangay-card" data-barangay="Tigbe">
+            <img src="../assets/image/tigbe logo.png" alt="Tigbe">
+            <div class="barangay-name">Tigbe</div>
+        </div>
+    </div>
+    <!-- Modal for barangay form -->
+    <div class="modal" id="barangayModal">
+        <div class="modal-content">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+                <label for="filterMonth" style="font-weight:bold;">Month:</label>
+                <select id="filterMonth">
+                    <option value="">All</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+                <label for="filterYear" style="font-weight:bold;">Year:</label>
+                <select id="filterYear"></select>
+            </div>
+            <button class="modal-close" id="closeModalBtn">&#8592;</button>
+            <div class="modal-actions">
+                <button id="editModalBtn">Edit</button>
+                <button id="downloadModalBtn">Download</button>
+                <button id="addModalBtn">Add</button>
+            </div>
+            <div class="barangay-title-modal" id="barangayModalTitle">Bangkal</div>
+            <div class="barangay-table-scroll" style="overflow-x:auto;">
+                <table class="barangay-table-form">
+        <!-- colgroup removed for auto-sizing columns -->
+        <tr>
+            <th rowspan="2">No.</th>
+            <th rowspan="2">Date of Survey</th>
+            <th rowspan="2">Printed Name<br><span style="font-weight:normal;">(Surname, Firstname, Middle Initial)</span></th>
+            <th colspan="2">First Time Job Seeker</th>
+            <th colspan="2">COVID-19 Displaced Workers</th>
+            <th rowspan="2">House #/ Sitio/ Purok/ Street</th>
+            <th rowspan="2">Date of Birth<br><span style="font-weight:normal;">(mm/dd/yyyy)</span></th>
+            <th rowspan="2">Contact #<br>Cell/Tel</th>
+            <th rowspan="2">Age</th>
+            <th rowspan="2">Sex<br>(M/F)</th>
+            <th rowspan="2">Marital Status</th>
+            <th rowspan="2">Educational Attainment<br><span style="font-weight:normal;">(Please specify level and course)</span></th>
+            <th rowspan="2">Employment<br>WE (Position)</th>
+            <th rowspan="2"># of mos./ years</th>
+            <th rowspan="2">UE</th>
+            <th rowspan="2">Skills</th>
+        </tr>
+        <tr>
+            <th>YES</th>
+            <th>NO</th>
+            <th>YES</th>
+            <th>NO</th>
+        </tr>
+        <!-- 15 empty rows for input -->
+        <!-- ROWS_START -->
+        <!-- ROWS -->
+        <!-- ROWS_END -->
+    </table>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ...existing code... -->
+    </div>
+<script>
+// Populate year filter (from 2022 to current year, progressive)
+const filterYear = document.getElementById('filterYear');
+function populateYearFilter() {
+    const nowYear = new Date().getFullYear();
+    filterYear.innerHTML = '';
+    for (let y = nowYear; y >= 2022; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        filterYear.appendChild(opt);
+    }
+    filterYear.value = nowYear;
+}
+populateYearFilter();
+
+let filterMonth = document.getElementById('filterMonth');
+let filterMonthVal = '';
+let filterYearVal = new Date().getFullYear();
+filterMonth.addEventListener('change', function() {
+    filterMonthVal = this.value;
+    fetchBarangayTable(currentBarangay);
+});
+filterYear.addEventListener('change', function() {
+    filterYearVal = this.value;
+    fetchBarangayTable(currentBarangay);
+});
+// Add Modal logic (per barangay)
+const addModal = document.getElementById('addModal');
+const addModalBtn = document.getElementById('addModalBtn');
+const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+const addBarangayInput = document.getElementById('addBarangay');
+const addCityInput = document.getElementById('addCity');
+let currentBarangay = '';
+addModalBtn.addEventListener('click', function() {
+    // Set barangay field to currentBarangay
+    addBarangayInput.value = currentBarangay;
+    addCityInput.value = 'Norzagaray';
+    addModal.style.display = 'flex';
+});
+closeAddModalBtn.addEventListener('click', function() {
+    addModal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+    if (e.target === addModal) {
+        addModal.style.display = 'none';
+    }
+});
+// Download button placeholder
+document.getElementById('downloadModalBtn').addEventListener('click', function() {
+    alert('Download feature coming soon!');
+});
+// Generate 15 empty rows for the modal table
+const table = document.querySelector('.barangay-table-form');
+if (table) {
+    let rows = '';
+    for (let i = 1; i <= 15; i++) {
+        rows += `<tr>
+            <td>${i}</td>
+            <td><input type="text" name="name${i}"></td>
+            <td><input type="checkbox" name="ftjs_yes${i}"></td>
+            <td><input type="checkbox" name="ftjs_no${i}"></td>
+            <td><input type="checkbox" name="covid_yes${i}"></td>
+            <td><input type="checkbox" name="covid_no${i}"></td>
+            <td><input type="text" name="address${i}"></td>
+            <td><input type="text" name="dob${i}"></td>
+            <td><input type="text" name="contact${i}"></td>
+            <td><input type="text" name="age${i}"></td>
+            <td><input type="text" name="sex${i}"></td>
+            <td><input type="text" name="marital${i}"></td>
+            <td><input type="text" name="education${i}"></td>
+            <td><input type="text" name="we${i}"></td>
+            <td><input type="text" name="se${i}"></td>
+            <td><input type="text" name="months${i}"></td>
+            <td><input type="text" name="ue${i}"></td>
+            <td><input type="text" name="skills${i}"></td>
+        </tr>`;
+    }
+    // Insert rows between ROWS_START and ROWS_END comments
+    table.innerHTML = table.innerHTML.replace(
+        /<!-- ROWS_START -->([\s\S]*?)<!-- ROWS_END -->/,
+        `<!-- ROWS_START -->\n${rows}\n<!-- ROWS_END -->`
+    );
+}
+// Modal logic for barangay cards
+const modal = document.getElementById('barangayModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const barangayTitle = document.getElementById('barangayModalTitle');
+const cards = document.querySelectorAll('.barangay-card');
+let barangayTable = document.querySelector('.barangay-table-form');
+let editMode = false;
+cards.forEach(card => {
+    card.addEventListener('click', () => {
+        const name = card.getAttribute('data-barangay');
+        barangayTitle.textContent = name;
+        currentBarangay = name;
+        // Set barangay field for add modal as well
+        addBarangayInput.value = name;
+        // Fetch and render table for this barangay
+        fetchBarangayTable(name);
+        modal.style.display = 'flex';
+    });
+});
+closeModalBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+// Fetch barangay table data and render (always read-only by default)
+function fetchBarangayTable(barangay) {
+    let url = 'skill_registry.php?barangay=' + encodeURIComponent(barangay);
+    if (filterMonth && filterMonth.value) url += '&month=' + filterMonth.value;
+    if (filterYear && filterYear.value) url += '&year=' + filterYear.value;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+            let html = '';
+            // Table header (Skills last, no extra NO column)
+            html += `<tr>
+                <th rowspan="2">No.</th>
+                <th rowspan="2">Date of Survey</th>
+                <th rowspan="2">Printed Name<br><span style="font-weight:normal;">(Surname, Firstname, Middle Initial)</span></th>
+                <th colspan="2">First Time Job Seeker</th>
+                <th colspan="2">COVID-19 Displaced Workers</th>
+                <th rowspan="2">House #/ Sitio/ Purok/ Street</th>
+                <th rowspan="2">Date of Birth<br><span style="font-weight:normal;">(mm/dd/yyyy)</span></th>
+                <th rowspan="2">Contact #<br>Cell/Tel</th>
+                <th rowspan="2">Age</th>
+                <th rowspan="2">Sex<br>(M/F)</th>
+                <th rowspan="2">Marital Status</th>
+                <th rowspan="2">Educational Attainment<br><span style="font-weight:normal;">(Please specify level and course)</span></th>
+                <th rowspan="2">Employment<br>WE (Position)</th>
+                <th rowspan="2"># of mos./ years</th>
+                <th rowspan="2">UE</th>
+                <th rowspan="2">Skills</th>
+            </tr>`;
+            html += `<tr>
+                <th>YES</th><th>NO</th><th>YES</th><th>NO</th>
+            </tr>`;
+            // Always render 15 rows: fill with data, then empty rows if needed
+            let count = 0;
+            if (data.success && data.data.length) {
+                data.data.forEach((row, idx) => {
+                    // If survey_date is empty, null, or 0000-00-00, leave blank
+                    let surveyDateVal = (row.survey_date && row.survey_date !== '0000-00-00') ? row.survey_date : '';
+                    html += `<tr data-id="${row.id}">
+                        <td>${idx+1}</td>
+                        <td><input type="date" value="${surveyDateVal}" readonly /></td>
+                        <td><input type="text" value="${row.printed_name||''}" readonly /></td>
+                        <td><input type="checkbox" ${row.ftjs==='yes'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.ftjs==='no'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.covid==='yes'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.covid==='no'?'checked':''} disabled /></td>
+                        <td><input type="text" value="${row.address||''}" readonly /></td>
+                        <td><input type="text" value="${row.dob||''}" readonly /></td>
+                        <td><input type="text" value="${row.contact||''}" readonly /></td>
+                        <td><input type="text" value="${row.age||''}" readonly /></td>
+                        <td><input type="text" value="${row.sex||''}" readonly /></td>
+                        <td><input type="text" value="${row.marital||''}" readonly /></td>
+                        <td><input type="text" value="${row.education||''}" readonly /></td>
+                        <td><input type="text" value="${row.we_position||''}" readonly /></td>
+                        <td><input type="text" value="${row.we_months||''}" readonly /></td>
+                        <td><input type="checkbox" ${row.ue==='yes'?'checked':''} disabled /></td>
+                        <td><input type="text" value="${row.skills||''}" readonly /></td>
+                    </tr>`;
+                    count++;
+                });
+            }
+            for (let i = count + 1; i <= 15; i++) {
+                html += `<tr><td>${i}</td>
+                    <td><input type="date" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="text" readonly /></td>
+                </tr>`;
+            }
+            // Store count for quota check
+            window.currentBarangayMonthCount = count;
+            barangayTable.innerHTML = html;
+            // Enforce readOnly/disabled on all inputs after rendering
+            barangayTable.querySelectorAll('input[type="text"]').forEach(inp => inp.readOnly = true);
+            barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
+            barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
+        });
+    // Always reset edit mode and button
+    editMode = false;
+    document.getElementById('editModalBtn').textContent = 'Edit';
+    // Remove editable state on all inputs
+    if (barangayTable) {
+        barangayTable.querySelectorAll('input[type="text"]').forEach(inp => inp.readOnly = true);
+        barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
+        barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
+    }
+}
+
+// Add Skill Form submit (AJAX)
+document.getElementById('addSkillForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    // Convert UE checkbox to yes/no
+    formData.set('ue', formData.get('ue') ? 'yes' : '');
+    const data = Object.fromEntries(formData.entries());
+    // Check quota: only 15 per barangay per month
+    if (window.currentBarangayMonthCount >= 15) {
+        alert('Quota of this month has been reached for this barangay.');
+        return;
+    }
+    fetch('skill_registry.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(resp=>{
+        if (resp.success) {
+            // Clear all form fields after successful add
+            form.reset();
+            // Set city and barangay fields back to fixed values
+            addCityInput.value = 'Norzagaray';
+            addBarangayInput.value = currentBarangay;
+            addModal.style.display = 'none';
+            fetchBarangayTable(currentBarangay);
+        } else {
+            alert('Failed to save.');
+        }
+    });
+});
+
+document.getElementById('editModalBtn').addEventListener('click', function() {
+    if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+    editMode = !editMode;
+    // Toggle all inputs except No. column
+    barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+        let inputs = tr.querySelectorAll('input');
+        inputs.forEach((inp, idx) => {
+            if (idx === 0) return; // skip No.
+            if (inp.type === 'checkbox') {
+                inp.disabled = !editMode ? true : false;
+            } else {
+                inp.readOnly = !editMode ? true : false;
+            }
+        });
+    });
+    if (editMode) {
+        this.textContent = 'Save';
+    } else {
+        // Save all edited rows
+        let updatePromises = [];
+        barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+            const id = tr.getAttribute('data-id');
+            const tds = tr.querySelectorAll('td');
+            let surveyDateInput = tds[1].querySelector('input');
+            let surveyDateVal = surveyDateInput.value;
+            if (!surveyDateVal) {
+                surveyDateVal = surveyDateInput.getAttribute('data-prev') || '';
+            } else {
+                surveyDateInput.setAttribute('data-prev', surveyDateVal);
+            }
+            const data = {
+                id,
+                survey_date: surveyDateVal,
+                printed_name: tds[2].querySelector('input').value,
+                ftjs: tds[3].querySelector('input').checked ? 'yes' : (tds[4].querySelector('input').checked ? 'no' : ''),
+                covid: tds[5].querySelector('input').checked ? 'yes' : (tds[6].querySelector('input').checked ? 'no' : ''),
+                address: tds[7].querySelector('input').value,
+                dob: tds[8].querySelector('input').value,
+                contact: tds[9].querySelector('input').value,
+                age: tds[10].querySelector('input').value,
+                sex: tds[11].querySelector('input').value,
+                marital: tds[12].querySelector('input').value,
+                education: tds[13].querySelector('input').value,
+                we_position: tds[14].querySelector('input').value,
+                we_months: tds[15].querySelector('input').value,
+                ue: tds[16].querySelector('input').checked ? 'yes' : '',
+                skills: tds[17].querySelector('input').value
+            };
+            updatePromises.push(
+                fetch('skill_registry.php', {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(data)
+                })
+                .then(r=>r.json())
+                .then(resp=>{
+                    if (!resp.success) alert('Failed to update row');
+                })
+            );
+        });
+        Promise.all(updatePromises).then(() => {
+            this.textContent = 'Edit';
+            fetchBarangayTable(currentBarangay);
+        });
+    }
+});
+document.querySelectorAll('.logout').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location.href = 'logout.php';
+  });
+});
+</script>
+</body>
+</html>

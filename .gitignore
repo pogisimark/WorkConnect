@@ -1,0 +1,54 @@
+# XAMPP specific files
+xampp/
+htdocs/
+apache/
+mysql/
+php/
+tomcat/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database files (if any)
+*.sqlite
+*.db
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Node modules (if using any JS frameworks)
+node_modules/
+
+# Composer vendor (if using Composer)
+vendor/
+
+# Cache files
+cache/
+*.cache
+
+# Backup files
+*.bak
+*.backup

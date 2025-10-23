@@ -1,0 +1,2068 @@
+<?php include 'session_protect.php'; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkConnect Skill Registry</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .add-modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.18);
+        justify-content: center;
+        align-items: center;
+    }
+    .add-modal-content {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 24px 28px 20px 28px;
+        max-width: 1000px;
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 40px rgba(35,58,139,0.15);
+        border: 1px solid #bbdefb;
+        position: relative;
+    }
+    .add-modal-close {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: #90caf9;
+        color: #1565c0;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        font-weight: bold;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.2);
+    }
+    .add-modal-close:hover {
+        background: #bbdefb;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(35,58,139,0.3);
+    }
+    .add-modal-form label {
+        font-weight: bold;
+        margin-bottom: 2px;
+        display: block;
+        font-size: 1rem;
+    }
+    .add-modal-form input[type="text"],
+    .add-modal-form input[type="date"],
+    .add-modal-form input[type="number"],
+    .add-modal-form select {
+        width: 100%;
+        max-width: 300px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 2px solid #e3f2fd;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+        background: #fff;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(35,58,139,0.05);
+    }
+    .add-modal-form input[type="text"]:focus,
+    .add-modal-form input[type="date"]:focus,
+    .add-modal-form input[type="number"]:focus,
+    .add-modal-form select:focus {
+        border-color: #90caf9;
+        background: rgba(227,242,253,0.3);
+        box-shadow: 0 0 0 3px rgba(227,242,253,0.5);
+        outline: none;
+    }
+    .add-modal-form .row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 8px;
+    }
+    .add-modal-form .row > div {
+        flex: 1;
+    }
+    .add-modal-form .section-title {
+        font-weight: bold;
+        font-size: 1rem;
+        margin: 12px 0 6px 0;
+    }
+    .add-modal-form .radio-group {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 8px;
+        align-items: center;
+    }
+    .add-modal-form .radio-group label {
+        font-weight: normal;
+        margin-bottom: 0;
+        font-size: 1rem;
+    }
+    .add-modal-form .legend {
+        font-size: 0.9rem;
+        color: #333;
+        margin-top: 12px;
+    }
+    
+    /* Form Section Styling */
+    .form-section {
+        margin-bottom: 32px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #e3f2fd;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.05);
+    }
+    
+    .section-header {
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #90caf9;
+    }
+    
+    .section-header h3 {
+        margin: 0;
+        color: #233a8b;
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .form-section .row {
+        margin-bottom: 16px;
+    }
+    
+    .form-section .row:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Specific field max-widths to reduce crowding */
+    .add-modal-form input[name="city"],
+    .add-modal-form input[name="barangay"] {
+        max-width: 200px;
+    }
+    
+    .add-modal-form input[name="printed_name"] {
+        max-width: 400px;
+    }
+    
+    .add-modal-form input[name="address"] {
+        max-width: 350px;
+    }
+    
+    .add-modal-form input[name="education"] {
+        max-width: 400px;
+    }
+    
+    .add-modal-form select[name="education"] {
+        max-width: 400px;
+    }
+    
+    .add-modal-form input[name="we_position"],
+    .add-modal-form input[name="se_business"] {
+        max-width: 250px;
+    }
+    
+    .add-modal-form input[name="skills"] {
+        max-width: 400px;
+    }
+    
+    .add-modal-form input[name="contact"] {
+        max-width: 180px;
+    }
+    
+    .add-modal-form input[name="age"] {
+        max-width: 80px;
+    }
+    
+    .add-modal-form input[name="sex"] {
+        max-width: 60px;
+    }
+    
+    .add-modal-form input[name="marital"] {
+        max-width: 120px;
+    }
+    
+    .add-modal-form input[name="we_months"],
+    .add-modal-form input[name="se_months"] {
+        max-width: 100px;
+    }
+    
+    .add-modal-form select[name="we_months"],
+    .add-modal-form select[name="se_months"] {
+        max-width: 200px;
+    }
+    .add-modal-form .submit-btn {
+        background: #90caf9;
+        color: #1565c0;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 40px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 24px;
+        float: right;
+        box-shadow: 0 4px 12px rgba(35,58,139,0.2);
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .add-modal-form .submit-btn:hover {
+        background: #bbdefb;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(35,58,139,0.3);
+    }
+    .modal-actions {
+        position: absolute;
+        top: 16px;
+        right: 24px;
+        display: flex;
+        gap: 12px;
+        z-index: 20;
+    }
+    .modal-actions button {
+        background: #90caf9;
+        color: #1565c0;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.2);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .modal-actions button:hover {
+        background: #bbdefb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(35,58,139,0.3);
+    }
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: auto;
+        background: rgba(0,0,0,0.18);
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-content {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 32px 28px 28px 28px;
+        max-width: 98vw;
+        width: 95vw;
+        max-height: 90vh;
+        overflow: auto;
+        box-shadow: 0 8px 40px rgba(35,58,139,0.15);
+        border: 1px solid #bbdefb;
+        position: relative;
+    }
+    .modal-close {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: #90caf9;
+        color: #1565c0;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        font-weight: bold;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.2);
+    }
+    .modal-close:hover {
+        background: #bbdefb;
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(35,58,139,0.3);
+    }
+    .barangay-title-modal {
+        color: #1565c0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        margin-left: 32px;
+        margin-top: 60px;
+        text-align: center;
+        background: #e3f2fd;
+        padding: 16px 24px;
+        border-radius: 12px;
+        border-left: 4px solid #90caf9;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.1);
+    }
+    .barangay-table-form {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 5000px;
+        font-size: 0.85rem;
+        background: #fff;
+        table-layout: auto;
+        border: 2px solid #e3f2fd;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(35,58,139,0.08);
+    }
+    .barangay-table-form td {
+        min-width: 120px;
+        border: 1px solid #e3f2fd;
+        padding: 10px 8px;
+        text-align: center;
+        vertical-align: middle;
+        word-break: break-word;
+        background: #fff;
+        transition: background 0.2s ease;
+        white-space: normal;
+        overflow: visible;
+        width: auto;
+    }
+    .barangay-table-form tr:hover td {
+        background: rgba(35,58,139,0.02);
+    }
+    .barangay-table-form th {
+        white-space: normal;
+        background: #e3f2fd;
+        color: #233a8b;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid #bbdefb;
+        text-align: center;
+        vertical-align: middle;
+        padding: 12px 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        min-width: 120px;
+        overflow: visible;
+        width: auto;
+        line-height: 1.3;
+    }
+    .barangay-table-form input, .barangay-table-form select {
+        min-width: 0;
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 0.85rem;
+        text-align: center;
+        outline: none;
+        overflow: visible;
+        white-space: nowrap;
+        box-sizing: border-box;
+        border-radius: 0;
+        padding: 4px 6px;
+        transition: all 0.2s ease;
+    }
+    .barangay-table-form input:focus {
+        border-color: transparent;
+        background: rgba(227,242,253,0.3);
+        box-shadow: none;
+    }
+    .barangay-table-form input[readonly] {
+        background: transparent;
+        border-color: transparent;
+        color: #333;
+    }
+    .barangay-table-form input[disabled] {
+        background: transparent;
+        border-color: transparent;
+        cursor: not-allowed;
+    }
+    
+    /* Specific column width adjustments */
+    .barangay-table-form th:nth-child(1), .barangay-table-form td:nth-child(1) { min-width: 60px; } /* No. */
+    .barangay-table-form th:nth-child(2), .barangay-table-form td:nth-child(2) { min-width: 120px; } /* Date of Survey */
+    .barangay-table-form th:nth-child(3), .barangay-table-form td:nth-child(3) { min-width: 200px; } /* Printed Name */
+    .barangay-table-form th:nth-child(4), .barangay-table-form td:nth-child(4) { min-width: 80px; } /* FTJS Yes */
+    .barangay-table-form th:nth-child(5), .barangay-table-form td:nth-child(5) { min-width: 80px; } /* FTJS No */
+    .barangay-table-form th:nth-child(6), .barangay-table-form td:nth-child(6) { min-width: 80px; } /* COVID Yes */
+    .barangay-table-form th:nth-child(7), .barangay-table-form td:nth-child(7) { min-width: 80px; } /* COVID No */
+    .barangay-table-form th:nth-child(8), .barangay-table-form td:nth-child(8) { min-width: 180px; } /* Address */
+    .barangay-table-form th:nth-child(9), .barangay-table-form td:nth-child(9) { min-width: 120px; } /* DOB */
+    .barangay-table-form th:nth-child(10), .barangay-table-form td:nth-child(10) { min-width: 120px; } /* Contact */
+    .barangay-table-form th:nth-child(11), .barangay-table-form td:nth-child(11) { min-width: 60px; } /* Age */
+    .barangay-table-form th:nth-child(12), .barangay-table-form td:nth-child(12) { min-width: 80px; } /* Sex */
+    .barangay-table-form th:nth-child(13), .barangay-table-form td:nth-child(13) { min-width: 120px; } /* Marital Status */
+    .barangay-table-form th:nth-child(14), .barangay-table-form td:nth-child(14) { min-width: 200px; } /* Education */
+    .barangay-table-form th:nth-child(15), .barangay-table-form td:nth-child(15) { min-width: 150px; } /* WE Position */
+    .barangay-table-form th:nth-child(16), .barangay-table-form td:nth-child(16) { min-width: 120px; } /* WE Duration */
+    .barangay-table-form th:nth-child(17), .barangay-table-form td:nth-child(17) { min-width: 150px; } /* SE Business */
+    .barangay-table-form th:nth-child(18), .barangay-table-form td:nth-child(18) { min-width: 120px; } /* SE Duration */
+    .barangay-table-form th:nth-child(19), .barangay-table-form td:nth-child(19) { min-width: 80px; } /* UE */
+    .barangay-table-form th:nth-child(20), .barangay-table-form td:nth-child(20) { min-width: 200px; } /* Skills */
+    /* Filter UI Design */
+    .filter-container {
+        background: linear-gradient(135deg, #e3f2fd, #f0f4ff);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        border: 1px solid #bbdefb;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.1);
+        margin-top: 3%;
+    }
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .filter-label {
+        font-weight: 600;
+        color: #233a8b;
+        font-size: 0.9rem;
+        min-width: 60px;
+    }
+    .filter-select {
+        padding: 8px 12px;
+        border: 2px solid #bbdefb;
+        border-radius: 8px;
+        background: #fff;
+        color: #233a8b;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 120px;
+    }
+    .filter-select:focus {
+        outline: none;
+        border-color: #90caf9;
+        box-shadow: 0 0 0 3px rgba(144,202,249,0.2);
+    }
+    .filter-select:hover {
+        border-color: #90caf9;
+        background: rgba(144,202,249,0.05);
+    }
+.barangay-table-scroll {
+    overflow-x: auto !important;
+    width: 100%;
+    padding-bottom: 8px;
+    max-width: 100vw;
+    white-space: nowrap;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(35,58,139,0.1);
+}
+    @media (max-width: 900px) {
+        .modal-content {
+            padding: 12px 2vw 12px 2vw;
+        }
+        .barangay-title-modal {
+            margin-left: 0;
+        }
+    }
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #fafafa;
+        overflow: hidden; /* Prevent double scrollbars */
+    }
+    .header {
+        background: #233a8b;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        height: 64px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        max-width: 100vw;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.10);
+        box-sizing: border-box;
+    }
+    .header img {
+        height: 48px;
+        margin-right: 16px;
+        border-radius: 50%;
+        background: none;
+        border: none;
+    }
+    .header-title {
+        font-size: 1.7rem;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+    .layout {
+    display: flex;
+    min-height: 100vh;
+    padding-top: 64px; /* offset for fixed header */
+}
+    .sidebar {
+    background: #e3eaff;
+    width: 240px;
+    height: calc(100vh - 64px);
+    position: fixed;
+    top: 64px;
+    left: 0;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    padding: 32px 0 0 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+    .sidebar a {
+        font-weight: bold;
+        color: #222;
+        text-decoration: none;
+        margin-bottom: 16px;
+        font-size: 1rem;
+        letter-spacing: 0.3px;
+        transition: all 0.2s;
+        padding: 12px 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10%;
+    }
+    .sidebar a:hover {
+        color: #233a8b;
+        background: #d1dbfa;
+    }
+    .sidebar .logout {
+        margin-top: auto;
+        margin-bottom: 32px;
+        color: #222;
+        font-weight: bold;
+        display: block;
+        width: 90%;
+        text-align: left;
+    }
+    .sidebar a:hover {
+        color: #233a8b;
+        background: #d1dbfa; 
+        border-radius: 8px;   
+        padding-left: 10px;   
+    }
+    .sidebar a.active {
+        color: #fff;
+        background: #233a8b;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+    }
+    .main-content {
+    flex: 1;
+    padding: 32px;
+    background: #fff;
+    margin-left: 240px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+    .barangay-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+        margin-top: 24px;
+        padding: 0 16px;
+    }
+    .barangay-card {
+        background: #e3f2fd;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px 16px 20px 16px;
+        box-shadow: 0 4px 20px rgba(35,58,139,0.08);
+        border: 1px solid #bbdefb;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        min-height: 180px;
+    }
+    .barangay-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #90caf9;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .barangay-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 12px 40px rgba(35,58,139,0.15);
+        border-color: #90caf9;
+        background: #d1dbfa;
+    }
+    .barangay-card:hover::before {
+        opacity: 1;
+    }
+    .barangay-card img {
+        width: 70px;
+        height: 70px;
+        object-fit: contain;
+        border-radius: 16px;
+        background: #fff;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 12px rgba(35,58,139,0.15);
+        transition: all 0.3s ease;
+    }
+    .barangay-card:hover img {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(35,58,139,0.25);
+    }
+    .barangay-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #233a8b;
+        text-align: center;
+        margin-top: 8px;
+        line-height: 1.3;
+        padding: 0 8px;
+    }
+    @media (max-width: 1400px) {
+        .barangay-grid {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+    @media (max-width: 1200px) {
+        .barangay-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    @media (max-width: 900px) {
+        .barangay-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    @media (max-width: 768px) {
+        .header {
+            padding: 8px 16px;
+            height: 56px;
+        }
+        
+        .header img {
+            height: 36px;
+            margin-right: 12px;
+        }
+        
+        .header-title {
+            font-size: 1.4rem;
+        }
+        
+        .layout {
+            padding-top: 56px;
+            flex-direction: column;
+        }
+        
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            top: 0;
+            left: 0;
+            padding: 16px;
+            flex-direction: row;
+            overflow-x: auto;
+            gap: 8px;
+        }
+        
+        .sidebar a {
+            white-space: nowrap;
+            margin-bottom: 0;
+            margin-top: 0;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .main-content {
+            margin-left: 0;
+            padding: 20px;
+            height: auto;
+        }
+        
+        .barangay-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            padding: 0 10px;
+        }
+        
+        .barangay-card {
+            padding: 20px 12px 16px 12px;
+            min-height: 160px;
+        }
+        
+        .barangay-card img {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .barangay-name {
+            font-size: 0.9rem;
+        }
+        
+        .modal-content {
+            padding: 24px 20px 20px 20px;
+            max-width: 95vw;
+            width: 95vw;
+        }
+        
+        .barangay-title-modal {
+            font-size: 1.2rem;
+            margin-left: 0;
+            margin-top: 40px;
+            padding: 12px 16px;
+        }
+        
+        .barangay-table-form {
+            font-size: 0.8rem;
+            min-width: 4500px;
+        }
+        
+        .barangay-table-form th,
+        .barangay-table-form td {
+            padding: 8px 6px;
+            font-size: 0.8rem;
+            min-width: 100px;
+        }
+        
+        .add-modal-content {
+            padding: 20px 16px 16px 16px;
+            max-width: 95vw;
+            width: 95vw;
+            max-height: 85vh;
+        }
+        
+        .add-modal-form .row {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-section {
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .section-header h3 {
+            font-size: 1rem;
+        }
+        
+        .add-modal-form .submit-btn {
+            padding: 12px 32px;
+            font-size: 1rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .header {
+            padding: 6px 12px;
+            height: 48px;
+        }
+        
+        .header img {
+            height: 28px;
+            margin-right: 8px;
+        }
+        
+        .header-title {
+            font-size: 1.2rem;
+        }
+        
+        .layout {
+            padding-top: 48px;
+        }
+        
+        .sidebar {
+            padding: 12px;
+            gap: 6px;
+        }
+        
+        .sidebar a {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
+        
+        .main-content {
+            padding: 16px;
+        }
+        
+        .barangay-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding: 0 5px;
+        }
+        
+        .barangay-card {
+            padding: 16px 10px 12px 10px;
+            min-height: 140px;
+        }
+        
+        .barangay-card img {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .barangay-name {
+            font-size: 0.85rem;
+        }
+        
+        .modal-content {
+            padding: 20px 16px 16px 16px;
+            max-width: 98vw;
+            width: 98vw;
+        }
+        
+        .barangay-title-modal {
+            font-size: 1.1rem;
+            margin-top: 30px;
+            padding: 10px 12px;
+        }
+        
+        .barangay-table-form {
+            font-size: 0.75rem;
+            min-width: 4000px;
+        }
+        
+        .barangay-table-form th,
+        .barangay-table-form td {
+            padding: 6px 4px;
+            font-size: 0.75rem;
+            min-width: 90px;
+        }
+        
+        .add-modal-content {
+            padding: 18px 14px 14px 14px;
+            max-width: 98vw;
+            width: 98vw;
+            max-height: 90vh;
+        }
+        
+        .add-modal-form .submit-btn {
+            padding: 10px 24px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 800px) {
+        .layout {
+            flex-direction: column;
+        }
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: static;
+            flex-direction: row;
+            padding: 16px 0 0 0;
+            overflow-x: auto;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 20px;
+            height: auto;
+        }
+        .barangay-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .sidebar .logout {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
+    .barangay-table-form td:last-child input[type="text"] {
+    min-width: 120px;
+    max-width: 320px;
+}
+
+    /* SweetAlert z-index fix */
+    .swal-high-zindex {
+        z-index: 9999 !important;
+    }
+</style>
+<!-- ...existing code... -->
+<!-- ...existing code... -->
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <img src="../assets/image/PESO Logo circle.png" alt="Logo">
+            <span class="header-title">WorkConnect</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+            <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
+                👤
+            </div>
+            <span id="adminUsername" style="font-size: 1rem; font-weight: 500;">Welcome, Admin</span>
+        </div>
+    </div>
+    <div class="layout">
+        <div class="sidebar">
+            <a href="dashboard.php">📊 DASHBOARD</a>
+            <a href="job.php">👥 JOB APPLICANTS</a>
+            <a href="#"class="active">🛠️ SKILL REGISTRY</a>
+            <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
+            <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
+            <a href="analytics.php">📊 Analytics</a>
+            <a href="logout.php" class="logout">🚪 Logout</a>
+        </div>
+        <!-- ...existing code... -->
+<div class="main-content">
+
+    <!-- Add Modal for new entry -->
+    <div class="add-modal" id="addModal">
+        <div class="add-modal-content">
+            <button class="add-modal-close" id="closeAddModalBtn">&#8592;</button>
+            <form class="add-modal-form" id="addSkillForm">
+                <div style="text-align:center; font-weight:700; font-size:1.2rem; margin-bottom:30px; margin-top:60px; color:#1565c0; background: #e3f2fd; padding: 16px 20px; border-radius: 12px; border-left: 4px solid #90caf9; box-shadow: 0 2px 8px rgba(35,58,139,0.1);">PUBLIC EMPLOYMENT SERVICE OFFICE<br>SKILLS REGISTRY SYSTEM</div>
+                
+                <!-- Survey Information Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>📋 Survey Information</h3>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>City/Municipality:</label>
+                            <input type="text" name="city" id="addCity" value="Norzagaray" readonly style="background:#e9ecef;cursor:not-allowed;" />
+                        </div>
+                        <div>
+                            <label>Barangay:</label>
+                            <input type="text" name="barangay" id="addBarangay" readonly style="background:#e9ecef;cursor:not-allowed;" />
+                        </div>
+                        <div>
+                            <label>Date of Survey:</label>
+                            <input type="date" name="survey_date" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>👤 Personal Information</h3>
+                    </div>
+                    <div class="row">
+                        <div style="flex:2;">
+                            <label>Full Name <span style="font-weight:normal;">(Surname, First Name, Middle Initial)</span>:</label>
+                            <input type="text" name="printed_name" placeholder="Enter full name" />
+                        </div>
+                        <div>
+                            <label>Date of Birth:</label>
+                            <input type="date" name="dob" />
+                        </div>
+                        <div>
+                            <label>Age:</label>
+                            <input type="number" name="age" min="0" max="120" placeholder="Age" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>Sex:</label>
+                            <select name="sex">
+                                <option value="">Select</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Marital Status:</label>
+                            <select name="marital">
+                                <option value="">Select</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Separated">Separated</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Contact Number:</label>
+                            <input type="text" name="contact" placeholder="09XX-XXX-XXXX" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div style="flex:1;">
+                            <label>Address <span style="font-weight:normal;">(House #/ Sitio/ Purok/ Street)</span>:</label>
+                            <input type="text" name="address" placeholder="Enter complete address" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Education Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>🎓 Educational Background</h3>
+                    </div>
+                    <div class="row">
+                        <div style="flex:1;">
+                            <label>Educational Attainment <span style="font-weight:normal;"></span>:</label>
+                            <select name="education" id="educationSelect">
+                                <option value="">Select Educational Attainment</option>
+                                <option value="Elementary Graduate">Elementary Graduate</option>
+                                <option value="High School Level">High School Level</option>
+                                <option value="High School Graduate">High School Graduate</option>
+                                <option value="College Level">College Level</option>
+                                <option value="College Graduate">College Graduate</option>
+                                <option value="Others">Others, Specify:</option>
+                            </select>
+                            <input type="text" name="education_other" id="educationOther" placeholder="Specify other educational attainment" style="margin-top: 8px; display: none;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employment Status Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>💼 Employment Status</h3>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>First-Time Jobseeker:</label>
+                            <div class="radio-group">
+                                <input type="radio" name="ftjs" value="yes" id="ftjs_yes"><label for="ftjs_yes">Yes</label>
+                                <input type="radio" name="ftjs" value="no" id="ftjs_no"><label for="ftjs_no">No</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label>COVID-19 Displaced Worker:</label>
+                            <div class="radio-group">
+                                <input type="radio" name="covid" value="yes" id="covid_yes"><label for="covid_yes">Yes</label>
+                                <input type="radio" name="covid" value="no" id="covid_no"><label for="covid_no">No</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Currently Unemployed:</label>
+                            <div class="radio-group">
+                                <input type="checkbox" name="ue" id="ue_checkbox" value="yes">
+                                <label for="ue_checkbox">Yes</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employment Experience Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>💼 Employment Experience (Leave blank if not applicable)</h3>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>Wage Employment (WE) Position:</label>
+                            <input type="text" name="we_position" placeholder="e.g., Office Clerk, Sales Representative" />
+                        </div>
+                        <div>
+                            <label>Duration (months/years):</label>
+                            <select name="we_months">
+                                <option value="">Select Duration</option>
+                                <option value="0 month - 1 year">0 month - 1 year</option>
+                                <option value="2 years - 3 years">2 years - 3 years</option>
+                                <option value="4 years - 5 years">4 years - 5 years</option>
+                                <option value="6 years - above">6 years - above</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>Self-Employment (SE) Business:</label>
+                            <input type="text" name="se_business" placeholder="e.g., Sari-sari Store, Food Stall" />
+                        </div>
+                        <div>
+                            <label>Duration (months/years):</label>
+                            <select name="se_months">
+                                <option value="">Select Duration</option>
+                                <option value="0 month - 1 year">0 month - 1 year</option>
+                                <option value="2 years - 3 years">2 years - 3 years</option>
+                                <option value="4 years - 5 years">4 years - 5 years</option>
+                                <option value="6 years - above">6 years - above</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3>🛠️ Skills & Competencies</h3>
+                    </div>
+                    <div class="row">
+                        <div style="flex:1;">
+                            <label>Skills <span style="font-weight:normal;">(List all relevant skills)</span>:</label>
+                            <input type="text" name="skills" placeholder="e.g., Computer Literacy, Driving, Cooking, Carpentry, etc." />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <strong>Legend:</strong><br>
+                    <strong>WE</strong> = Wage Employed, <strong>SE</strong> = Self Employed, <strong>UE</strong> = Unemployed
+                </div>
+                <button type="submit" class="submit-btn">SUBMIT ENTRY</button>
+            </form>
+        </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e3f2fd;">
+        <div>
+            <h2 style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">Skill Registry</h2>
+            <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Select a barangay to manage skills registry</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="background: linear-gradient(135deg, #e3f2fd, #f0f4ff); padding: 12px 20px; border-radius: 12px; border-left: 4px solid #1976d2;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="barangayCount">13</div>
+                <div style="font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Barangays</div>
+            </div>
+        </div>
+    </div>
+    <div class="barangay-grid">
+        <div class="barangay-card" data-barangay="Bangkal">
+            <img src="../assets/image/bangkal logo.png" alt="Bangkal">
+            <div class="barangay-name">Bangkal</div>
+        </div>
+        <div class="barangay-card" data-barangay="Baraka">
+            <img src="../assets/image/baraka logo.png" alt="Baraka">
+            <div class="barangay-name">Baraka</div>
+        </div>
+        <div class="barangay-card" data-barangay="Bigte">
+            <img src="../assets/image/bigte logo.png" alt="Bigte">
+            <div class="barangay-name">Bigte</div>
+        </div>
+        <div class="barangay-card" data-barangay="Bitungol">
+            <img src="../assets/image/bitungol logo.png" alt="Bitungol">
+            <div class="barangay-name">Bitungol</div>
+        </div>
+        <div class="barangay-card" data-barangay="Friendship Village Resources (FVR)">
+            <img src="../assets/image/fvr logo.png" alt="Friendship Village Resources (FVR)">
+            <div class="barangay-name">Friendship Villaga Resources (FVR)</div>
+        </div>
+        <div class="barangay-card" data-barangay="Matictic">
+            <img src="../assets/image/matictic logo.png" alt="Matictic">
+            <div class="barangay-name">Matictic</div>
+        </div>
+        <div class="barangay-card" data-barangay="Minuyan">
+            <img src="../assets/image/minuyan logo.png" alt="Minuyan">
+            <div class="barangay-name">Minuyan</div>
+        </div>
+        <div class="barangay-card" data-barangay="Partida">
+            <img src="../assets/image/partida logo.png" alt="Partida">
+            <div class="barangay-name">Partida</div>
+        </div>
+        <div class="barangay-card" data-barangay="Pinagtulayan">
+            <img src="../assets/image/pinagtulayan logo.png" alt="Pinagtulayan">
+            <div class="barangay-name">Pinagtulayan</div>
+        </div>
+        <div class="barangay-card" data-barangay="Poblacion">
+            <img src="../assets/image/poblacion logo.png" alt="Poblacion">
+            <div class="barangay-name">Poblacion</div>
+        </div>
+        <div class="barangay-card" data-barangay="San Lorenzo">
+            <img src="../assets/image/san lorenzo logo.png" alt="San Lorenzo">
+            <div class="barangay-name">San Lorenzo</div>
+        </div>
+        <div class="barangay-card" data-barangay="San Mateo">
+            <img src="../assets/image/san mateo logo.png" alt="San Mateo">
+            <div class="barangay-name">San Mateo</div>
+        </div>
+        <div class="barangay-card" data-barangay="Tigbe">
+            <img src="../assets/image/tigbe logo.png" alt="Tigbe">
+            <div class="barangay-name">Tigbe</div>
+        </div>
+    </div>
+    <!-- Modal for barangay form -->
+    <div class="modal" id="barangayModal">
+        <div class="modal-content">
+            <div class="filter-container">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="filterMonth" class="filter-label">📅 Month:</label>
+                        <select id="filterMonth" class="filter-select">
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterYear" class="filter-label">📆 Year:</label>
+                        <select id="filterYear" class="filter-select"></select>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-close" id="closeModalBtn">&#8592;</button>
+            <div class="modal-actions">
+                <button id="editModalBtn">Edit</button>
+                <button id="downloadModalBtn">Download</button>
+                <button id="addModalBtn">Add</button>
+            </div>
+            <div class="barangay-title-modal" id="barangayModalTitle">Bangkal</div>
+            <div class="barangay-table-scroll" style="overflow-x:auto;">
+                <table class="barangay-table-form">
+        <!-- colgroup removed for auto-sizing columns -->
+        <tr>
+            <th rowspan="2">No.</th>
+            <th rowspan="2">Date of Survey</th>
+            <th rowspan="2">Printed Name<br><span style="font-weight:normal;">(Surname, Firstname, Middle Initial)</span></th>
+            <th colspan="2">First Time Job Seeker</th>
+            <th colspan="2">COVID-19 Displaced Workers</th>
+            <th rowspan="2">House #/ Sitio/ Purok/ Street</th>
+            <th rowspan="2">Date of Birth<br><span style="font-weight:normal;">(mm/dd/yyyy)</span></th>
+            <th rowspan="2">Contact #<br>Cell/Tel</th>
+            <th rowspan="2">Age</th>
+            <th rowspan="2">Sex<br>(M/F)</th>
+            <th rowspan="2">Marital Status</th>
+            <th rowspan="2">Educational Attainment<br><span style="font-weight:normal;">(Please specify level and course)</span></th>
+            <th rowspan="2">Employment<br>WE (Position)</th>
+            <th rowspan="2"># of mos./ years</th>
+            <th rowspan="2">Employment<br> SE (Livelihood/Business)</th>
+            <th rowspan="2"># of mos./ years</th>
+            <th rowspan="2">UE</th>
+            <th rowspan="2">Skills</th>
+        </tr>
+        <tr>
+            <th>YES</th>
+            <th>NO</th>
+            <th>YES</th>
+            <th>NO</th>
+        </tr>
+        <!-- 15 empty rows for input -->
+        <!-- ROWS_START -->
+        <!-- ROWS -->
+        <!-- ROWS_END -->
+    </table>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ...existing code... -->
+    </div>
+<script>
+// Update username display
+        fetch('session_check.php')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('adminUsername').textContent = 'Welcome, ' + data.username;
+                if (data.isMainAdmin) {
+                    document.getElementById('addAccountLink').style.display = 'block';
+                } else {
+                    document.getElementById('addAccountLink').style.display = 'none';
+                }
+            })
+            .catch(() => {
+                console.error('Session check failed');
+            });
+
+// Populate year filter (from 2022 to current year, progressive)
+const filterYear = document.getElementById('filterYear');
+function populateYearFilter() {
+    const nowYear = new Date().getFullYear();
+    filterYear.innerHTML = '';
+    for (let y = nowYear; y >= 2022; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        filterYear.appendChild(opt);
+    }
+    filterYear.value = nowYear;
+}
+populateYearFilter();
+
+let filterMonth = document.getElementById('filterMonth');
+let filterMonthVal = '01'; // Default to January
+let filterYearVal = new Date().getFullYear();
+
+// Set default month to January
+filterMonth.value = '01';
+filterMonth.addEventListener('change', function() {
+    filterMonthVal = this.value;
+    fetchBarangayTable(currentBarangay);
+});
+filterYear.addEventListener('change', function() {
+    filterYearVal = this.value;
+    fetchBarangayTable(currentBarangay);
+});
+// Add Modal logic (per barangay)
+const addModal = document.getElementById('addModal');
+const addModalBtn = document.getElementById('addModalBtn');
+const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+const addBarangayInput = document.getElementById('addBarangay');
+const addCityInput = document.getElementById('addCity');
+let currentBarangay = '';
+addModalBtn.addEventListener('click', function() {
+    // Set barangay field to currentBarangay
+    addBarangayInput.value = currentBarangay;
+    addCityInput.value = 'Norzagaray';
+    addModal.style.display = 'flex';
+});
+closeAddModalBtn.addEventListener('click', function() {
+    addModal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+    if (e.target === addModal) {
+        addModal.style.display = 'none';
+    }
+});
+// Download button functionality
+document.getElementById('downloadModalBtn').addEventListener('click', function() {
+    downloadCurrentTableData();
+});
+
+// Function to download current table data as Excel file with proper formatting
+function downloadCurrentTableData() {
+    const table = document.querySelector('.barangay-table-form');
+    if (!table) {
+        alert('No table data found!');
+        return;
+    }
+    
+    // Get current filter values
+    const currentBarangay = document.getElementById('barangayModalTitle').textContent;
+    const currentMonth = document.getElementById('filterMonth').value;
+    const currentYear = document.getElementById('filterYear').value;
+    
+    // Create Excel file using SheetJS library
+    createExcelFile(currentBarangay, currentMonth, currentYear, table);
+}
+
+// Function to create Excel file with proper formatting
+function createExcelFile(barangay, month, year, table) {
+    // Check if SheetJS is loaded, if not, load it dynamically
+    if (typeof XLSX === 'undefined') {
+        loadSheetJS().then(() => {
+            createExcelFile(barangay, month, year, table);
+        });
+        return;
+    }
+    
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Prepare data for Excel
+    const excelData = prepareExcelData(barangay, month, year, table);
+    
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    
+    // Set column widths for better display
+    const colWidths = [
+        { wch: 5 },   // No.
+        { wch: 15 },  // Date of Survey
+        { wch: 25 },  // Full Name
+        { wch: 20 },  // First Time Job Seeker
+        { wch: 25 },  // COVID-19 Displaced Worker
+        { wch: 30 },  // Complete Address
+        { wch: 15 },  // Date of Birth
+        { wch: 18 },  // Contact Number
+        { wch: 8 },   // Age
+        { wch: 10 },  // Gender
+        { wch: 15 },  // Marital Status
+        { wch: 20 },  // Education Level
+        { wch: 25 },  // Work Experience Position
+        { wch: 15 },  // WE Duration
+        { wch: 25 },  // Self-Employment Business
+        { wch: 15 },  // SE Duration
+        { wch: 15 },  // Unemployed Status
+        { wch: 35 }   // Skills & Competencies
+    ];
+    
+    ws['!cols'] = colWidths;
+    
+    // Add the worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Skill Registry');
+    
+    // Generate filename
+    const monthStr = month ? getMonthName(month) : 'AllMonths';
+    const yearStr = year || 'AllYears';
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `SkillRegistry_${barangay.replace(/\s+/g, '')}_${monthStr}_${yearStr}_${dateStr}.xlsx`;
+    
+    // Write and download the file
+    XLSX.writeFile(wb, filename);
+}
+
+// Function to load SheetJS library dynamically
+function loadSheetJS() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load SheetJS library'));
+        document.head.appendChild(script);
+    });
+}
+
+// Function to prepare data for Excel export
+function prepareExcelData(barangay, month, year, table) {
+    const data = [];
+    
+    // Add header information
+    data.push(['SKILL REGISTRY DATA EXPORT']);
+    data.push(['=====================================']);
+    data.push([`Barangay: ${barangay}`]);
+    data.push([`Month: ${month ? getMonthName(month) : 'All Months'}`]);
+    data.push([`Year: ${year || 'All Years'}`]);
+    data.push([`Export Date: ${new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    })}`]);
+    data.push([`Generated by: WorkConnect PESO System`]);
+    data.push(['=====================================']);
+    data.push([]); // Empty row
+    
+    // Add table headers
+    const headers = [
+        'No.',
+        'Date of Survey',
+        'Full Name',
+        'First Time Job Seeker',
+        'COVID-19 Displaced Worker',
+        'Complete Address',
+        'Date of Birth',
+        'Contact Number',
+        'Age',
+        'Gender',
+        'Marital Status',
+        'Education Level',
+        'WE (Position)',
+        'WE Duration',
+        'SE (Livelihood/Business)',
+        'SE Duration',
+        'Unemployed Status',
+        'Skills & Competencies'
+    ];
+    data.push(headers);
+    
+    // Get all data rows (skip header rows)
+    const rows = table.querySelectorAll('tr');
+    let dataRowCount = 0;
+    
+    rows.forEach((row, index) => {
+        // Skip the first two header rows
+        if (index < 2) return;
+        
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 0) return;
+        
+        // Check if this row has actual data (not empty)
+        const nameInput = cells[2]?.querySelector('input');
+        if (!nameInput || !nameInput.value.trim()) return;
+        
+        dataRowCount++;
+        let rowData = [];
+        
+        // Process each cell with special handling for checkbox pairs
+        let ftjsValue = '';
+        let covidValue = '';
+        let processedCells = 0;
+        
+        cells.forEach((cell, cellIndex) => {
+            const input = cell.querySelector('input');
+            if (input) {
+                if (input.type === 'checkbox') {
+                    // Handle checkbox pairs for FTJS and COVID-19
+                    if (cellIndex === 3) { // FTJS Yes checkbox
+                        if (input.checked) ftjsValue = 'Yes';
+                    } else if (cellIndex === 4) { // FTJS No checkbox
+                        if (input.checked) ftjsValue = 'No';
+                    } else if (cellIndex === 5) { // COVID-19 Yes checkbox
+                        if (input.checked) covidValue = 'Yes';
+                    } else if (cellIndex === 6) { // COVID-19 No checkbox
+                        if (input.checked) covidValue = 'No';
+                    } else if (cellIndex === 18) { // Unemployed checkbox
+                        rowData.push(input.checked ? 'Yes' : 'No');
+                        processedCells++;
+                    }
+                } else {
+                    let value = input.value || '';
+                    
+                    // Format specific fields for better readability
+                    if (cellIndex === 1 && value) { // Date of Survey
+                        value = formatDate(value);
+                    } else if (cellIndex === 8 && value) { // Date of Birth
+                        value = formatDate(value);
+                    } else if (cellIndex === 9 && value) { // Contact Number
+                        value = formatContactNumber(value);
+                    } else if (cellIndex === 19 && value) { // Skills
+                        value = formatSkills(value);
+                    }
+                    
+                    // Add data based on cell index, skipping checkbox columns
+                    if (cellIndex === 0) { // No.
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 1) { // Date of Survey
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 2) { // Full Name
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 7) { // Address
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 8) { // Date of Birth
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 9) { // Contact Number
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 10) { // Age
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 11) { // Gender
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 12) { // Marital Status
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 13) { // Education Level
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 14) { // Work Experience Position
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 15) { // WE Duration
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 16) { // Self-Employment Business
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 17) { // SE Duration
+                        rowData.push(value);
+                        processedCells++;
+                    } else if (cellIndex === 19) { // Skills
+                        rowData.push(value);
+                        processedCells++;
+                    }
+                }
+            } else {
+                // Handle non-input cells
+                if (cellIndex === 0) { // No.
+                    rowData.push(cell.textContent.trim());
+                    processedCells++;
+                }
+            }
+        });
+        
+        // Add consolidated checkbox values at the correct positions
+        // Insert FTJS value at position 3 (after No., Date of Survey, Full Name)
+        rowData.splice(3, 0, ftjsValue || 'Not specified');
+        // Insert COVID-19 value at position 4 (after FTJS)
+        rowData.splice(4, 0, covidValue || 'Not specified');
+        
+        data.push(rowData);
+    });
+    
+    // Add summary section
+    data.push([]); // Empty row
+    data.push(['SUMMARY REPORT']);
+    data.push(['=====================================']);
+    data.push([`Total Records Exported: ${dataRowCount}`]);
+    data.push([`Barangay: ${barangay}`]);
+    data.push([`Filter Applied: ${month ? getMonthName(month) : 'All months'} ${year || 'All years'}`]);
+    data.push([`Export Timestamp: ${new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    })}`]);
+    data.push(['=====================================']);
+    
+    return data;
+}
+
+// Helper functions for better data formatting
+function formatDate(dateString) {
+    if (!dateString || dateString === '0000-00-00') return 'Not specified';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function formatContactNumber(contact) {
+    if (!contact) return 'Not provided';
+    // Remove any non-digit characters and format
+    const cleaned = contact.replace(/\D/g, '');
+    if (cleaned.length === 11 && cleaned.startsWith('09')) {
+        return `+63${cleaned.substring(1)}`;
+    } else if (cleaned.length === 10) {
+        return `+63${cleaned}`;
+    }
+    return contact;
+}
+
+function formatSkills(skills) {
+    if (!skills) return 'None specified';
+    // Clean up skills formatting
+    return skills.split(',').map(skill => skill.trim()).filter(skill => skill).join(', ');
+}
+
+// Helper function to get month name
+function getMonthName(monthNumber) {
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[parseInt(monthNumber) - 1] || 'Unknown';
+}
+// Generate 15 empty rows for the modal table
+const table = document.querySelector('.barangay-table-form');
+if (table) {
+    let rows = '';
+    for (let i = 1; i <= 15; i++) {
+        rows += `<tr>
+            <td>${i}</td>
+            <td><input type="date" name="survey_date${i}"></td>
+            <td><input type="text" name="printed_name${i}"></td>
+            <td><input type="checkbox" name="ftjs_yes${i}"></td>
+            <td><input type="checkbox" name="ftjs_no${i}"></td>
+            <td><input type="checkbox" name="covid_yes${i}"></td>
+            <td><input type="checkbox" name="covid_no${i}"></td>
+            <td><input type="text" name="address${i}"></td>
+            <td><input type="date" name="dob${i}"></td>
+            <td><input type="text" name="contact${i}"></td>
+            <td><input type="number" name="age${i}"></td>
+            <td><input type="text" name="sex${i}"></td>
+            <td><input type="text" name="marital${i}"></td>
+            <td><input type="text" name="education${i}"></td>
+            <td><input type="text" name="we_position${i}"></td>
+            <td><input type="text" name="we_months${i}"></td>
+            <td><input type="text" name="se_business${i}"></td>
+            <td><input type="text" name="se_months${i}"></td>
+            <td><input type="checkbox" name="ue${i}"></td>
+            <td><input type="text" name="skills${i}"></td>
+        </tr>`;
+    }
+    // Insert rows between ROWS_START and ROWS_END comments
+    table.innerHTML = table.innerHTML.replace(
+        /<!-- ROWS_START -->([\s\S]*?)<!-- ROWS_END -->/,
+        `<!-- ROWS_START -->\n${rows}\n<!-- ROWS_END -->`
+    );
+}
+// Modal logic for barangay cards
+const modal = document.getElementById('barangayModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const barangayTitle = document.getElementById('barangayModalTitle');
+const cards = document.querySelectorAll('.barangay-card');
+let barangayTable = document.querySelector('.barangay-table-form');
+let editMode = false;
+cards.forEach(card => {
+    card.addEventListener('click', () => {
+        const name = card.getAttribute('data-barangay');
+        barangayTitle.textContent = name;
+        currentBarangay = name;
+        // Set barangay field for add modal as well
+        addBarangayInput.value = name;
+        // Fetch and render table for this barangay
+        fetchBarangayTable(name);
+        modal.style.display = 'flex';
+    });
+});
+closeModalBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+// Fetch barangay table data and render (always read-only by default)
+// Updated: Added SE columns - v2.0
+function fetchBarangayTable(barangay) {
+    let url = 'skill_registry.php?barangay=' + encodeURIComponent(barangay);
+    if (filterMonth && filterMonth.value) url += '&month=' + filterMonth.value;
+    if (filterYear && filterYear.value) url += '&year=' + filterYear.value;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+            let html = '';
+            // Table header (Skills last, no extra NO column)
+            html += `<tr>
+                <th rowspan="2">No.</th>
+                <th rowspan="2">Date of Survey</th>
+                <th rowspan="2">Printed Name<br><span style="font-weight:normal;">(Surname, Firstname, Middle Initial)</span></th>
+                <th colspan="2">First Time Job Seeker</th>
+                <th colspan="2">COVID-19 Displaced Workers</th>
+                <th rowspan="2">House #/ Sitio/ Purok/ Street</th>
+                <th rowspan="2">Date of Birth<br><span style="font-weight:normal;">(mm/dd/yyyy)</span></th>
+                <th rowspan="2">Contact #<br>Cell/Tel</th>
+                <th rowspan="2">Age</th>
+                <th rowspan="2">Sex<br>(M/F)</th>
+                <th rowspan="2">Marital Status</th>
+                <th rowspan="2">Educational Attainment<br><span style="font-weight:normal;">(Please specify level and course)</span></th>
+                <th rowspan="2">Employment<br>WE (Position)</th>
+                <th rowspan="2"># of mos./ years</th>
+                <th rowspan="2">Employment<br> SE (Livelihood/Business)</th>
+                <th rowspan="2"># of mos./ years</th>
+                <th rowspan="2">UE</th>
+                <th rowspan="2">Skills</th>
+            </tr>`;
+            html += `<tr>
+                <th>YES</th><th>NO</th><th>YES</th><th>NO</th>
+            </tr>`;
+            // Always render 15 rows: fill with data, then empty rows if needed
+            let count = 0;
+            if (data.success && data.data.length) {
+                data.data.forEach((row, idx) => {
+                    // If survey_date is empty, null, or 0000-00-00, leave blank
+                    let surveyDateVal = (row.survey_date && row.survey_date !== '0000-00-00') ? row.survey_date : '';
+                    html += `<tr data-id="${row.id}">
+                        <td>${idx+1}</td>
+                        <td><input type="date" value="${surveyDateVal}" readonly /></td>
+                        <td><input type="text" value="${row.printed_name||''}" readonly /></td>
+                        <td><input type="checkbox" ${row.ftjs==='yes'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.ftjs==='no'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.covid==='yes'?'checked':''} disabled /></td>
+                        <td><input type="checkbox" ${row.covid==='no'?'checked':''} disabled /></td>
+                        <td><input type="text" value="${row.address||''}" readonly /></td>
+                        <td><input type="text" value="${row.dob||''}" readonly /></td>
+                        <td><input type="text" value="${row.contact||''}" readonly /></td>
+                        <td><input type="text" value="${row.age||''}" readonly /></td>
+                        <td><input type="text" value="${row.sex||''}" readonly /></td>
+                        <td><input type="text" value="${row.marital||''}" readonly /></td>
+                        <td><input type="text" value="${row.education||''}" readonly /></td>
+                        <td><input type="text" value="${row.we_position||''}" readonly /></td>
+                        <td><input type="text" value="${row.we_months||''}" readonly /></td>
+                        <td><input type="text" value="${row.se_business||''}" readonly /></td>
+                        <td><input type="text" value="${row.se_months||''}" readonly /></td>
+                        <td><input type="checkbox" ${row.ue==='yes'?'checked':''} disabled /></td>
+                        <td><input type="text" value="${row.skills||''}" readonly /></td>
+                    </tr>`;
+                    count++;
+                });
+            }
+            for (let i = count + 1; i <= 15; i++) {
+                html += `<tr><td>${i}</td>
+                    <td><input type="date" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="text" readonly /></td>
+                    <td><input type="checkbox" disabled /></td>
+                    <td><input type="text" readonly /></td>
+                </tr>`;
+            }
+            // Store count for quota check
+            window.currentBarangayMonthCount = count;
+            barangayTable.innerHTML = html;
+            // Enforce readOnly/disabled on all inputs after rendering
+            barangayTable.querySelectorAll('input[type="text"]').forEach(inp => inp.readOnly = true);
+            barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
+            barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
+        });
+    // Always reset edit mode and button
+    editMode = false;
+    document.getElementById('editModalBtn').textContent = 'Edit';
+    // Remove editable state on all inputs
+    if (barangayTable) {
+        barangayTable.querySelectorAll('input[type="text"]').forEach(inp => inp.readOnly = true);
+        barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
+        barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
+    }
+}
+
+// Handle education dropdown change
+document.getElementById('educationSelect').addEventListener('change', function() {
+    const otherInput = document.getElementById('educationOther');
+    if (this.value === 'Others') {
+        otherInput.style.display = 'block';
+        otherInput.required = true;
+    } else {
+        otherInput.style.display = 'none';
+        otherInput.required = false;
+        otherInput.value = '';
+    }
+});
+
+// Add Skill Form submit (AJAX)
+document.getElementById('addSkillForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    // Convert UE checkbox to yes/no
+    formData.set('ue', formData.get('ue') ? 'yes' : '');
+    
+    // Handle education field - if "Others" is selected, use the other input value
+    const educationSelect = document.getElementById('educationSelect');
+    const educationOther = document.getElementById('educationOther');
+    if (educationSelect.value === 'Others' && educationOther.value.trim()) {
+        formData.set('education', educationOther.value.trim());
+    }
+    
+    const data = Object.fromEntries(formData.entries());
+    // Check quota: only 15 per barangay per month
+    if (window.currentBarangayMonthCount >= 15) {
+        Swal.fire({
+            title: 'Quota Reached!',
+            text: 'Quota of this month has been reached for this barangay.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800',
+            customClass: {
+                popup: 'swal-high-zindex'
+            }
+        });
+        return;
+    }
+    // Show loading state
+    Swal.fire({
+        title: 'Adding Entry...',
+        text: 'Please wait while we save your data.',
+        icon: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'swal-high-zindex'
+        },
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch('skill_registry.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r=>r.json())
+    .then(resp=>{
+        if (resp.success) {
+            // Clear all form fields after successful add
+            form.reset();
+            // Set city and barangay fields back to fixed values
+            addCityInput.value = 'Norzagaray';
+            addBarangayInput.value = currentBarangay;
+            fetchBarangayTable(currentBarangay);
+            
+            // Close modal immediately
+            addModal.style.display = 'none';
+            
+            // Show success SweetAlert
+            Swal.fire({
+                title: 'Success!',
+                text: 'New skill registry entry has been added successfully.',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#233a8b',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: true,
+                customClass: {
+                    popup: 'swal-high-zindex'
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to save the entry. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#dc3545',
+                customClass: {
+                    popup: 'swal-high-zindex'
+                }
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            title: 'Network Error!',
+            text: 'Unable to connect to the server. Please check your connection and try again.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#dc3545',
+            customClass: {
+                popup: 'swal-high-zindex'
+            }
+        });
+    });
+});
+
+document.getElementById('editModalBtn').addEventListener('click', function() {
+    if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+    editMode = !editMode;
+    // Toggle all inputs except No. column
+    barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+        let inputs = tr.querySelectorAll('input');
+        inputs.forEach((inp, idx) => {
+            if (idx === 0) return; // skip No.
+            if (inp.type === 'checkbox') {
+                inp.disabled = !editMode ? true : false;
+            } else {
+                inp.readOnly = !editMode ? true : false;
+            }
+        });
+    });
+    if (editMode) {
+        this.textContent = 'Save';
+    } else {
+        // Save all edited rows
+        let updatePromises = [];
+        barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+            const id = tr.getAttribute('data-id');
+            const tds = tr.querySelectorAll('td');
+            let surveyDateInput = tds[1].querySelector('input');
+            let surveyDateVal = surveyDateInput.value;
+            if (!surveyDateVal) {
+                surveyDateVal = surveyDateInput.getAttribute('data-prev') || '';
+            } else {
+                surveyDateInput.setAttribute('data-prev', surveyDateVal);
+            }
+            const data = {
+                id,
+                survey_date: surveyDateVal,
+                printed_name: tds[2].querySelector('input').value,
+                ftjs: tds[3].querySelector('input').checked ? 'yes' : (tds[4].querySelector('input').checked ? 'no' : ''),
+                covid: tds[5].querySelector('input').checked ? 'yes' : (tds[6].querySelector('input').checked ? 'no' : ''),
+                address: tds[7].querySelector('input').value,
+                dob: tds[8].querySelector('input').value,
+                contact: tds[9].querySelector('input').value,
+                age: tds[10].querySelector('input').value,
+                sex: tds[11].querySelector('input').value,
+                marital: tds[12].querySelector('input').value,
+                education: tds[13].querySelector('input').value,
+                we_position: tds[14].querySelector('input').value,
+                we_months: tds[15].querySelector('input').value,
+                se_business: tds[16].querySelector('input').value,
+                se_months: tds[17].querySelector('input').value,
+                ue: tds[18].querySelector('input').checked ? 'yes' : '',
+                skills: tds[19].querySelector('input').value
+            };
+            updatePromises.push(
+                fetch('skill_registry.php', {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(data)
+                })
+                .then(r=>r.json())
+                .then(resp=>{
+                    if (!resp.success) alert('Failed to update row');
+                })
+            );
+        });
+        Promise.all(updatePromises).then(() => {
+            this.textContent = 'Edit';
+            fetchBarangayTable(currentBarangay);
+        });
+    }
+});
+
+document.querySelectorAll('.logout').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('logoutModal').style.display = 'flex';
+  });
+});
+
+// Logout modal functionality - wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('confirmLogoutBtn').onclick = function() {
+        // Show loading state
+        const confirmBtn = document.getElementById('confirmLogoutBtn');
+        const cancelBtn = document.getElementById('cancelLogoutBtn');
+        const originalText = confirmBtn.textContent;
+        
+        // Disable buttons and show loading
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        confirmBtn.innerHTML = '<div style="display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></div>Logging out...';
+        
+        // Add spinner animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Small delay to show loading state, then redirect
+        setTimeout(() => {
+            window.location.href = 'logout.php';
+        }, 1000);
+    };
+
+    document.getElementById('cancelLogoutBtn').onclick = function() {
+        document.getElementById('logoutModal').style.display = 'none';
+    };
+
+    // Close modal on outside click
+    window.onclick = function(e) {
+        if (e.target === document.getElementById('logoutModal')) {
+            document.getElementById('logoutModal').style.display = 'none';
+        }
+    };
+});
+</script>
+
+        <!-- Logout Modal -->
+        <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+            <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
+                <div style="font-size:3rem;margin-bottom:16px;">🚪</div>
+                <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>
+                <p style="color:#666;margin-bottom:24px;font-size:1rem;">Are you sure you want to logout from your account?</p>
+                <div style="display:flex;gap:12px;justify-content:center;">
+                    <button id="confirmLogoutBtn" style="background:#f44336;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Yes, Logout</button>
+                    <button id="cancelLogoutBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Cancel</button>
+                </div>
+            </div>
+        </div>
+</body>
+</html>
+</html>

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WorkConnect Sign Up</title>
+    <link rel="icon" href="..assets/image/PESO Logo circle.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signup-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            margin: 20px;
+        }
+
+        /* Acer TravelMate P2 Specific (1366x768) */
+        @media (max-width: 1366px) and (min-width: 1200px) {
+            .signup-container {
+                padding: 30px 28px;
+                margin: 15px;
+                max-width: 420px;
+                border-radius: 10px;
+            }
+            
+            .logo {
+                height: 50px;
+                margin-bottom: 8px;
+            }
+            
+            .brand {
+                font-size: 1.5rem;
+            }
+            
+            .signup-title {
+                font-size: 1.3rem;
+                margin-bottom: 25px;
+            }
+            
+            .form-group {
+                margin-bottom: 18px;
+            }
+            
+            .form-group input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+            
+            .signup-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-bottom: 18px;
+            }
+            
+            .login-link {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Acer TravelMate P2 Exact Resolution (1366x768) */
+        @media (max-width: 1366px) and (max-height: 768px) {
+            .signup-container {
+                padding: 25px 24px;
+                margin: 12px;
+                max-width: 400px;
+                border-radius: 8px;
+            }
+            
+            .logo {
+                height: 45px;
+                margin-bottom: 6px;
+            }
+            
+            .brand {
+                font-size: 1.4rem;
+            }
+            
+            .signup-title {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group input {
+                padding: 9px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .signup-btn {
+                padding: 9px;
+                font-size: 0.9rem;
+                margin-bottom: 16px;
+            }
+            
+            .login-link {
+                font-size: 0.85rem;
+            }
+            
+            .back-home {
+                margin-top: 15px;
+            }
+        }
+
+        /* Laptop Responsive (1024px - 1366px) */
+        @media (max-width: 1366px) and (min-width: 1024px) {
+            .signup-container {
+                padding: 36px 32px;
+                margin: 18px;
+                max-width: 480px;
+            }
+            
+            .logo {
+                height: 56px;
+            }
+            
+            .brand {
+                font-size: 1.7rem;
+            }
+            
+            .signup-title {
+                font-size: 1.4rem;
+            }
+        }
+
+        /* Tablet Responsive (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 768px) {
+            .signup-container {
+                padding: 32px 28px;
+                margin: 16px;
+                max-width: 450px;
+            }
+            
+            .logo {
+                height: 52px;
+            }
+            
+            .brand {
+                font-size: 1.6rem;
+            }
+            
+            .signup-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Mobile Responsive - App-like Design */
+        @media (max-width: 768px) {
+            .signup-container {
+                padding: 40px 32px;
+                margin: 20px;
+                max-width: 90%;
+                border-radius: 16px;
+            }
+            
+            .logo {
+                height: 64px;
+            }
+            
+            .brand {
+                font-size: 1.8rem;
+            }
+            
+            .signup-title {
+                font-size: 1.5rem;
+                margin-bottom: 32px;
+            }
+            
+            .form-group {
+                margin-bottom: 24px;
+            }
+            
+            .form-group input {
+                padding: 14px 18px;
+                font-size: 1.1rem;
+                border-radius: 12px;
+            }
+            
+            .signup-btn {
+                padding: 14px;
+                font-size: 1.1rem;
+                border-radius: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .signup-container {
+                padding: 36px 28px;
+                margin: 16px;
+                max-width: 95%;
+                border-radius: 14px;
+            }
+            
+            .logo {
+                height: 60px;
+            }
+            
+            .brand {
+                font-size: 1.7rem;
+            }
+            
+            .signup-title {
+                font-size: 1.4rem;
+                margin-bottom: 28px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .form-group input {
+                padding: 12px 16px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+            
+            .signup-btn {
+                padding: 12px;
+                font-size: 1rem;
+                border-radius: 10px;
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .brand {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1a3876;
+            margin: 0;
+        }
+
+        .signup-title {
+            text-align: center;
+            color: #1a3876;
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        /* Responsive Logo and Title */
+        @media (max-width: 768px) {
+            .logo {
+                height: 50px;
+            }
+            
+            .brand {
+                font-size: 1.6rem;
+            }
+            
+            .signup-title {
+                font-size: 1.3rem;
+                margin-bottom: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                height: 45px;
+            }
+            
+            .brand {
+                font-size: 1.4rem;
+            }
+            
+            .signup-title {
+                font-size: 1.2rem;
+                margin-bottom: 20px;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a3876;
+        }
+
+        .signup-btn {
+            width: 100%;
+            background: #1a3876;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Form Elements */
+        @media (max-width: 768px) {
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+            
+            .signup-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-bottom: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-group {
+                margin-bottom: 14px;
+            }
+            
+            .form-group input {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .signup-btn {
+                padding: 8px;
+                font-size: 0.9rem;
+                margin-bottom: 14px;
+            }
+        }
+
+        .signup-btn:hover {
+            background: #2c5aa0;
+        }
+
+        .login-link {
+            text-align: center;
+            color: #666;
+        }
+
+        .login-link a {
+            color: #1a3876;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #fcc;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #363;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #cfc;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-home a {
+            color: #1a3876;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-home a:hover {
+            text-decoration: underline;
+        }
+
+        #signupError {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #fcc;
+        }
+
+        /* Loading Spinner Styles */
+        .signup-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+        }
+
+        .btn-text {
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .spinner-inner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .signup-btn:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        /* Password Toggle Styles */
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #666;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #1a3876;
+        }
+
+        .password-toggle:focus {
+            outline: none;
+        }
+
+        /* Responsive password toggle */
+        @media (max-width: 768px) {
+            .password-toggle {
+                right: 10px;
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .password-toggle {
+                right: 8px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="logo-section">
+            <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
+            <h1 class="brand">WorkConnect</h1>
+        </div>
+        
+        <h2 class="signup-title">Create Your Account</h2>
+        
+        <!-- Success/Error Messages -->
+        <div id="successMessage" style="display:none;background:#efe;color:#363;padding:10px;border-radius:6px;margin-bottom:20px;text-align:center;border:1px solid #cfc;"></div>
+        <div id="errorMessage" style="display:none;background:#fee;color:#c33;padding:10px;border-radius:6px;margin-bottom:20px;text-align:center;border:1px solid #fcc;"></div>
+        
+        <form id="adminSignupForm" autocomplete="off">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" type="text" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input id="password" type="password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('password')"></i>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="password-container">
+                    <input id="confirm_password" type="password" required>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword('confirm_password')"></i>
+                </div>
+            </div>
+            
+            <div id="signupError" style="display:none;"></div>
+            <button type="submit" class="signup-btn" id="signupBtn">
+                <span class="btn-text">Create Account</span>
+                <div class="spinner" id="signupSpinner" style="display: none;">
+                    <div class="spinner-inner"></div>
+                </div>
+            </button>
+        </form>
+        
+        <div class="login-link">
+            Already have an account? <a href="login.html">Login here</a>
+        </div>
+        
+        
+    </div>
+    <script>
+    document.getElementById('adminSignupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const signupBtn = document.getElementById('signupBtn');
+        const btnText = document.querySelector('.btn-text');
+        const spinner = document.getElementById('signupSpinner');
+        
+        // Show loading state
+        signupBtn.disabled = true;
+        btnText.style.display = 'none';
+        spinner.style.display = 'flex';
+        
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value;
+        var confirmPassword = document.getElementById('confirm_password').value;
+        var errorDiv = document.getElementById('signupError');
+        
+        // Validation
+        if (!username || !password || !confirmPassword) {
+            // Reset button state on error
+            signupBtn.disabled = false;
+            btnText.style.display = 'block';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'All fields are required.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (password.length < 6) {
+            // Reset button state on error
+            signupBtn.disabled = false;
+            btnText.style.display = 'block';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'Password must be at least 6 characters long.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            // Reset button state on error
+            signupBtn.disabled = false;
+            btnText.style.display = 'block';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'Passwords do not match.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        fetch('signup.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username: username, password: password})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                // Clear all form fields
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('confirm_password').value = '';
+                document.getElementById('signupError').style.display = 'none';
+                
+                // Show success message and redirect to login
+                document.getElementById('successMessage').textContent = 'Account created successfully! Redirecting to login...';
+                document.getElementById('successMessage').style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = 'login.php?success=account_created';
+                }, 2000);
+            } else {
+                // Reset button state on error
+                signupBtn.disabled = false;
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+                
+                errorDiv.textContent = d.message || 'Error creating account. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            // Reset button state on error
+            signupBtn.disabled = false;
+            btnText.style.display = 'block';
+            spinner.style.display = 'none';
+            
+            errorDiv.textContent = 'Server error. Please try again.';
+            errorDiv.style.display = 'block';
+        });
+    });
+
+    // Password Toggle Functionality
+    function togglePassword(fieldId) {
+        const passwordInput = document.getElementById(fieldId);
+        const toggleIcon = passwordInput.parentElement.querySelector('.password-toggle');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+    </script>
+</body>
+</html>

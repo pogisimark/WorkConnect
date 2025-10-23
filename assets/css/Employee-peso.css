@@ -1,0 +1,354 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
+  overflow-x: hidden;
+}
+
+header {
+  background: #1a3876;
+  color: #fff;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  padding: 16px 32px;
+  justify-content: space-between; /* push logo left, nav right */
+}
+
+.logo {
+  height: 40px;
+  margin-right: 12px;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-right: 32px;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  
+}
+
+nav a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: color 0.2s;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+nav a:hover {
+  background: #ffcb05;
+  color: #1a3876;
+}
+
+.apply-btn {
+  background: #ffcb05;
+  color: #1a3876;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 24px;
+  transition: background 0.2s;
+}
+
+.apply-btn:hover {
+  background: #ffd84d;
+}
+
+/* Acer TravelMate P2 Specific (1366x768) */
+@media (max-width: 1366px) and (min-width: 1200px) {
+  .navbar {
+    padding: 12px 20px;
+  }
+  
+  .logo {
+    height: 32px;
+  }
+  
+  .brand {
+    font-size: 1.3rem;
+  }
+  
+  nav a {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+  
+  .apply-btn {
+    font-size: 0.9rem;
+    padding: 6px 18px;
+  }
+  
+  .peso-container {
+    max-width: 90%;
+    padding: 20px;
+  }
+  
+  .peso-title {
+    font-size: 1.1rem;
+  }
+  
+  .peso-card {
+    padding: 15px;
+  }
+}
+
+/* Acer TravelMate P2 Exact Resolution (1366x768) */
+@media (max-width: 1366px) and (max-height: 768px) {
+  .navbar {
+    padding: 10px 18px;
+  }
+  
+  .logo {
+    height: 30px;
+  }
+  
+  .brand {
+    font-size: 1.2rem;
+  }
+  
+  nav a {
+    font-size: 0.85rem;
+    padding: 5px 10px;
+  }
+  
+  .apply-btn {
+    font-size: 0.85rem;
+    padding: 5px 16px;
+  }
+  
+  .peso-container {
+    max-width: 85%;
+    padding: 15px;
+  }
+  
+  .peso-title {
+    font-size: 1rem;
+  }
+  
+  .peso-card {
+    padding: 12px;
+  }
+}
+
+/* Mobile Navigation */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  
+  .logo {
+    height: 32px;
+    margin-right: 8px;
+  }
+  
+  .brand {
+    font-size: 1.2rem;
+    margin-right: 16px;
+  }
+  
+  nav {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  nav a {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+  
+  .apply-btn {
+    font-size: 0.9rem;
+    padding: 6px 16px;
+    margin-left: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .logo-brand {
+    order: 1;
+  }
+  
+  nav {
+    order: 2;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .apply-btn {
+    order: 3;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+}
+
+nav a.active {
+  background: #3b5ccc;  /* active blue */
+  color: #fff;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: bold;
+}
+nav a.active:hover {
+  background: #ffcb05;
+  color: #1a3876;
+}
+.logo-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* spacing between logo and text */
+}
+
+.logo {
+  height: 40px;
+}
+.brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* ...existing code... */
+.blueheader {
+  background: #1976d2;
+  color: #fff;
+  padding: 32px 0 16px 0;
+  text-align: center;
+  margin-bottom: 24px;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+}
+
+.peso-content-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(25, 118, 210, 0.10);
+  padding: 32px 32px 24px 32px;
+  max-width: 900px;
+  margin: 0 auto 40px auto;
+}
+
+/* Responsive Content */
+@media (max-width: 768px) {
+  .blueheader {
+    padding: 24px 0 12px 0;
+    margin-bottom: 20px;
+  }
+  
+  .blueheader h1 {
+    font-size: 1.8rem;
+  }
+  
+  .peso-content-container {
+    padding: 24px 20px 20px 20px;
+    margin: 0 auto 32px auto;
+  }
+  
+  .text-content h2 {
+    font-size: 1.4rem;
+  }
+  
+  .text-content h3 {
+    font-size: 1.2rem;
+  }
+  
+  .text-content h4 {
+    font-size: 1.1rem;
+  }
+  
+  .text-content p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  .text-content ul,
+  .text-content ol {
+    margin-left: 20px;
+  }
+  
+  .text-content li {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .blueheader {
+    padding: 20px 0 10px 0;
+    margin-bottom: 16px;
+  }
+  
+  .blueheader h1 {
+    font-size: 1.5rem;
+  }
+  
+  .peso-content-container {
+    padding: 20px 16px 16px 16px;
+    margin: 0 auto 24px auto;
+    border-radius: 8px;
+  }
+  
+  .text-content h2 {
+    font-size: 1.3rem;
+  }
+  
+  .text-content h3 {
+    font-size: 1.1rem;
+  }
+  
+  .text-content h4 {
+    font-size: 1rem;
+  }
+  
+  .text-content p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  
+  .text-content ul,
+  .text-content ol {
+    margin-left: 16px;
+  }
+  
+  .text-content li {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+.text-content h2, .text-content h3, .text-content h4 {
+  color: #1976d2;
+  margin-top: 24px;
+}
+
+.text-content ul, .text-content ol {
+  margin-left: 24px;
+  margin-bottom: 16px;
+}
+
+.text-content li {
+  margin-bottom: 8px;
+}
+/* ...existing code... */

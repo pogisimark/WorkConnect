@@ -1,0 +1,388 @@
+body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: url('../assets/image/bg\ workconnect.jpg') center/cover no-repeat;
+      min-height: 100vh;
+    }
+.header {
+      background: #1a3876;
+      color: #fff;
+      padding: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      height: 60px;
+    }
+.header .logo {
+      height: 40px;
+      margin: 0 16px;
+    }
+.header .brand {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+.login-card {
+      background: rgba(255,255,255,0.7);
+      box-shadow: 0 4px 32px rgba(60,60,60,0.15);
+      border-radius: 24px;
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 40px 36px 32px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      backdrop-filter: blur(8px);
+    }
+.login-card img {
+      width: 220px;
+      margin-bottom: 18px;
+    }
+.login-card h2 {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #222;
+    }
+.login-card p {
+      margin-bottom: 18px;
+      color: #222;
+      font-size: 1rem;
+    }
+.login-form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+.login-form label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #222;
+    }
+.login-form input {
+      padding: 10px 14px;
+      border: 1px solid #bbb;
+      border-radius: 12px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+.login-form input:focus {
+      border-color: #1a3876;
+    }
+.login-form .password-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+.login-form .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: #1a3876;
+    }
+.login-actions {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+.login-actions a {
+      color: #1a3876;
+      font-size: 0.98rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+.login-btn {
+      width: 100%;
+      background: linear-gradient(90deg, #1a3876 0%, #3b5ccc 100%);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 0;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: background 0.2s;
+    }
+.login-btn:hover {
+      background: linear-gradient(90deg, #3b5ccc 0%, #1a3876 100%);
+    }
+.signup-link {
+      text-align: center;
+      font-size: 1rem;
+      margin-top: 8px;
+    }
+.signup-link a {
+      color: #1a3876;
+      font-weight: bold;
+      text-decoration: none;
+    }
+/* Laptop Responsive (1024px - 1366px) */
+/* Acer TravelMate P2 Specific (1366x768) */
+@media (max-width: 1366px) and (min-width: 1200px) {
+  .login-container {
+    max-width: 380px;
+    padding: 30px 28px;
+  }
+  
+  .logo {
+    height: 50px;
+  }
+  
+  .brand {
+    font-size: 1.5rem;
+  }
+  
+  .login-title {
+    font-size: 1.3rem;
+  }
+  
+  .form-group input {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+  
+  .login-btn {
+    padding: 10px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Acer TravelMate P2 Exact Resolution (1366x768) */
+@media (max-width: 1366px) and (max-height: 768px) {
+  .login-container {
+    max-width: 360px;
+    padding: 25px 24px;
+  }
+  
+  .logo {
+    height: 45px;
+  }
+  
+  .brand {
+    font-size: 1.4rem;
+  }
+  
+  .login-title {
+    font-size: 1.2rem;
+  }
+  
+  .form-group input {
+    padding: 9px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .login-btn {
+    padding: 9px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 1366px) and (min-width: 1024px) {
+  .header {
+    height: 64px;
+  }
+  
+  .header .logo {
+    height: 44px;
+    margin: 0 18px;
+  }
+  
+  .header .brand {
+    font-size: 1.6rem;
+  }
+  
+  .login-card {
+    max-width: 520px;
+    padding: 44px 40px 36px 40px;
+    margin: 70px auto;
+  }
+  
+  .login-card img {
+    width: 240px;
+    margin-bottom: 20px;
+  }
+  
+  .login-card h2 {
+    font-size: 2.2rem;
+  }
+  
+  .login-card p {
+    font-size: 1.1rem;
+  }
+  
+  .login-form input {
+    padding: 12px 16px;
+    font-size: 1.05rem;
+  }
+  
+  .login-btn {
+    padding: 14px 0;
+    font-size: 1.15rem;
+  }
+}
+
+/* Tablet Responsive (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .header {
+    height: 58px;
+  }
+  
+  .header .logo {
+    height: 40px;
+    margin: 0 16px;
+  }
+  
+  .header .brand {
+    font-size: 1.4rem;
+  }
+  
+  .login-card {
+    max-width: 480px;
+    padding: 38px 32px 30px 32px;
+    margin: 50px auto;
+  }
+  
+  .login-card img {
+    width: 200px;
+    margin-bottom: 18px;
+  }
+  
+  .login-card h2 {
+    font-size: 1.8rem;
+  }
+  
+  .login-card p {
+    font-size: 1rem;
+  }
+  
+  .login-form input {
+    padding: 10px 14px;
+    font-size: 1rem;
+  }
+  
+  .login-btn {
+    padding: 12px 0;
+    font-size: 1.05rem;
+  }
+}
+
+/* Mobile Responsive - App-like Design */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 20px;
+    height: 64px;
+  }
+  
+  .header .logo {
+    height: 40px;
+    margin: 0 16px;
+  }
+  
+  .header .brand {
+    font-size: 1.5rem;
+  }
+  
+  .login-card {
+    max-width: 90vw;
+    padding: 40px 32px;
+    margin: 50px auto;
+    border-radius: 20px;
+  }
+  
+  .login-card img {
+    width: 180px;
+    margin-bottom: 20px;
+  }
+  
+  .login-card h2 {
+    font-size: 1.8rem;
+  }
+  
+  .login-card p {
+    font-size: 1rem;
+  }
+  
+  .login-form {
+    gap: 18px;
+  }
+  
+  .login-form input {
+    padding: 14px 18px;
+    font-size: 1.1rem;
+    border-radius: 14px;
+  }
+  
+  .login-btn {
+    padding: 14px 0;
+    font-size: 1.1rem;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+  
+  .header .logo {
+    height: 36px;
+    margin: 0 12px;
+  }
+  
+  .header .brand {
+    font-size: 1.3rem;
+  }
+  
+  .login-card {
+    max-width: 95vw;
+    padding: 36px 28px;
+    margin: 40px auto;
+    border-radius: 18px;
+  }
+  
+  .login-card img {
+    width: 160px;
+    margin-bottom: 18px;
+  }
+  
+  .login-card h2 {
+    font-size: 1.6rem;
+  }
+  
+  .login-card p {
+    font-size: 0.95rem;
+  }
+  
+  .login-form {
+    gap: 16px;
+  }
+  
+  .login-form input {
+    padding: 12px 16px;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+  
+  .login-btn {
+    padding: 12px 0;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+  
+  .login-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

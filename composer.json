@@ -1,0 +1,11 @@
+{
+    "name": "workconnect/email-system",
+    "description": "WorkConnect Email System with PHPMailer",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
