@@ -1,13 +1,17 @@
 <?php
 header('Content-Type: application/json');
 
-// Include PHPMailer
-require_once '../vendor/autoload.php';
-require_once 'email_config.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+// Check if PHPMailer is available
+$phpmailer_available = false;
+if (file_exists('../vendor/autoload.php')) {
+    require_once '../vendor/autoload.php';
+    require_once 'email_config.php';
+    $phpmailer_available = true;
+    
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\SMTP;
+    use PHPMailer\PHPMailer\Exception;
+}
 
 $host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
@@ -431,34 +435,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </body>
         </html>";
         
-        // Create PHPMailer instance
-        $mail = new PHPMailer(true);
-        
-        try {
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host       = SMTP_HOST;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = SMTP_USERNAME;
-            $mail->Password   = SMTP_PASSWORD;
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = SMTP_PORT;
+        // Send email using available method
+        if ($phpmailer_available) {
+            // Create PHPMailer instance
+            $mail = new PHPMailer(true);
             
-            // Recipients
-            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-            $mail->addAddress($employer_email);
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = SMTP_HOST;
+                $mail->SMTPAuth   = true;
+                $mail->Username   = SMTP_USERNAME;
+                $mail->Password   = SMTP_PASSWORD;
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = SMTP_PORT;
+                
+                // Recipients
+                $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                $mail->addAddress($employer_email);
+                
+                // Content
+                $mail->isHTML(true);
+                $mail->CharSet = 'UTF-8';
+                $mail->Subject = $subject;
+                $mail->Body    = $message;
+                
+                $mail->send();
+                echo json_encode(['success' => true, 'message' => 'Email sent successfully to ' . $employer_email]);
+                
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Email could not be sent. Error: ' . $mail->ErrorInfo]);
+            }
+        } else {
+            // Fallback to basic PHP mail() function
+            $headers = "MIME-Version: 1.0" . "\r\n";
+            $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+            $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+            $headers .= "Reply-To: noreply@workconnect.com" . "\r\n";
             
-            // Content
-            $mail->isHTML(true);
-            $mail->CharSet = 'UTF-8';
-            $mail->Subject = $subject;
-            $mail->Body    = $message;
-            
-            $mail->send();
-            echo json_encode(['success' => true, 'message' => 'Email sent successfully to ' . $employer_email]);
-            
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Email could not be sent. Error: ' . $mail->ErrorInfo]);
+            if (mail($employer_email, $subject, $message, $headers)) {
+                echo json_encode(['success' => true, 'message' => 'Email sent successfully to ' . $employer_email]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again later.']);
+            }
         }
         
     } else {
