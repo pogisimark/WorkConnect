@@ -14,11 +14,12 @@ if (file_exists('../vendor/autoload.php')) {
     require_once '../vendor/autoload.php';
     require_once '../Employer/email_config.php';
     $phpmailer_available = true;
-    
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\SMTP;
-    use PHPMailer\PHPMailer\Exception;
 }
+
+// Use statements must be at the top level
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
 
 // Set content type to JSON
 header('Content-Type: application/json');
