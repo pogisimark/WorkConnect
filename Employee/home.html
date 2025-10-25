@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WorkConnect Home</title>
   <link rel="stylesheet" href="../assets/css/Employee-home.css">
   <style>
@@ -191,6 +192,179 @@
       font-size: 1.2rem;
     }
     
+    /* Add space between header and carousel */
+    .carousel-container {
+      margin-top: 120px;
+    }
+    
+    @media (max-width: 768px) {
+      .carousel-container {
+        margin-top: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .carousel-container {
+        margin-top: 10px;
+      }
+    }
+    
+    /* Position info banner at bottom above navigation */
+    .info-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    
+    @media (max-width: 768px) {
+      .info-banner {
+        bottom: 90px;
+        margin: 0 15px;
+        border-radius: 8px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .info-banner {
+        bottom: 80px;
+        margin: 0 10px;
+        border-radius: 6px;
+      }
+    }
+    
+    
+    /* Touch-friendly improvements - Exact same as peso.html */
+    @media (max-width: 768px) {
+      body {
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      .main-container {
+        overflow-x: hidden;
+      }
+      
+      nav a, .apply-btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+      }
+    }
+    
+    /* Mobile-specific enhancements - Exact same as peso.html */
+    @media (max-width: 768px) {
+      /* Prevent horizontal scroll */
+      * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      
+      /* Better spacing for mobile */
+      .info-banner {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+    }
+    
+    /* Hide bottom navigation on desktop - be more specific */
+    .main-container > nav {
+      display: none;
+    }
+    
+    /* Mobile Bottom Navigation - Copied from register.html with !important */
+    @media (max-width: 768px) {
+      nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: #fff !important;
+        display: flex !important;
+        justify-content: space-around !important;
+        padding: 8px 0 !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+        z-index: 1000 !important;
+        min-height: 60px !important;
+      }
+      
+      nav a {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 8px 12px !important;
+        text-decoration: none !important;
+        color: #666 !important;
+        font-size: 0.75rem !important;
+        transition: color 0.3s !important;
+        min-width: 60px !important;
+        justify-content: center !important;
+      }
+      
+      nav a:before {
+        content: '' !important;
+        font-size: 1.2rem !important;
+        margin-bottom: 4px !important;
+      }
+      
+      nav a[href="home.html"]:before { content: '🏠' !important; }
+      nav a[href="peso.html"]:before { content: '🏛️' !important; }
+      nav a[href="register.html"]:before { content: '📝' !important; }
+      nav a[href="about.html"]:before { content: 'ℹ️' !important; }
+      
+      nav a.active {
+        color: #1a3876 !important;
+      }
+      
+      .apply-btn {
+        background: #ffcb05 !important;
+        color: #1a3876 !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        border-radius: 20px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        box-shadow: 0 2px 8px rgba(255,203,5,0.3) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 60px !important;
+        text-decoration: none !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      nav {
+        padding: 6px 0 !important;
+        min-height: 55px !important;
+      }
+      
+      nav a {
+        font-size: 0.7rem !important;
+        padding: 6px 8px !important;
+        min-width: 50px !important;
+        
+      }
+      
+      nav a:before {
+        font-size: 1rem !important;
+      }
+      
+      .apply-btn {
+        font-size: 0.7rem !important;
+        padding: 6px 12px !important;
+      }
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .carousel-container {
@@ -249,6 +423,160 @@
         font-size: 0.9rem;
       }
     }
+    
+    /* Mobile Info Banner - Fixed positioning styles */
+    @media (max-width: 768px) {
+      .info-banner {
+        padding: 20px 15px;
+        text-align: center;
+      }
+      
+      .info-banner p {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin: 0;
+      }
+      
+      .info-banner strong {
+        font-size: 1.1rem;
+        display: block;
+        margin-bottom: 8px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .info-banner {
+        padding: 15px 10px;
+      }
+      
+      .info-banner p {
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+      
+      .info-banner strong {
+        font-size: 1rem;
+        margin-bottom: 6px;
+      }
+    }
+    
+    /* Mobile Image Modal */
+    @media (max-width: 768px) {
+      .image-modal {
+        padding: 10px;
+      }
+      
+      .modal-content {
+        max-width: 95%;
+        max-height: 90%;
+        border-radius: 8px;
+      }
+      
+      .close-btn {
+        top: 10px;
+        right: 10px;
+        font-size: 1.2rem;
+        padding: 8px 12px;
+        border-radius: 6px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .image-modal {
+        padding: 5px;
+      }
+      
+      .modal-content {
+        max-width: 98%;
+        max-height: 95%;
+        border-radius: 6px;
+      }
+      
+      .close-btn {
+        top: 5px;
+        right: 5px;
+        font-size: 1rem;
+        padding: 6px 10px;
+        border-radius: 4px;
+      }
+    }
+    
+    /* Touch-friendly improvements */
+    @media (max-width: 768px) {
+      .carousel-btn {
+        min-width: 44px;
+        min-height: 44px;
+        touch-action: manipulation;
+      }
+      
+      .indicator {
+        min-width: 16px;
+        min-height: 16px;
+        touch-action: manipulation;
+      }
+      
+      .autoplay-toggle {
+        min-width: 44px;
+        min-height: 44px;
+        touch-action: manipulation;
+      }
+      
+      nav a, .apply-btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+      }
+    }
+    
+    /* Mobile-specific enhancements */
+    @media (max-width: 768px) {
+      body {
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      .main-container {
+        overflow-x: hidden;
+      }
+      
+      /* Improve carousel touch interactions */
+      .carousel {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+      }
+      
+      /* Better spacing for mobile */
+      .carousel-indicators {
+        bottom: 15px;
+        gap: 8px;
+      }
+      
+      .indicator {
+        width: 10px;
+        height: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      /* Ultra-mobile optimizations */
+      .carousel-indicators {
+        bottom: 10px;
+        gap: 6px;
+      }
+      
+      .indicator {
+        width: 8px;
+        height: 8px;
+      }
+      
+      /* Prevent horizontal scroll */
+      * {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+    }
   </style>
 </head>
 <body>
@@ -272,7 +600,7 @@
     </header>
 
     <!-- ENHANCED CAROUSEL (FULL WIDTH) -->
-    <div class="carousel-container full">
+    <div class="carousel-container full" style="margin-top: 55px;">
       <div class="carousel-wrapper">
         <button class="carousel-btn prev" aria-label="Previous image">&#10094;</button>
         <div class="carousel">
@@ -309,13 +637,23 @@
     </div>
 
    
-    <div class="info-banner" style="margin-top: 10%;">
+    <div class="info-banner">
       <p>
         <strong>Visit your nearest PESO office</strong><br>
         The Public Employment Service Office (PESO) is a non-fee charging multi-employment service<br>
         facility where people could seek assistance for employment.
       </p>
     </div>
+    
+    <!-- Mobile Bottom Navigation - Copied from register.html -->
+    <nav>
+      <a href="home.html" class="active">Home</a>
+      <a href="peso.html">Peso</a>
+      <a href="register.html">Register</a>
+      <a href="about.html">About</a>
+      <button class="apply-btn" onclick="window.location.href='login.php'">Login</button>
+    </nav>
+    
     <!-- IMAGE VIEWER MODAL -->
 <div id="imageModal" class="image-modal">
   <span id="closeModal" class="close-btn">← Back</span>

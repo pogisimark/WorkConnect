@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Job Applicants</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -10,7 +11,9 @@
         margin: 0;
         font-family: Arial, Helvetica, sans-serif;
         background: #fafafa;
-        overflow: hidden;
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
     .header {
         background: #233a8b;
@@ -43,7 +46,7 @@
     }
     .layout {
         display: flex;
-        min-height: 100vh;
+        min-height: calc(100vh - 64px);
         padding-top: 64px; /* offset for fixed header */
     }
     .sidebar {
@@ -104,7 +107,7 @@
         padding: 32px;
         background: #fff;
         margin-left: 240px;
-        height: calc(100vh - 64px);
+        min-height: calc(100vh - 64px);
         overflow-y: auto;
         box-sizing: border-box;
     }
@@ -272,6 +275,11 @@
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 12px rgba(244,67,54,0.4) !important;
     }
+    
+    /* Hide hamburger menu on desktop */
+    .hamburger-menu {
+        display: none;
+    }
     /* Enhanced responsive design */
     @media (max-width: 1400px) {
         .jobseeker-grid {
@@ -309,29 +317,97 @@
             font-size: 1.4rem;
         }
         
+        /* Hamburger Menu Button */
+        .hamburger-menu {
+            display: block !important;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 12px;
+            z-index: 1001;
+        }
+        
+        .hamburger-menu span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: #fff;
+            margin: 5px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+        
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        
         .layout {
             padding-top: 56px;
             flex-direction: column;
         }
         
+        /* Mobile Sidebar - Hidden by default */
         .sidebar {
-            width: 100%;
-            height: auto;
-            position: relative;
-            top: 0;
-            left: 0;
-            padding: 16px;
-            flex-direction: row;
-            overflow-x: auto;
-            gap: 8px;
+            position: fixed !important;
+            top: 56px !important;
+            left: -240px !important;
+            width: 240px !important;
+            height: calc(100vh - 56px) !important;
+            background: #e3eaff !important;
+            z-index: 999 !important;
+            transition: left 0.3s ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 20px 0 0 24px !important;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+        }
+        
+        .sidebar.active {
+            left: 0 !important;
         }
         
         .sidebar a {
-            white-space: nowrap;
-            margin-bottom: 0;
-            margin-top: 0;
-            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #222;
             font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            gap: 12px;
+        }
+        
+        .sidebar a:hover {
+            color: #233a8b;
+            background: #d1dbfa;
+        }
+        
+        .sidebar a.active {
+            color: #fff;
+            background: #233a8b;
+            box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+        }
+        
+        .sidebar .logout {
+            margin-top: auto;
+            margin-bottom: 32px;
+            color: #222;
+            font-weight: bold;
+            display: block;
+            width: 90%;
+            text-align: left;
         }
         
         .main-content {
@@ -460,8 +536,13 @@
             padding: 0;
         }
         .sidebar .logout {
-            margin-top: 0;
-            margin-bottom: 0;
+            margin-top: auto;
+            margin-bottom: 32px;
+            color: #222;
+            font-weight: bold;
+            display: block;
+            width: 90%;
+            text-align: left;
         }
     }
 
@@ -499,6 +580,38 @@
             min-width: 120px;
             font-size: 0.85rem;
         }
+        
+        /* Mobile Filter Stack - Vertical Layout */
+        .main-content > div:first-child > div:first-child {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            align-items: stretch !important;
+        }
+        
+        .main-content > div:first-child > div:first-child > div {
+            width: 100% !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .main-content > div:first-child > div:first-child label {
+            font-size: 0.9rem !important;
+            margin-bottom: 4px !important;
+            display: block !important;
+        }
+        
+        .main-content > div:first-child > div:first-child select {
+            width: 100% !important;
+            padding: 8px 12px !important;
+            font-size: 0.9rem !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Move total display to the right on tablet */
+        .main-content > div:first-child > div:last-child {
+            justify-content: flex-end !important;
+        }
+        
     }
 
     @media (max-width: 480px) {
@@ -510,6 +623,11 @@
             min-width: 100px;
             font-size: 0.8rem;
             padding: 6px 12px;
+        }
+        
+        /* Move total display to the right on mobile */
+        .main-content > div:first-child > div:last-child {
+            justify-content: flex-end !important;
         }
     }
 
@@ -729,12 +847,17 @@
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
+            <button class="hamburger-menu" id="hamburgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="Logo">
-            <span class="header-title">WorkConnect</span>
+            <span class="header-title" id="headerTitle">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
@@ -758,7 +881,7 @@
                         <h2 id="pageTitle" style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">Pending Job Applicants</h2>
                         <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Review and manage jobseeker applications</p>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px;" class="filter-container" id="filterContainer">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <label for="statusFilter" style="font-weight: 600; color: #233a8b; font-size: 0.9rem;">Filter by Status:</label>
                             <select id="statusFilter" onchange="showTab(this.value)" style="padding: 8px 16px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; min-width: 140px;">
@@ -956,11 +1079,72 @@
         </div>
 
         <script>
+            // Hamburger Menu Functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                const sidebar = document.querySelector('.sidebar');
+                
+                // Show hamburger menu on mobile
+                function checkScreenSize() {
+                    if (window.innerWidth <= 768) {
+                        hamburgerMenu.style.display = 'block';
+                    } else {
+                        hamburgerMenu.style.display = 'none';
+                        sidebar.classList.remove('active');
+                        hamburgerMenu.classList.remove('active');
+                    }
+                }
+                
+                // Initial check
+                checkScreenSize();
+                
+                // Check on resize
+                window.addEventListener('resize', checkScreenSize);
+                
+                // Mobile filter stacking
+                function handleMobileFilters() {
+                    const filterContainer = document.getElementById('filterContainer');
+                    if (window.innerWidth <= 768) {
+                        filterContainer.style.display = 'flex';
+                        filterContainer.style.flexDirection = 'column';
+                        filterContainer.style.alignItems = 'stretch';
+                        filterContainer.style.gap = '12px';
+                    } else {
+                        filterContainer.style.display = 'flex';
+                        filterContainer.style.flexDirection = 'row';
+                        filterContainer.style.alignItems = 'center';
+                        filterContainer.style.gap = '12px';
+                    }
+                }
+                
+                // Initial check
+                handleMobileFilters();
+                
+                // Check on resize
+                window.addEventListener('resize', handleMobileFilters);
+                
+                // Toggle sidebar
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                
+                // Close sidebar when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (window.innerWidth <= 768) {
+                        if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            });
+
             // Update username display and ADD ACCOUNT link visibility
             fetch('session_check.php')
                 .then(r => r.json())
                 .then(data => {
-                    document.getElementById('adminUsername').textContent = 'Welcome, ' + data.username;
+                    document.getElementById('adminUsername').textContent = data.username; // Remove "Welcome, " prefix
                     if (data.isMainAdmin) {
                         document.getElementById('addAccountLink').style.display = 'block';
                     } else {
@@ -970,6 +1154,169 @@
                 .catch(() => {
                     console.error('Session check failed');
                 });
+                
+            // Mobile header display fix
+            function handleMobileHeader() {
+                const header = document.getElementById('mainHeader');
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                const headerTitle = document.getElementById('headerTitle');
+                const adminSection = document.getElementById('adminSection');
+                
+                if (window.innerWidth <= 768) {
+                    // Mobile: Ensure header is properly displayed
+                    header.style.position = 'fixed';
+                    header.style.top = '0';
+                    header.style.left = '0';
+                    header.style.width = '100%';
+                    header.style.zIndex = '1000';
+                    header.style.display = 'flex';
+                    header.style.alignItems = 'center';
+                    header.style.justifyContent = 'space-between';
+                    header.style.padding = '12px 20px';
+                    header.style.height = '64px';
+                    header.style.boxSizing = 'border-box';
+                    header.style.maxWidth = '100vw';
+                    header.style.overflow = 'hidden';
+                    
+                    // Show hamburger menu
+                    hamburgerMenu.style.display = 'block';
+                    hamburgerMenu.style.visibility = 'visible';
+                    
+                    // Adjust title size for mobile - make smaller
+                    headerTitle.style.fontSize = '0.9rem';
+                    headerTitle.style.whiteSpace = 'nowrap';
+                    headerTitle.style.overflow = 'hidden';
+                    headerTitle.style.textOverflow = 'ellipsis';
+                    headerTitle.style.maxWidth = '100px';
+                    
+                    // Adjust admin section for mobile - make smaller
+                    adminSection.style.marginRight = '8px';
+                    adminSection.style.gap = '4px';
+                    adminSection.style.fontSize = '0.8rem';
+                    adminSection.style.maxWidth = '120px';
+                    adminSection.style.overflow = 'hidden';
+                    adminSection.style.textOverflow = 'ellipsis';
+                    adminSection.style.whiteSpace = 'nowrap';
+                    
+                    // Ensure logo is visible - make smaller
+                    const logo = header.querySelector('img');
+                    if (logo) {
+                        logo.style.height = '32px';
+                        logo.style.marginRight = '8px';
+                    }
+                    
+                    // Adjust hamburger menu spacing
+                    hamburgerMenu.style.marginRight = '8px';
+                    
+                } else {
+                    // Desktop: Reset to normal
+                    header.style.position = 'fixed';
+                    header.style.top = '0';
+                    header.style.left = '0';
+                    header.style.width = '100%';
+                    header.style.zIndex = '1000';
+                    header.style.display = 'flex';
+                    header.style.alignItems = 'center';
+                    header.style.justifyContent = 'space-between';
+                    header.style.padding = '12px 20px';
+                    header.style.height = '64px';
+                    header.style.boxSizing = 'border-box';
+                    header.style.maxWidth = '100vw';
+                    
+                    // Hide hamburger menu on desktop
+                    hamburgerMenu.style.display = 'none';
+                    
+                    // Reset title size
+                    headerTitle.style.fontSize = '1.7rem';
+                    headerTitle.style.whiteSpace = 'normal';
+                    headerTitle.style.overflow = 'visible';
+                    headerTitle.style.textOverflow = 'unset';
+                    headerTitle.style.maxWidth = 'none';
+                    
+                    // Reset admin section
+                    adminSection.style.marginRight = '20px';
+                    adminSection.style.gap = '8px';
+                    adminSection.style.fontSize = '1rem';
+                    adminSection.style.maxWidth = 'none';
+                    adminSection.style.overflow = 'visible';
+                    adminSection.style.textOverflow = 'unset';
+                    adminSection.style.whiteSpace = 'normal';
+                    
+                    // Reset logo
+                    const logo = header.querySelector('img');
+                    if (logo) {
+                        logo.style.height = '48px';
+                        logo.style.marginRight = '16px';
+                    }
+                }
+            }
+            
+            // Remove "Welcome, " text for both mobile and desktop
+            function removeWelcomeText() {
+                const adminUsername = document.getElementById('adminUsername');
+                if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+                    adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                }
+            }
+            
+            // Apply mobile styles immediately
+            function applyMobileStyles() {
+                if (window.innerWidth <= 768) {
+                    const headerTitle = document.getElementById('headerTitle');
+                    const adminUsername = document.getElementById('adminUsername');
+                    const adminSection = document.getElementById('adminSection');
+                    const logo = document.querySelector('img');
+                    const hamburgerMenu = document.getElementById('hamburgerMenu');
+                    
+                    // Apply inline styles immediately
+                    if (headerTitle) {
+                        headerTitle.style.fontSize = '0.9rem';
+                        headerTitle.style.maxWidth = '100px';
+                        headerTitle.style.overflow = 'hidden';
+                        headerTitle.style.textOverflow = 'ellipsis';
+                        headerTitle.style.whiteSpace = 'nowrap';
+                    }
+                    
+                    if (adminUsername) {
+                        adminUsername.style.fontSize = '0.8rem';
+                        adminUsername.style.maxWidth = '120px';
+                        adminUsername.style.overflow = 'hidden';
+                        adminUsername.style.textOverflow = 'ellipsis';
+                        adminUsername.style.whiteSpace = 'nowrap';
+                        // Remove "Welcome, " text
+                        if (adminUsername.textContent.includes('Welcome, ')) {
+                            adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                        }
+                    }
+                    
+                    if (adminSection) {
+                        adminSection.style.marginRight = '8px';
+                        adminSection.style.gap = '4px';
+                        adminSection.style.maxWidth = '120px';
+                    }
+                    
+                    if (logo) {
+                        logo.style.height = '32px';
+                        logo.style.marginRight = '8px';
+                    }
+                    
+                    if (hamburgerMenu) {
+                        hamburgerMenu.style.display = 'block';
+                        hamburgerMenu.style.visibility = 'visible';
+                        hamburgerMenu.style.marginRight = '8px';
+                    }
+                }
+            }
+            
+            // Apply immediately
+            applyMobileStyles();
+            removeWelcomeText();
+            
+            // Initial check
+            handleMobileHeader();
+            
+            // Check on resize
+            window.addEventListener('resize', handleMobileHeader);
 
         let allJobseekers = [];
         let currentTab = 'all';

@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Add Account</title>
     <style>
         body {
@@ -42,7 +43,7 @@
         }
         .layout {
             display: flex;
-            min-height: 100vh;
+            min-height: calc(100vh - 64px);
             padding-top: 64px; /* offset for fixed header */
         }
         .sidebar {
@@ -98,12 +99,17 @@
             background: #233a8b;
             box-shadow: 0 2px 8px rgba(35,58,139,0.15);
         }
+        
+        /* Hide hamburger menu on desktop */
+        .hamburger-menu {
+            display: none;
+        }
         .main-content {
             flex: 1;
             padding: 40px 0 32px 0;
             background: transparent;
             margin-left: 240px;
-            height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -220,19 +226,59 @@
             text-align: center;
         }
         @media (max-width: 768px) {
+            body {
+                background: #f8fafc;
+                padding: 0;
+                margin: 0;
+            }
+            
             .header {
-                padding: 8px 16px;
-                height: 56px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+                padding: 12px 16px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                min-height: 56px;
             }
             
             .header img {
-                height: 36px;
-                margin-right: 12px;
+                height: 32px;
+                margin-right: 8px;
+                flex-shrink: 0;
             }
             
             .header-title {
-                font-size: 1.4rem;
+                font-size: 1.2rem;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex: 1;
+                min-width: 0;
             }
+            
+            .header div {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-left: 0 !important;
+                flex-shrink: 0;
+            }
+            
+            .header div span {
+                font-size: 0.75rem;
+                color: #fff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100px;
+            }
+            
             
             .header div {
                 margin-left: auto !important;
@@ -240,29 +286,94 @@
                 gap: 8px;
             }
             
+            /* Hamburger Menu Button */
+            .hamburger-menu {
+                display: block !important;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px;
+                margin-right: 12px;
+                z-index: 1001;
+            }
+            
+            .hamburger-menu span {
+                display: block;
+                width: 25px;
+                height: 3px;
+                background: #fff;
+                margin: 5px 0;
+                transition: 0.3s;
+                border-radius: 2px;
+            }
+            
+            .hamburger-menu.active span:nth-child(1) {
+                transform: rotate(-45deg) translate(-5px, 6px);
+            }
+            
+            .hamburger-menu.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger-menu.active span:nth-child(3) {
+                transform: rotate(45deg) translate(-5px, -6px);
+            }
+            
             .layout {
                 padding-top: 56px;
                 flex-direction: column;
             }
             
+            /* Mobile Sidebar - Hidden by default */
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                top: 0;
-                left: 0;
-                padding: 16px;
-                flex-direction: row;
-                overflow-x: auto;
-                gap: 8px;
+                position: fixed !important;
+                top: 56px !important;
+                left: -240px !important;
+                width: 240px !important;
+                height: calc(100vh - 56px) !important;
+                background: #e3eaff !important;
+                z-index: 999 !important;
+                transition: left 0.3s ease !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 20px 0 0 24px !important;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+            }
+            
+            .sidebar.active {
+                left: 0 !important;
             }
             
             .sidebar a {
-                white-space: nowrap;
-                margin-bottom: 0;
-                margin-top: 0;
-                padding: 8px 12px;
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+                text-decoration: none;
+                color: #222;
                 font-size: 0.9rem;
+                font-weight: bold;
+                transition: all 0.2s;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                gap: 12px;
+            }
+            
+            .sidebar a:hover {
+                color: #233a8b;
+                background: #d1dbfa;
+            }
+            
+            .sidebar a.active {
+                color: #fff;
+                background: #233a8b;
+                box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+            }
+            
+            .sidebar .logout {
+                margin-top: auto;
+                margin-bottom: 32px;
+                color: #222;
+                font-weight: bold;
             }
             
             .main-content {
@@ -396,16 +507,21 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div style="display: flex; align-items: center;">
-            <img src="../assets/image/PESO Logo circle.png" alt="Logo">
-            <span class="header-title">WorkConnect</span>
+    <div class="header" id="mainHeader" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background: #233a8b; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; height: 64px; box-sizing: border-box; max-width: 100vw; overflow: hidden;">
+        <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+            <button class="hamburger-menu" id="hamburgerMenu" style="display: none; background: none; border: none; cursor: pointer; padding: 8px; margin-right: 8px; z-index: 1001; flex-shrink: 0;">
+                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
+                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
+                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
+            </button>
+            <img src="../assets/image/PESO Logo circle.png" alt="Logo" style="height: 32px; margin-right: 8px; border-radius: 50%; background: none; border: none; flex-shrink: 0;">
+            <span class="header-title" id="headerTitle" style="font-size: 1rem; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; max-width: 150px;">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+        <div style="display: flex; align-items: center; gap: 6px; margin-left: 8px; flex-shrink: 0;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
-            <span id="adminUsername" style="font-size: 1rem; font-weight: 500;">Welcome, Admin</span>
+            <span id="adminUsername" style="font-size: 0.75rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">Welcome, Admin</span>
         </div>
     </div>
     <div class="layout">
@@ -450,12 +566,292 @@
                 </table>
             </div>
             <script>
+            // Hamburger Menu Functionality
+            document.addEventListener('DOMContentLoaded', function() {
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                const sidebar = document.querySelector('.sidebar');
+                
+                // Show hamburger menu on mobile
+                function checkScreenSize() {
+                    if (window.innerWidth <= 768) {
+                        hamburgerMenu.style.display = 'block';
+                    } else {
+                        hamburgerMenu.style.display = 'none';
+                        sidebar.classList.remove('active');
+                        hamburgerMenu.classList.remove('active');
+                    }
+                }
+                
+                // Initial check
+                checkScreenSize();
+                
+                // Check on resize
+                window.addEventListener('resize', checkScreenSize);
+                
+                // Toggle sidebar
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                
+                // Close sidebar when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (window.innerWidth <= 768) {
+                        if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            });
+
+            // Mobile header display fix
+            function handleMobileHeader() {
+                const header = document.getElementById('mainHeader');
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                const headerTitle = document.getElementById('headerTitle');
+                const adminSection = document.getElementById('adminSection');
+                
+                if (window.innerWidth <= 768) {
+                    // Mobile: Ensure header is properly displayed
+                    header.style.position = 'fixed';
+                    header.style.top = '0';
+                    header.style.left = '0';
+                    header.style.width = '100%';
+                    header.style.zIndex = '1000';
+                    header.style.display = 'flex';
+                    header.style.alignItems = 'center';
+                    header.style.justifyContent = 'space-between';
+                    header.style.padding = '12px 20px';
+                    header.style.height = '64px';
+                    header.style.boxSizing = 'border-box';
+                    header.style.maxWidth = '100vw';
+                    header.style.overflow = 'hidden';
+                    
+                    // Show hamburger menu
+                    hamburgerMenu.style.display = 'block';
+                    hamburgerMenu.style.visibility = 'visible';
+                    
+                    // Adjust title size for mobile - make smaller
+                    headerTitle.style.fontSize = '1rem';
+                    headerTitle.style.whiteSpace = 'nowrap';
+                    headerTitle.style.overflow = 'hidden';
+                    headerTitle.style.textOverflow = 'ellipsis';
+                    headerTitle.style.maxWidth = '150px';
+                    
+                    // Adjust admin section for mobile - make smaller
+                    adminSection.style.marginRight = '8px';
+                    adminSection.style.gap = '4px';
+                    adminSection.style.fontSize = '0.75rem';
+                    adminSection.style.maxWidth = '120px';
+                    adminSection.style.overflow = 'hidden';
+                    adminSection.style.textOverflow = 'ellipsis';
+                    
+                    // Update admin text to show only username
+                    const adminUsername = document.getElementById('adminUsername');
+                    if (adminUsername) {
+                        const currentText = adminUsername.textContent;
+                        if (currentText.includes('Welcome, ')) {
+                            adminUsername.textContent = currentText.replace('Welcome, ', '');
+                        }
+                    }
+                    
+                    // Ensure logo is visible - make smaller
+                    const logo = header.querySelector('img');
+                    if (logo) {
+                        logo.style.height = '32px';
+                        logo.style.marginRight = '8px';
+                    }
+                    
+                    // Adjust hamburger menu spacing
+                    hamburgerMenu.style.marginRight = '8px';
+                    
+                } else {
+                    // Desktop: Reset to normal
+                    header.style.position = 'fixed';
+                    header.style.top = '0';
+                    header.style.left = '0';
+                    header.style.width = '100%';
+                    header.style.zIndex = '1000';
+                    header.style.display = 'flex';
+                    header.style.alignItems = 'center';
+                    header.style.justifyContent = 'space-between';
+                    header.style.padding = '12px 20px';
+                    header.style.height = '64px';
+                    header.style.boxSizing = 'border-box';
+                    header.style.maxWidth = '100vw';
+                    
+                    // Hide hamburger menu on desktop
+                    hamburgerMenu.style.display = 'none';
+                    
+                    // Reset title size
+                    headerTitle.style.fontSize = '1.7rem';
+                    headerTitle.style.whiteSpace = 'normal';
+                    headerTitle.style.overflow = 'visible';
+                    headerTitle.style.textOverflow = 'unset';
+                    
+                    // Reset admin section
+                    adminSection.style.marginRight = '20px';
+                    adminSection.style.gap = '8px';
+                    adminSection.style.fontSize = '1rem';
+                    
+                    // Remove "Welcome, " text for desktop too
+                    const adminUsername = document.getElementById('adminUsername');
+                    if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+                        adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                    }
+                    
+                    // Reset logo
+                    const logo = header.querySelector('img');
+                    if (logo) {
+                        logo.style.height = '48px';
+                        logo.style.marginRight = '16px';
+                    }
+                }
+            }
+            
+            // Apply mobile styles immediately
+            function applyMobileStyles() {
+                if (window.innerWidth <= 768) {
+                    const headerTitle = document.getElementById('headerTitle');
+                    const adminUsername = document.getElementById('adminUsername');
+                    const adminSection = document.getElementById('adminSection');
+                    const logo = document.querySelector('img');
+                    const hamburgerMenu = document.getElementById('hamburgerMenu');
+                    
+                    // Apply inline styles immediately
+                    if (headerTitle) {
+                        headerTitle.style.fontSize = '1rem';
+                        headerTitle.style.maxWidth = '150px';
+                        headerTitle.style.overflow = 'hidden';
+                        headerTitle.style.textOverflow = 'ellipsis';
+                        headerTitle.style.whiteSpace = 'nowrap';
+                    }
+                    
+                    if (adminUsername) {
+                        adminUsername.style.fontSize = '0.75rem';
+                        adminUsername.style.maxWidth = '120px';
+                        adminUsername.style.overflow = 'hidden';
+                        adminUsername.style.textOverflow = 'ellipsis';
+                        adminUsername.style.whiteSpace = 'nowrap';
+                        // Remove "Welcome, " text for mobile
+                        if (adminUsername.textContent.includes('Welcome, ')) {
+                            adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                        }
+                    }
+                    
+                    if (adminSection) {
+                        adminSection.style.marginRight = '8px';
+                        adminSection.style.gap = '4px';
+                        adminSection.style.maxWidth = '120px';
+                    }
+                    
+                    if (logo) {
+                        logo.style.height = '32px';
+                        logo.style.marginRight = '8px';
+                    }
+                    
+                    if (hamburgerMenu) {
+                        hamburgerMenu.style.display = 'block';
+                        hamburgerMenu.style.visibility = 'visible';
+                        hamburgerMenu.style.marginRight = '8px';
+                    }
+                }
+            }
+            
+            // Remove "Welcome, " text for both mobile and desktop
+            function removeWelcomeText() {
+                const adminUsername = document.getElementById('adminUsername');
+                if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+                    adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                }
+            }
+            
+            // Apply immediately
+            applyMobileStyles();
+            removeWelcomeText();
+            
+            // Force mobile styles immediately
+            if (window.innerWidth <= 768) {
+                const header = document.getElementById('mainHeader');
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                const headerTitle = document.getElementById('headerTitle');
+                const logo = document.querySelector('img');
+                const leftSection = header.querySelector('div:first-child');
+                const adminSection = document.getElementById('adminSection');
+                
+                // Force mobile header layout
+                header.style.display = 'flex';
+                header.style.flexDirection = 'row';
+                header.style.justifyContent = 'space-between';
+                header.style.alignItems = 'center';
+                header.style.padding = '12px 20px';
+                header.style.height = '64px';
+                header.style.overflow = 'hidden';
+                
+                // Force left section layout
+                if (leftSection) {
+                    leftSection.style.display = 'flex';
+                    leftSection.style.flexDirection = 'row';
+                    leftSection.style.alignItems = 'center';
+                    leftSection.style.flex = '1';
+                    leftSection.style.minWidth = '0';
+                }
+                
+                // Force hamburger menu to show
+                hamburgerMenu.style.display = 'block';
+                hamburgerMenu.style.visibility = 'visible';
+                hamburgerMenu.style.marginRight = '8px';
+                hamburgerMenu.style.flexShrink = '0';
+                
+                // Force logo styles
+                if (logo) {
+                    logo.style.height = '32px';
+                    logo.style.marginRight = '8px';
+                    logo.style.flexShrink = '0';
+                }
+                
+                // Force title styles
+                headerTitle.style.fontSize = '1rem';
+                headerTitle.style.flex = '1';
+                headerTitle.style.minWidth = '0';
+                headerTitle.style.overflow = 'hidden';
+                headerTitle.style.textOverflow = 'ellipsis';
+                headerTitle.style.whiteSpace = 'nowrap';
+                
+                // Force admin section layout
+                if (adminSection) {
+                    adminSection.style.display = 'flex';
+                    adminSection.style.flexDirection = 'row';
+                    adminSection.style.alignItems = 'center';
+                    adminSection.style.gap = '6px';
+                    adminSection.style.marginLeft = '8px';
+                    adminSection.style.flexShrink = '0';
+                }
+                
+                // Force admin username styles
+                const adminUsername = document.getElementById('adminUsername');
+                if (adminUsername) {
+                    adminUsername.style.fontSize = '0.75rem';
+                    adminUsername.style.maxWidth = '100px';
+                    adminUsername.style.overflow = 'hidden';
+                    adminUsername.style.textOverflow = 'ellipsis';
+                    adminUsername.style.whiteSpace = 'nowrap';
+                }
+            }
+            
+            // Initial check
+            handleMobileHeader();
+            
+            // Check on resize
+            window.addEventListener('resize', handleMobileHeader);
+
             // Session check and update UI
             fetch('session_check.php')
                 .then(r => r.json())
                 .then(d => {
                     // Update username display
-                    document.getElementById('adminUsername').textContent = 'Welcome, ' + d.username;
+                    document.getElementById('adminUsername').textContent = d.username; // Remove "Welcome, " prefix
                 })
                 .catch(() => {
                     console.error('Session check failed');

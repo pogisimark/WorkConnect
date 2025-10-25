@@ -55,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - WorkConnect</title>
     <link rel="icon" href="../assets/image/PESO Logo circle.png">
     <style>
@@ -192,25 +193,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 500;
         }
 
-        /* Mobile Responsive */
+        /* Mobile Responsive - App-like Design */
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
             .reset-container {
                 padding: 30px 20px;
-                margin: 15px;
-                max-width: 90%;
+                margin: 10px;
+                max-width: 100%;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             }
             
             .logo {
-                height: 50px;
+                height: 60px;
+                margin-bottom: 12px;
+            }
+            
+            .brand {
+                font-size: 1.8rem;
+                font-weight: bold;
+            }
+            
+            .reset-title {
+                font-size: 1.4rem;
+                margin-bottom: 25px;
+            }
+            
+            .form-group {
+                margin-bottom: 18px;
+            }
+            
+            .form-group input {
+                padding: 12px 14px;
+                font-size: 1rem;
+            }
+            
+            .reset-btn {
+                padding: 12px;
+                font-size: 1rem;
+                margin-bottom: 18px;
+            }
+            
+            .username-display {
+                padding: 12px;
+                font-size: 0.95rem;
+                margin-bottom: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            
+            .reset-container {
+                padding: 25px 16px;
+                margin: 8px;
+                max-width: 100%;
+                border-radius: 10px;
+            }
+            
+            .logo {
+                height: 55px;
+                margin-bottom: 10px;
             }
             
             .brand {
                 font-size: 1.6rem;
+                font-weight: bold;
             }
             
             .reset-title {
                 font-size: 1.3rem;
-                margin-bottom: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 16px;
+            }
+            
+            .form-group input {
+                padding: 10px 12px;
+                font-size: 0.95rem;
+            }
+            
+            .reset-btn {
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-bottom: 16px;
+            }
+            
+            .username-display {
+                padding: 10px;
+                font-size: 0.9rem;
+                margin-bottom: 16px;
+            }
+            
+            .back-login {
+                margin-top: 16px;
+            }
+            
+            .back-login a {
+                font-size: 0.9rem;
             }
         }
     </style>

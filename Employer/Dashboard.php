@@ -3,14 +3,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Dashboard</title>
     <style>
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #fafafa;
-            max-height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
         .header {
             background: #233a8b;
@@ -43,7 +45,7 @@
         }
         .layout {
             display: flex;
-            min-height: 100vh;
+            min-height: calc(100vh - 64px);
             padding-top: 64px; /* offset for fixed header */
         }
         .sidebar {
@@ -85,13 +87,16 @@
             margin-bottom: 32px;
             color: #222;
             font-weight: bold;
+            display: block;
+            width: 90%;
+            text-align: left;
         }
         .main-content {
             flex: 1;
             padding: 32px;
             background: #fff;
             margin-left: 240px;
-            height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px);
             overflow-y: auto;
             box-sizing: border-box;
         }
@@ -105,6 +110,11 @@
             color: #fff;
             background: #233a8b;
             box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+        }
+        
+        /* Hide hamburger menu on desktop */
+        .hamburger-menu {
+            display: none;
         }
         
         /* Quick Action Hover Effects */
@@ -186,7 +196,7 @@
             }
         }
         
-        /* Mobile App UI - Completely Different Layout */
+        /* Mobile Hamburger Menu System */
         @media (max-width: 768px) {
             body {
                 background: #f8fafc;
@@ -252,68 +262,100 @@
                 flex-shrink: 0;
             }
             
+            /* Hamburger Menu Button */
+            .hamburger-menu {
+                display: block !important;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px;
+                margin-right: 12px;
+                z-index: 1001;
+            }
+            
+            .hamburger-menu span {
+                display: block;
+                width: 25px;
+                height: 3px;
+                background: #fff;
+                margin: 5px 0;
+                transition: 0.3s;
+                border-radius: 2px;
+            }
+            
+            .hamburger-menu.active span:nth-child(1) {
+                transform: rotate(-45deg) translate(-5px, 6px);
+            }
+            
+            .hamburger-menu.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger-menu.active span:nth-child(3) {
+                transform: rotate(45deg) translate(-5px, -6px);
+            }
+            
             .layout {
                 flex-direction: column;
                 padding-top: 60px;
-                margin-bottom: 80px;
             }
             
-            /* Mobile Bottom Navigation */
+            /* Mobile Sidebar - Hidden by default */
             .sidebar {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: #fff;
-                display: flex;
-                justify-content: space-around;
-                padding: 8px 0;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-                z-index: 1000;
-                height: auto;
-                width: 100%;
-                flex-direction: row;
+                position: fixed !important;
+                top: 56px !important;
+                left: -240px !important;
+                width: 240px !important;
+                height: calc(100vh - 56px) !important;
+                background: #e3eaff !important;
+                z-index: 999 !important;
+                transition: left 0.3s ease !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 20px 0 0 24px !important;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+            }
+            
+            .sidebar.active {
+                left: 0 !important;
             }
             
             .sidebar a {
                 display: flex;
-                flex-direction: column;
                 align-items: center;
-                padding: 8px 4px;
+                padding: 12px 16px;
                 text-decoration: none;
-                color: #666;
-                font-size: 0.7rem;
-                transition: color 0.3s;
-                min-width: 50px;
-                border-radius: 0;
-                background: none;
-                border: none;
-                margin: 0;
-                white-space: nowrap;
+                color: #222;
+                font-size: 0.9rem;
+                font-weight: bold;
+                transition: all 0.2s;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                gap: 12px;
             }
             
-            .sidebar a:before {
-                content: '';
-                font-size: 1.2rem;
-                margin-bottom: 4px;
+            .sidebar a:hover {
+                color: #233a8b;
+                background: #d1dbfa;
             }
-            
-            .sidebar a[href="Dashboard.php"]:before { content: '📊'; }
-            .sidebar a[href="job.php"]:before { content: '👥'; }
-            .sidebar a[href="skill.php"]:before { content: '🛠️'; }
-            .sidebar a[href="btec.php"]:before { content: '📈'; }
-            .sidebar a[href="add.php"]:before { content: '➕'; }
-            .sidebar a[href="analytics.php"]:before { content: '📊'; }
-            .sidebar a[href="logout.php"]:before { content: '🚪'; }
             
             .sidebar a.active {
-                color: #233a8b;
+                color: #fff;
+                background: #233a8b;
+                box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+            }
+            
+            .sidebar .logout {
+                margin-top: auto;
+                margin-bottom: 32px;
+                color: #222;
+                font-weight: bold;
             }
             
             .main-content {
                 margin-left: 0;
                 padding: 16px;
-                margin-bottom: 80px;
+                width: 100%;
             }
             
             .main-content > div:first-child {
@@ -357,6 +399,41 @@
                 grid-template-columns: 1fr;
                 gap: 12px;
                 margin-bottom: 16px;
+            }
+            
+            /* Stack sections vertically on mobile - Quick Tips first, then PESO Mission */
+            .main-content > div:last-child {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 16px !important;
+                grid-template-columns: none !important;
+            }
+            
+            .main-content > div:last-child > div:first-child {
+                order: 2 !important; /* PESO Mission goes to bottom */
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: none !important;
+            }
+            
+            .main-content > div:last-child > div:last-child {
+                order: 1 !important; /* Quick Tips goes to top */
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: none !important;
+            }
+            
+            /* Match the width of other cards on mobile */
+            .main-content > div:last-child {
+                max-width: 100% !important;
+                margin: 0 auto !important;
+            }
+            
+            /* Override any existing grid styles */
+            .main-content > div[style*="grid-template-columns"] {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 16px !important;
             }
             
             .main-content > div:nth-child(2) > div,
@@ -404,8 +481,8 @@
             }
             
             .sidebar a {
-                font-size: 0.65rem;
-                padding: 6px 2px;
+                font-size: 0.8rem;
+                padding: 6px 10px;
             }
             
             .sidebar a:before {
@@ -455,16 +532,21 @@
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
+            <button class="hamburger-menu" id="hamburgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo">
-            <span class="header-title">WorkConnect</span>
+            <span class="header-title" id="headerTitle">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
-            <span id="adminUsername" style="font-size: 1rem; font-weight: 500;">Welcome, Admin</span>
+            <span id="adminUsername" style="font-size: 1rem; font-weight: 500;">Admin</span>
         </div>
     </div>
     <div class="layout">
@@ -655,12 +737,204 @@
     </div>
     
 <script>
+// Hamburger Menu Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // Show hamburger menu on mobile
+    function checkScreenSize() {
+        if (window.innerWidth <= 768) {
+            hamburgerMenu.style.display = 'block';
+        } else {
+            hamburgerMenu.style.display = 'none';
+            sidebar.classList.remove('active');
+            hamburgerMenu.classList.remove('active');
+        }
+    }
+    
+    // Initial check
+    checkScreenSize();
+    
+    // Check on resize
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Mobile header display fix
+    function handleMobileHeader() {
+        const header = document.getElementById('mainHeader');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const headerTitle = document.getElementById('headerTitle');
+        const adminSection = document.getElementById('adminSection');
+        
+        if (window.innerWidth <= 768) {
+            // Mobile: Ensure header is properly displayed
+            header.style.position = 'fixed';
+            header.style.top = '0';
+            header.style.left = '0';
+            header.style.width = '100%';
+            header.style.zIndex = '1000';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 20px';
+            header.style.height = '64px';
+            header.style.boxSizing = 'border-box';
+            header.style.maxWidth = '100vw';
+            header.style.overflow = 'hidden';
+            
+            // Show hamburger menu
+            hamburgerMenu.style.display = 'block';
+            hamburgerMenu.style.visibility = 'visible';
+            
+            // Adjust title size for mobile - make smaller
+            headerTitle.style.fontSize = '0.9rem';
+            headerTitle.style.whiteSpace = 'nowrap';
+            headerTitle.style.overflow = 'hidden';
+            headerTitle.style.textOverflow = 'ellipsis';
+            headerTitle.style.maxWidth = '100px';
+            
+            // Adjust admin section for mobile - make smaller
+            adminSection.style.marginRight = '8px';
+            adminSection.style.gap = '4px';
+            adminSection.style.fontSize = '0.8rem';
+            adminSection.style.maxWidth = '120px';
+            adminSection.style.overflow = 'hidden';
+            adminSection.style.textOverflow = 'ellipsis';
+            
+            // Update admin text to show only username
+            const adminUsername = document.getElementById('adminUsername');
+            if (adminUsername) {
+                // Username is already set without "Welcome, " prefix
+            }
+            
+            // Ensure logo is visible - make smaller
+            const logo = header.querySelector('img');
+            if (logo) {
+                logo.style.height = '32px';
+                logo.style.marginRight = '8px';
+            }
+            
+            // Adjust hamburger menu spacing
+            hamburgerMenu.style.marginRight = '8px';
+            
+        } else {
+            // Desktop: Reset to normal
+            header.style.position = 'fixed';
+            header.style.top = '0';
+            header.style.left = '0';
+            header.style.width = '100%';
+            header.style.zIndex = '1000';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 20px';
+            header.style.height = '64px';
+            header.style.boxSizing = 'border-box';
+            header.style.maxWidth = '100vw';
+            
+            // Hide hamburger menu on desktop
+            hamburgerMenu.style.display = 'none';
+            
+            // Reset title size
+            headerTitle.style.fontSize = '1.7rem';
+            headerTitle.style.whiteSpace = 'normal';
+            headerTitle.style.overflow = 'visible';
+            headerTitle.style.textOverflow = 'unset';
+            
+            // Reset admin section
+            adminSection.style.marginRight = '20px';
+            adminSection.style.gap = '8px';
+            adminSection.style.fontSize = '1rem';
+            
+            // Username is already set without "Welcome, " prefix
+            const adminUsername = document.getElementById('adminUsername');
+            
+            // Reset logo
+            const logo = header.querySelector('img');
+            if (logo) {
+                logo.style.height = '48px';
+                logo.style.marginRight = '16px';
+            }
+        }
+    }
+    
+    // Apply mobile styles immediately
+    function applyMobileStyles() {
+        if (window.innerWidth <= 768) {
+            const headerTitle = document.getElementById('headerTitle');
+            const adminUsername = document.getElementById('adminUsername');
+            const adminSection = document.getElementById('adminSection');
+            const logo = document.querySelector('img');
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            
+            // Apply inline styles immediately
+            if (headerTitle) {
+                headerTitle.style.fontSize = '0.9rem';
+                headerTitle.style.maxWidth = '100px';
+                headerTitle.style.overflow = 'hidden';
+                headerTitle.style.textOverflow = 'ellipsis';
+                headerTitle.style.whiteSpace = 'nowrap';
+            }
+            
+            if (adminUsername) {
+                adminUsername.style.fontSize = '0.8rem';
+                adminUsername.style.maxWidth = '120px';
+                adminUsername.style.overflow = 'hidden';
+                adminUsername.style.textOverflow = 'ellipsis';
+                adminUsername.style.whiteSpace = 'nowrap';
+            }
+            
+            if (adminSection) {
+                adminSection.style.marginRight = '8px';
+                adminSection.style.gap = '4px';
+                adminSection.style.maxWidth = '120px';
+            }
+            
+            if (logo) {
+                logo.style.height = '32px';
+                logo.style.marginRight = '8px';
+            }
+            
+            if (hamburgerMenu) {
+                hamburgerMenu.style.display = 'block';
+                hamburgerMenu.style.visibility = 'visible';
+                hamburgerMenu.style.marginRight = '8px';
+            }
+        }
+    }
+    
+    // Apply immediately
+    applyMobileStyles();
+    
+    // Initial check
+    handleMobileHeader();
+    
+    // Check on resize
+    window.addEventListener('resize', handleMobileHeader);
+    
+    // Toggle sidebar
+    hamburgerMenu.addEventListener('click', function() {
+        sidebar.classList.toggle('active');
+        hamburgerMenu.classList.toggle('active');
+    });
+    
+    // Close sidebar when clicking outside
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth <= 768) {
+            if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                sidebar.classList.remove('active');
+                hamburgerMenu.classList.remove('active');
+            }
+        }
+    });
+});
+
 // Check admin session and update UI
 fetch('session_check.php')
     .then(r => r.json())
     .then(data => {
         // Update username display
-        document.getElementById('adminUsername').textContent = 'Welcome, ' + data.username;
+        document.getElementById('adminUsername').textContent = data.username;
         
         // Show/hide ADD ACCOUNT link based on admin type
         if (data.isMainAdmin) {

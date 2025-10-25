@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Skill Registry</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
@@ -65,7 +66,7 @@
     .add-modal-form input[type="date"],
     .add-modal-form input[type="number"],
     .add-modal-form select {
-        width: 100%;
+        width: 95%;
         max-width: 300px;
         padding: 8px 12px;
         border-radius: 8px;
@@ -330,6 +331,58 @@
         overflow: hidden;
         box-shadow: 0 4px 20px rgba(35,58,139,0.08);
     }
+    
+    /* Mobile table improvements */
+    @media (max-width: 768px) {
+        .barangay-table-form {
+            min-width: 4000px;
+            font-size: 0.75rem;
+        }
+        
+        .barangay-table-form th,
+        .barangay-table-form td {
+            padding: 6px 4px;
+            font-size: 0.75rem;
+            min-width: 80px;
+        }
+        
+        .barangay-table-form th {
+            font-size: 0.7rem;
+            line-height: 1.2;
+            padding: 8px 4px;
+        }
+        
+        .barangay-table-form input,
+        .barangay-table-form select {
+            font-size: 0.7rem;
+            padding: 2px 4px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .barangay-table-form {
+            min-width: 3500px;
+            font-size: 0.65rem;
+        }
+        
+        .barangay-table-form th,
+        .barangay-table-form td {
+            padding: 4px 2px;
+            font-size: 0.65rem;
+            min-width: 70px;
+        }
+        
+        .barangay-table-form th {
+            font-size: 0.6rem;
+            padding: 6px 2px;
+        }
+        
+        .barangay-table-form input,
+        .barangay-table-form select {
+            font-size: 0.65rem;
+            padding: 1px 2px;
+        }
+    }
     .barangay-table-form td {
         min-width: 120px;
         border: 1px solid #e3f2fd;
@@ -415,6 +468,53 @@
     .barangay-table-form th:nth-child(18), .barangay-table-form td:nth-child(18) { min-width: 120px; } /* SE Duration */
     .barangay-table-form th:nth-child(19), .barangay-table-form td:nth-child(19) { min-width: 80px; } /* UE */
     .barangay-table-form th:nth-child(20), .barangay-table-form td:nth-child(20) { min-width: 200px; } /* Skills */
+    
+    /* Mobile column width optimizations */
+    @media (max-width: 768px) {
+        .barangay-table-form th:nth-child(1), .barangay-table-form td:nth-child(1) { min-width: 40px; } /* No. */
+        .barangay-table-form th:nth-child(2), .barangay-table-form td:nth-child(2) { min-width: 100px; } /* Date of Survey */
+        .barangay-table-form th:nth-child(3), .barangay-table-form td:nth-child(3) { min-width: 150px; } /* Printed Name */
+        .barangay-table-form th:nth-child(4), .barangay-table-form td:nth-child(4) { min-width: 60px; } /* FTJS Yes */
+        .barangay-table-form th:nth-child(5), .barangay-table-form td:nth-child(5) { min-width: 60px; } /* FTJS No */
+        .barangay-table-form th:nth-child(6), .barangay-table-form td:nth-child(6) { min-width: 60px; } /* COVID Yes */
+        .barangay-table-form th:nth-child(7), .barangay-table-form td:nth-child(7) { min-width: 60px; } /* COVID No */
+        .barangay-table-form th:nth-child(8), .barangay-table-form td:nth-child(8) { min-width: 140px; } /* Address */
+        .barangay-table-form th:nth-child(9), .barangay-table-form td:nth-child(9) { min-width: 100px; } /* DOB */
+        .barangay-table-form th:nth-child(10), .barangay-table-form td:nth-child(10) { min-width: 100px; } /* Contact */
+        .barangay-table-form th:nth-child(11), .barangay-table-form td:nth-child(11) { min-width: 40px; } /* Age */
+        .barangay-table-form th:nth-child(12), .barangay-table-form td:nth-child(12) { min-width: 60px; } /* Sex */
+        .barangay-table-form th:nth-child(13), .barangay-table-form td:nth-child(13) { min-width: 100px; } /* Marital Status */
+        .barangay-table-form th:nth-child(14), .barangay-table-form td:nth-child(14) { min-width: 150px; } /* Education */
+        .barangay-table-form th:nth-child(15), .barangay-table-form td:nth-child(15) { min-width: 120px; } /* WE Position */
+        .barangay-table-form th:nth-child(16), .barangay-table-form td:nth-child(16) { min-width: 100px; } /* WE Duration */
+        .barangay-table-form th:nth-child(17), .barangay-table-form td:nth-child(17) { min-width: 120px; } /* SE Business */
+        .barangay-table-form th:nth-child(18), .barangay-table-form td:nth-child(18) { min-width: 100px; } /* SE Duration */
+        .barangay-table-form th:nth-child(19), .barangay-table-form td:nth-child(19) { min-width: 60px; } /* UE */
+        .barangay-table-form th:nth-child(20), .barangay-table-form td:nth-child(20) { min-width: 150px; } /* Skills */
+    }
+    
+    @media (max-width: 480px) {
+        .barangay-table-form th:nth-child(1), .barangay-table-form td:nth-child(1) { min-width: 35px; } /* No. */
+        .barangay-table-form th:nth-child(2), .barangay-table-form td:nth-child(2) { min-width: 80px; } /* Date of Survey */
+        .barangay-table-form th:nth-child(3), .barangay-table-form td:nth-child(3) { min-width: 120px; } /* Printed Name */
+        .barangay-table-form th:nth-child(4), .barangay-table-form td:nth-child(4) { min-width: 50px; } /* FTJS Yes */
+        .barangay-table-form th:nth-child(5), .barangay-table-form td:nth-child(5) { min-width: 50px; } /* FTJS No */
+        .barangay-table-form th:nth-child(6), .barangay-table-form td:nth-child(6) { min-width: 50px; } /* COVID Yes */
+        .barangay-table-form th:nth-child(7), .barangay-table-form td:nth-child(7) { min-width: 50px; } /* COVID No */
+        .barangay-table-form th:nth-child(8), .barangay-table-form td:nth-child(8) { min-width: 120px; } /* Address */
+        .barangay-table-form th:nth-child(9), .barangay-table-form td:nth-child(9) { min-width: 80px; } /* DOB */
+        .barangay-table-form th:nth-child(10), .barangay-table-form td:nth-child(10) { min-width: 80px; } /* Contact */
+        .barangay-table-form th:nth-child(11), .barangay-table-form td:nth-child(11) { min-width: 35px; } /* Age */
+        .barangay-table-form th:nth-child(12), .barangay-table-form td:nth-child(12) { min-width: 50px; } /* Sex */
+        .barangay-table-form th:nth-child(13), .barangay-table-form td:nth-child(13) { min-width: 80px; } /* Marital Status */
+        .barangay-table-form th:nth-child(14), .barangay-table-form td:nth-child(14) { min-width: 120px; } /* Education */
+        .barangay-table-form th:nth-child(15), .barangay-table-form td:nth-child(15) { min-width: 100px; } /* WE Position */
+        .barangay-table-form th:nth-child(16), .barangay-table-form td:nth-child(16) { min-width: 80px; } /* WE Duration */
+        .barangay-table-form th:nth-child(17), .barangay-table-form td:nth-child(17) { min-width: 100px; } /* SE Business */
+        .barangay-table-form th:nth-child(18), .barangay-table-form td:nth-child(18) { min-width: 80px; } /* SE Duration */
+        .barangay-table-form th:nth-child(19), .barangay-table-form td:nth-child(19) { min-width: 50px; } /* UE */
+        .barangay-table-form th:nth-child(20), .barangay-table-form td:nth-child(20) { min-width: 120px; } /* Skills */
+    }
     /* Filter UI Design */
     .filter-container {
         background: linear-gradient(135deg, #e3f2fd, #f0f4ff);
@@ -423,7 +523,7 @@
         margin-bottom: 20px;
         border: 1px solid #bbdefb;
         box-shadow: 0 2px 8px rgba(35,58,139,0.1);
-        margin-top: 3%;
+        margin-top: 50px;
     }
     .filter-row {
         display: flex;
@@ -471,6 +571,43 @@
     white-space: nowrap;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(35,58,139,0.1);
+    /* Enhanced mobile scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Mobile table scroll improvements */
+@media (max-width: 768px) {
+    .barangay-table-scroll {
+        padding-bottom: 12px;
+        margin: 0 -10px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Add scroll indicators for mobile */
+    .barangay-table-scroll::after {
+        content: '← Swipe to see more columns →';
+        display: block;
+        text-align: center;
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 8px;
+        font-style: italic;
+    }
+}
+
+@media (max-width: 480px) {
+    .barangay-table-scroll {
+        margin: 0 -5px;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .barangay-table-scroll::after {
+        font-size: 0.7rem;
+        margin-top: 6px;
+    }
 }
     @media (max-width: 900px) {
         .modal-content {
@@ -484,7 +621,9 @@
         margin: 0;
         font-family: Arial, Helvetica, sans-serif;
         background: #fafafa;
-        overflow: hidden; /* Prevent double scrollbars */
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
     .header {
         background: #233a8b;
@@ -517,7 +656,7 @@
     }
     .layout {
     display: flex;
-    min-height: 100vh;
+    min-height: calc(100vh - 64px);
     padding-top: 64px; /* offset for fixed header */
 }
     .sidebar {
@@ -573,12 +712,17 @@
         background: #233a8b;
         box-shadow: 0 2px 8px rgba(35,58,139,0.15);
     }
+    
+    /* Hide hamburger menu on desktop */
+    .hamburger-menu {
+        display: none;
+    }
     .main-content {
     flex: 1;
     padding: 32px;
     background: #fff;
     margin-left: 240px;
-    height: calc(100vh - 64px);
+    min-height: calc(100vh - 64px);
     overflow-y: auto;
     box-sizing: border-box;
 }
@@ -662,19 +806,53 @@
             grid-template-columns: repeat(3, 1fr);
         }
     }
-    @media (max-width: 768px) {
-        .header {
-            padding: 8px 16px;
-            height: 56px;
-        }
+        @media (max-width: 768px) {
+            .header {
+                padding: 8px 16px;
+                height: 56px;
+            }
+            
+            .header img {
+                height: 36px;
+                margin-right: 12px;
+            }
+            
+            .header-title {
+                font-size: 1.4rem;
+            }
+            
         
-        .header img {
-            height: 36px;
+        /* Hamburger Menu Button */
+        .hamburger-menu {
+            display: block !important;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
             margin-right: 12px;
+            z-index: 1001;
         }
         
-        .header-title {
-            font-size: 1.4rem;
+        .hamburger-menu span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: #fff;
+            margin: 5px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+        
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
         }
         
         .layout {
@@ -682,24 +860,59 @@
             flex-direction: column;
         }
         
+        /* Mobile Sidebar - Hidden by default */
         .sidebar {
-            width: 100%;
-            height: auto;
-            position: relative;
-            top: 0;
-            left: 0;
-            padding: 16px;
-            flex-direction: row;
-            overflow-x: auto;
-            gap: 8px;
+            position: fixed !important;
+            top: 56px !important;
+            left: -240px !important;
+            width: 240px !important;
+            height: calc(100vh - 56px) !important;
+            background: #e3eaff !important;
+            z-index: 999 !important;
+            transition: left 0.3s ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 20px 0 0 24px !important;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+        }
+        
+        .sidebar.active {
+            left: 0 !important;
         }
         
         .sidebar a {
-            white-space: nowrap;
-            margin-bottom: 0;
-            margin-top: 0;
-            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #222;
             font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            gap: 12px;
+        }
+        
+        .sidebar a:hover {
+            color: #233a8b;
+            background: #d1dbfa;
+        }
+        
+        .sidebar a.active {
+            color: #fff;
+            background: #233a8b;
+            box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+        }
+        
+        .sidebar .logout {
+            margin-top: auto;
+            margin-bottom: 32px;
+            color: #222;
+            font-weight: bold;
+            display: block;
+            width: 90%;
+            text-align: left;
         }
         
         .main-content {
@@ -729,28 +942,51 @@
         }
         
         .modal-content {
-            padding: 24px 20px 20px 20px;
-            max-width: 95vw;
-            width: 95vw;
+            padding: 16px 12px 12px 12px;
+            max-width: 98vw;
+            width: 98vw;
+            margin: 0 1vw;
         }
         
         .barangay-title-modal {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             margin-left: 0;
-            margin-top: 40px;
-            padding: 12px 16px;
+            margin-top: 20px;
+            padding: 10px 12px;
+            text-align: center;
         }
         
         .barangay-table-form {
-            font-size: 0.8rem;
-            min-width: 4500px;
+            font-size: 0.75rem;
+            min-width: 4000px;
         }
         
         .barangay-table-form th,
         .barangay-table-form td {
-            padding: 8px 6px;
-            font-size: 0.8rem;
-            min-width: 100px;
+            padding: 6px 4px;
+            font-size: 0.75rem;
+            min-width: 80px;
+        }
+        
+        /* Improve filter container for mobile */
+        .filter-container {
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+        
+        .filter-row {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .filter-group {
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .filter-select {
+            min-width: 140px;
+            flex: 1;
         }
         
         .add-modal-content {
@@ -892,8 +1128,13 @@
             gap: 20px;
         }
         .sidebar .logout {
-            margin-top: 0;
-            margin-bottom: 0;
+            margin-top: auto;
+            margin-bottom: 32px;
+            color: #222;
+            font-weight: bold;
+            display: block;
+            width: 90%;
+            text-align: left;
         }
     }
     .barangay-table-form td:last-child input[type="text"] {
@@ -905,17 +1146,91 @@
     .swal-high-zindex {
         z-index: 9999 !important;
     }
+    
+    /* Mobile touch improvements */
+    @media (max-width: 768px) {
+        /* Better touch targets for mobile */
+        .barangay-table-form input,
+        .barangay-table-form select {
+            min-height: 32px;
+            touch-action: manipulation;
+        }
+        
+        /* Improve checkbox visibility on mobile */
+        .barangay-table-form input[type="checkbox"] {
+            transform: scale(1.2);
+            margin: 4px;
+        }
+        
+        /* Better modal actions for mobile */
+        .modal-actions {
+            position: static;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        
+        .modal-actions button {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+        }
+        
+        /* Improve table header readability on mobile */
+        .barangay-table-form th {
+            background: #e3f2fd;
+            color: #1565c0;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #90caf9;
+        }
+        
+        /* Add visual separation for mobile table rows */
+        .barangay-table-form tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .barangay-table-form tr:hover {
+            background: #e3f2fd;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        /* Even smaller touch targets for very small screens */
+        .barangay-table-form input,
+        .barangay-table-form select {
+            min-height: 28px;
+        }
+        
+        .barangay-table-form input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+        
+        .modal-actions button {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+    }
 </style>
 <!-- ...existing code... -->
 <!-- ...existing code... -->
 </head>
 <body>
-    <div class="header">
+    <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
+            <button class="hamburger-menu" id="hamburgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="Logo">
-            <span class="header-title">WorkConnect</span>
+            <span class="header-title" id="headerTitle">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
@@ -1269,11 +1584,50 @@
 <!-- ...existing code... -->
     </div>
 <script>
+// Hamburger Menu Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // Show hamburger menu on mobile
+    function checkScreenSize() {
+        if (window.innerWidth <= 768) {
+            hamburgerMenu.style.display = 'block';
+        } else {
+            hamburgerMenu.style.display = 'none';
+            sidebar.classList.remove('active');
+            hamburgerMenu.classList.remove('active');
+        }
+    }
+    
+    // Initial check
+    checkScreenSize();
+    
+    // Check on resize
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Toggle sidebar
+    hamburgerMenu.addEventListener('click', function() {
+        sidebar.classList.toggle('active');
+        hamburgerMenu.classList.toggle('active');
+    });
+    
+    // Close sidebar when clicking outside
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth <= 768) {
+            if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                sidebar.classList.remove('active');
+                hamburgerMenu.classList.remove('active');
+            }
+        }
+    });
+});
+
 // Update username display
         fetch('session_check.php')
             .then(r => r.json())
             .then(data => {
-                document.getElementById('adminUsername').textContent = 'Welcome, ' + data.username;
+                document.getElementById('adminUsername').textContent = data.username; // Remove "Welcome, " prefix
                 if (data.isMainAdmin) {
                     document.getElementById('addAccountLink').style.display = 'block';
                 } else {
@@ -1283,6 +1637,169 @@
             .catch(() => {
                 console.error('Session check failed');
             });
+            
+        // Mobile header display fix
+        function handleMobileHeader() {
+            const header = document.getElementById('mainHeader');
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const headerTitle = document.getElementById('headerTitle');
+            const adminSection = document.getElementById('adminSection');
+            
+            if (window.innerWidth <= 768) {
+                // Mobile: Ensure header is properly displayed
+                header.style.position = 'fixed';
+                header.style.top = '0';
+                header.style.left = '0';
+                header.style.width = '100%';
+                header.style.zIndex = '1000';
+                header.style.display = 'flex';
+                header.style.alignItems = 'center';
+                header.style.justifyContent = 'space-between';
+                header.style.padding = '12px 20px';
+                header.style.height = '64px';
+                header.style.boxSizing = 'border-box';
+                header.style.maxWidth = '100vw';
+                header.style.overflow = 'hidden';
+                
+                // Show hamburger menu
+                hamburgerMenu.style.display = 'block';
+                hamburgerMenu.style.visibility = 'visible';
+                
+                // Adjust title size for mobile - make smaller
+                headerTitle.style.fontSize = '0.9rem';
+                headerTitle.style.whiteSpace = 'nowrap';
+                headerTitle.style.overflow = 'hidden';
+                headerTitle.style.textOverflow = 'ellipsis';
+                headerTitle.style.maxWidth = '100px';
+                
+                // Adjust admin section for mobile - make smaller
+                adminSection.style.marginRight = '8px';
+                adminSection.style.gap = '4px';
+                adminSection.style.fontSize = '0.8rem';
+                adminSection.style.maxWidth = '120px';
+                adminSection.style.overflow = 'hidden';
+                adminSection.style.textOverflow = 'ellipsis';
+                adminSection.style.whiteSpace = 'nowrap';
+                
+                // Ensure logo is visible - make smaller
+                const logo = header.querySelector('img');
+                if (logo) {
+                    logo.style.height = '32px';
+                    logo.style.marginRight = '8px';
+                }
+                
+                // Adjust hamburger menu spacing
+                hamburgerMenu.style.marginRight = '8px';
+                
+            } else {
+                // Desktop: Reset to normal
+                header.style.position = 'fixed';
+                header.style.top = '0';
+                header.style.left = '0';
+                header.style.width = '100%';
+                header.style.zIndex = '1000';
+                header.style.display = 'flex';
+                header.style.alignItems = 'center';
+                header.style.justifyContent = 'space-between';
+                header.style.padding = '12px 20px';
+                header.style.height = '64px';
+                header.style.boxSizing = 'border-box';
+                header.style.maxWidth = '100vw';
+                
+                // Hide hamburger menu on desktop
+                hamburgerMenu.style.display = 'none';
+                
+                // Reset title size
+                headerTitle.style.fontSize = '1.7rem';
+                headerTitle.style.whiteSpace = 'normal';
+                headerTitle.style.overflow = 'visible';
+                headerTitle.style.textOverflow = 'unset';
+                headerTitle.style.maxWidth = 'none';
+                
+                // Reset admin section
+                adminSection.style.marginRight = '20px';
+                adminSection.style.gap = '8px';
+                adminSection.style.fontSize = '1rem';
+                adminSection.style.maxWidth = 'none';
+                adminSection.style.overflow = 'visible';
+                adminSection.style.textOverflow = 'unset';
+                adminSection.style.whiteSpace = 'normal';
+                
+                // Reset logo
+                const logo = header.querySelector('img');
+                if (logo) {
+                    logo.style.height = '48px';
+                    logo.style.marginRight = '16px';
+                }
+            }
+        }
+        
+        // Remove "Welcome, " text for both mobile and desktop
+        function removeWelcomeText() {
+            const adminUsername = document.getElementById('adminUsername');
+            if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+                adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+            }
+        }
+        
+        // Apply mobile styles immediately
+        function applyMobileStyles() {
+            if (window.innerWidth <= 768) {
+                const headerTitle = document.getElementById('headerTitle');
+                const adminUsername = document.getElementById('adminUsername');
+                const adminSection = document.getElementById('adminSection');
+                const logo = document.querySelector('img');
+                const hamburgerMenu = document.getElementById('hamburgerMenu');
+                
+                // Apply inline styles immediately
+                if (headerTitle) {
+                    headerTitle.style.fontSize = '0.9rem';
+                    headerTitle.style.maxWidth = '100px';
+                    headerTitle.style.overflow = 'hidden';
+                    headerTitle.style.textOverflow = 'ellipsis';
+                    headerTitle.style.whiteSpace = 'nowrap';
+                }
+                
+                if (adminUsername) {
+                    adminUsername.style.fontSize = '0.8rem';
+                    adminUsername.style.maxWidth = '120px';
+                    adminUsername.style.overflow = 'hidden';
+                    adminUsername.style.textOverflow = 'ellipsis';
+                    adminUsername.style.whiteSpace = 'nowrap';
+                    // Remove "Welcome, " text
+                    if (adminUsername.textContent.includes('Welcome, ')) {
+                        adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                    }
+                }
+                
+                if (adminSection) {
+                    adminSection.style.marginRight = '8px';
+                    adminSection.style.gap = '4px';
+                    adminSection.style.maxWidth = '120px';
+                }
+                
+                if (logo) {
+                    logo.style.height = '32px';
+                    logo.style.marginRight = '8px';
+                }
+                
+                if (hamburgerMenu) {
+                    hamburgerMenu.style.display = 'block';
+                    hamburgerMenu.style.visibility = 'visible';
+                    hamburgerMenu.style.marginRight = '8px';
+                }
+            }
+        }
+        
+        // Apply immediately
+        applyMobileStyles();
+        removeWelcomeText();
+        
+        // Initial check
+        handleMobileHeader();
+        
+        // Check on resize
+        window.addEventListener('resize', handleMobileHeader);
 
 // Populate year filter (from 2022 to current year, progressive)
 const filterYear = document.getElementById('filterYear');

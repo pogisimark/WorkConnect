@@ -3,13 +3,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect BTEC Monthly Report</title>
     <style>
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #fafafa;
-            overflow: hidden; /* Prevent double scrollbars */
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
         .header {
             background: #233a8b;
@@ -42,7 +45,7 @@
         }
         .layout {
             display: flex;
-            min-height: 100vh;
+            min-height: calc(100vh - 64px);
             padding-top: 64px; /* offset for fixed header */
         }
         .sidebar {
@@ -98,12 +101,17 @@
             background: #233a8b;
             box-shadow: 0 2px 8px rgba(35,58,139,0.15);
         }
+        
+        /* Hide hamburger menu on desktop */
+        .hamburger-menu {
+            display: none;
+        }
         .main-content {
             flex: 1;
             padding: 32px;
             background: #fff;
             margin-left: 240px;
-            height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px);
             overflow-y: auto;
             box-sizing: border-box;
         }
@@ -122,10 +130,44 @@
                 font-size: 1.4rem;
             }
             
-            .header div {
-                margin-left: auto !important;
-                flex-direction: column;
-                gap: 8px;
+            .info-row input {
+                min-width: 80px;
+                max-width: 120px;
+                width: auto;
+                box-sizing: border-box;
+            }
+            
+            /* Hamburger Menu Button */
+            .hamburger-menu {
+                display: block !important;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px;
+                margin-right: 12px;
+                z-index: 1001;
+            }
+            
+            .hamburger-menu span {
+                display: block;
+                width: 25px;
+                height: 3px;
+                background: #fff;
+                margin: 5px 0;
+                transition: 0.3s;
+                border-radius: 2px;
+            }
+            
+            .hamburger-menu.active span:nth-child(1) {
+                transform: rotate(-45deg) translate(-5px, 6px);
+            }
+            
+            .hamburger-menu.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger-menu.active span:nth-child(3) {
+                transform: rotate(45deg) translate(-5px, -6px);
             }
             
             .layout {
@@ -133,24 +175,59 @@
                 flex-direction: column;
             }
             
+            /* Mobile Sidebar - Hidden by default */
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                top: 0;
-                left: 0;
-                padding: 16px;
-                flex-direction: row;
-                overflow-x: auto;
-                gap: 8px;
+                position: fixed !important;
+                top: 56px !important;
+                left: -240px !important;
+                width: 240px !important;
+                height: calc(100vh - 56px) !important;
+                background: #e3eaff !important;
+                z-index: 999 !important;
+                transition: left 0.3s ease !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 20px 0 0 24px !important;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+            }
+            
+            .sidebar.active {
+                left: 0 !important;
             }
             
             .sidebar a {
-                white-space: nowrap;
-                margin-bottom: 0;
-                margin-top: 0;
-                padding: 8px 12px;
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+                text-decoration: none;
+                color: #222;
                 font-size: 0.9rem;
+                font-weight: bold;
+                transition: all 0.2s;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                gap: 12px;
+            }
+            
+            .sidebar a:hover {
+                color: #233a8b;
+                background: #d1dbfa;
+            }
+            
+            .sidebar a.active {
+                color: #fff;
+                background: #233a8b;
+                box-shadow: 0 2px 8px rgba(35,58,139,0.15);
+            }
+            
+            .sidebar .logout {
+                margin-top: auto;
+                margin-bottom: 32px;
+                color: #222;
+                font-weight: bold;
+                display: block;
+                width: 90%;
+                text-align: left;
             }
             
             .main-content {
@@ -173,6 +250,15 @@
             
             .header-title {
                 font-size: 1.2rem;
+            }
+            
+            .info-row input {
+                min-width: 60px;
+                max-width: 100px;
+                width: auto;
+                font-size: 0.9rem;
+                padding: 6px 8px;
+                box-sizing: border-box;
             }
             
             .header div {
@@ -215,8 +301,13 @@
                 height: auto;
             }
             .sidebar .logout {
-                margin-top: 0;
-                margin-bottom: 0;
+                margin-top: auto;
+                margin-bottom: 32px;
+                color: #222;
+                font-weight: bold;
+                display: block;
+                width: 90%;
+                text-align: left;
             }
         }
         
@@ -267,7 +358,8 @@
             background: rgba(255,255,255,0.1);
             color: white;
             font-size: 1rem;
-            min-width: 200px;
+            min-width: 120px;
+            max-width: 150px;
         }
         
         .info-row input::placeholder {
@@ -536,6 +628,8 @@
             .info-row input {
                 min-width: 100%;
                 width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             .table-container {
@@ -720,11 +814,11 @@
             font-style: italic;
         }
         
-        /* Print Styles - Super Compact Layout */
+        /* Print Styles - 2-Page Layout */
         @media print {
             @page {
                 size: A4;
-                margin: 0.5cm;
+                margin: 1cm;
             }
             
             * {
@@ -733,8 +827,8 @@
             }
             
             body {
-                font-size: 10px !important;
-                line-height: 1.1 !important;
+                font-size: 12px !important;
+                line-height: 1.3 !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
@@ -757,22 +851,23 @@
             }
             
             .report-header {
-                padding: 5px 0 !important;
+                padding: 8px 0 !important;
                 background: none !important;
                 color: black !important;
                 text-align: left !important;
+                page-break-after: avoid !important;
             }
             
             .report-header h1 {
-                font-size: 14px !important;
-                margin: 0 0 5px 0 !important;
+                font-size: 18px !important;
+                margin: 0 0 10px 0 !important;
                 font-weight: bold !important;
             }
             
             .report-info {
                 flex-direction: row !important;
                 gap: 20px !important;
-                margin-bottom: 5px !important;
+                margin-bottom: 8px !important;
             }
             
             .info-row {
@@ -781,17 +876,17 @@
             }
             
             .info-row label {
-                font-size: 9px !important;
+                font-size: 11px !important;
                 font-weight: bold !important;
             }
             
             .info-row input, .info-row select {
-                font-size: 9px !important;
-                padding: 1px 3px !important;
+                font-size: 11px !important;
+                padding: 3px 5px !important;
                 border: 1px solid #000 !important;
                 background: white !important;
                 color: black !important;
-                width: 80px !important;
+                width: 110px !important;
             }
             
             .table-container {
@@ -800,7 +895,7 @@
             }
             
             .btec-table {
-                font-size: 8px !important;
+                font-size: 10px !important;
                 border-collapse: collapse !important;
                 width: 100% !important;
                 margin: 0 !important;
@@ -808,83 +903,126 @@
             
             .btec-table th,
             .btec-table td {
-                padding: 2px 3px !important;
+                padding: 4px 5px !important;
                 border: 1px solid #000 !important;
-                font-size: 7px !important;
-                line-height: 1.0 !important;
+                font-size: 9px !important;
+                line-height: 1.2 !important;
             }
             
             .btec-table th {
                 background: #f0f0f0 !important;
                 color: black !important;
                 font-weight: bold !important;
-                font-size: 7px !important;
+                font-size: 9px !important;
             }
             
             .activities-col {
-                width: 20% !important;
-                min-width: 80px !important;
+                width: 25% !important;
+                min-width: 100px !important;
             }
             
             .programs-col {
-                width: 15% !important;
-                min-width: 60px !important;
-                font-size: 6px !important;
+                width: 20% !important;
+                min-width: 80px !important;
+                font-size: 7px !important;
             }
             
             .section-header td {
                 background: #e0e0e0 !important;
                 color: black !important;
                 font-weight: bold !important;
-                font-size: 8px !important;
-                padding: 3px 2px !important;
+                font-size: 10px !important;
+                padding: 5px 4px !important;
             }
             
             .subsection-header td {
                 background: #f5f5f5 !important;
                 color: black !important;
                 font-weight: bold !important;
-                font-size: 7px !important;
-                padding: 2px !important;
+                font-size: 9px !important;
+                padding: 4px !important;
             }
             
             .activity-name {
-                font-size: 7px !important;
-                padding: 2px !important;
+                font-size: 9px !important;
+                padding: 4px !important;
                 background: #fafafa !important;
             }
             
             .programs-cell {
-                font-size: 6px !important;
-                padding: 2px !important;
+                font-size: 8px !important;
+                padding: 4px !important;
                 background: #fafafa !important;
+            }
+            
+            /* Page 1: A. SUMMARY OF PROGRAMS/PROJECTS - Slightly Bigger */
+            .section-header:first-of-type {
+                page-break-before: avoid !important;
+            }
+            
+            /* Make Page 1 content slightly bigger */
+            .section-header:first-of-type td {
+                font-size: 11px !important;
+                padding: 6px 5px !important;
+            }
+            
+            /* Page 1 subsection headers */
+            .section-header:first-of-type ~ .subsection-header td {
+                font-size: 10px !important;
+                padding: 5px !important;
+            }
+            
+            /* Page 1 activity names */
+            .section-header:first-of-type ~ .activity-name {
+                font-size: 10px !important;
+                padding: 5px !important;
+            }
+            
+            /* Page 1 programs cells */
+            .section-header:first-of-type ~ .programs-cell {
+                font-size: 9px !important;
+                padding: 5px !important;
+            }
+            
+            /* Force page break before B. SRS/PEIS section */
+            .page-break-before {
+                page-break-before: always !important;
+            }
+            
+            /* Ensure proper spacing and avoid orphaned headers */
+            .section-header {
+                page-break-after: avoid !important;
+            }
+            
+            .subsection-header {
+                page-break-after: avoid !important;
             }
             
             .filtered-skills-display {
                 background: #f8f8f8 !important;
-                padding: 3px !important;
-                margin: 2px 0 !important;
-                font-size: 7px !important;
+                padding: 5px !important;
+                margin: 4px 0 !important;
+                font-size: 9px !important;
                 border: 1px solid #ccc !important;
             }
             
             .skills-examples {
-                font-size: 8px !important;
-                padding: 4px 6px !important;
-                margin-bottom: 3px !important;
+                font-size: 10px !important;
+                padding: 6px 10px !important;
+                margin-bottom: 5px !important;
             }
             
             .skill-box {
-                font-size: 6px !important;
-                padding: 1px 4px !important;
-                margin: 1px 2px 1px 0 !important;
-                border-radius: 8px !important;
+                font-size: 8px !important;
+                padding: 3px 6px !important;
+                margin: 2px 4px 2px 0 !important;
+                border-radius: 12px !important;
             }
             
             .skill-count {
-                font-size: 5px !important;
-                padding: 1px 3px !important;
-                margin-left: 3px !important;
+                font-size: 7px !important;
+                padding: 2px 5px !important;
+                margin-left: 5px !important;
             }
         }
         
@@ -911,12 +1049,17 @@
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
+            <button class="hamburger-menu" id="hamburgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="Logo">
-            <span class="header-title">WorkConnect</span>
+            <span class="header-title" id="headerTitle">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
@@ -1263,7 +1406,7 @@
                             </tr>
                             
                             <!-- B. SRS/PEIS Skills Profile Section -->
-                            <tr class="section-header">
+                            <tr class="section-header page-break-before">
                                 <td colspan="8"><strong>B. SRS/PEIS</strong></td>
                             </tr>
                             
@@ -1596,11 +1739,222 @@
         </div>
     </div>
     <script>
+    // Hamburger Menu Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const sidebar = document.querySelector('.sidebar');
+        
+        // Show hamburger menu on mobile
+        function checkScreenSize() {
+            if (window.innerWidth <= 768) {
+                hamburgerMenu.style.display = 'block';
+            } else {
+                hamburgerMenu.style.display = 'none';
+                sidebar.classList.remove('active');
+                hamburgerMenu.classList.remove('active');
+            }
+        }
+        
+        // Initial check
+        checkScreenSize();
+        
+        // Check on resize
+        window.addEventListener('resize', checkScreenSize);
+        
+        // Toggle sidebar
+        hamburgerMenu.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            hamburgerMenu.classList.toggle('active');
+        });
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                    sidebar.classList.remove('active');
+                    hamburgerMenu.classList.remove('active');
+                }
+            }
+        });
+    });
+
+    // Mobile header display fix
+    function handleMobileHeader() {
+        const header = document.getElementById('mainHeader');
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const headerTitle = document.getElementById('headerTitle');
+        const adminSection = document.getElementById('adminSection');
+        
+        if (window.innerWidth <= 768) {
+            // Mobile: Ensure header is properly displayed
+            header.style.position = 'fixed';
+            header.style.top = '0';
+            header.style.left = '0';
+            header.style.width = '100%';
+            header.style.zIndex = '1000';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 20px';
+            header.style.height = '64px';
+            header.style.boxSizing = 'border-box';
+            header.style.maxWidth = '100vw';
+            header.style.overflow = 'hidden';
+            
+            // Show hamburger menu
+            hamburgerMenu.style.display = 'block';
+            hamburgerMenu.style.visibility = 'visible';
+            
+            // Adjust title size for mobile - make smaller
+            headerTitle.style.fontSize = '0.9rem';
+            headerTitle.style.whiteSpace = 'nowrap';
+            headerTitle.style.overflow = 'hidden';
+            headerTitle.style.textOverflow = 'ellipsis';
+            headerTitle.style.maxWidth = '100px';
+            
+            // Adjust admin section for mobile - make smaller
+            adminSection.style.marginRight = '8px';
+            adminSection.style.gap = '4px';
+            adminSection.style.fontSize = '0.75rem';
+            adminSection.style.maxWidth = '100px';
+            adminSection.style.overflow = 'hidden';
+            adminSection.style.textOverflow = 'ellipsis';
+            
+            // Update admin text to show only username
+            const adminUsername = document.getElementById('adminUsername');
+            if (adminUsername) {
+                const currentText = adminUsername.textContent;
+                if (currentText.includes('Welcome, ')) {
+                    adminUsername.textContent = currentText.replace('Welcome, ', '');
+                }
+            }
+            
+            // Ensure logo is visible - make smaller
+            const logo = header.querySelector('img');
+            if (logo) {
+                logo.style.height = '32px';
+                logo.style.marginRight = '8px';
+            }
+            
+            // Adjust hamburger menu spacing
+            hamburgerMenu.style.marginRight = '8px';
+            
+        } else {
+            // Desktop: Reset to normal
+            header.style.position = 'fixed';
+            header.style.top = '0';
+            header.style.left = '0';
+            header.style.width = '100%';
+            header.style.zIndex = '1000';
+            header.style.display = 'flex';
+            header.style.alignItems = 'center';
+            header.style.justifyContent = 'space-between';
+            header.style.padding = '12px 20px';
+            header.style.height = '64px';
+            header.style.boxSizing = 'border-box';
+            header.style.maxWidth = '100vw';
+            
+            // Hide hamburger menu on desktop
+            hamburgerMenu.style.display = 'none';
+            
+            // Reset title size
+            headerTitle.style.fontSize = '1.7rem';
+            headerTitle.style.whiteSpace = 'normal';
+            headerTitle.style.overflow = 'visible';
+            headerTitle.style.textOverflow = 'unset';
+            
+            // Reset admin section
+            adminSection.style.marginRight = '20px';
+            adminSection.style.gap = '8px';
+            adminSection.style.fontSize = '1rem';
+            
+            // Remove "Welcome, " text for desktop too
+            const adminUsername = document.getElementById('adminUsername');
+            if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+                adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+            }
+            
+            // Reset logo
+            const logo = header.querySelector('img');
+            if (logo) {
+                logo.style.height = '48px';
+                logo.style.marginRight = '16px';
+            }
+        }
+    }
+    
+    // Apply mobile styles immediately
+    function applyMobileStyles() {
+        if (window.innerWidth <= 768) {
+            const headerTitle = document.getElementById('headerTitle');
+            const adminUsername = document.getElementById('adminUsername');
+            const adminSection = document.getElementById('adminSection');
+            const logo = document.querySelector('img');
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            
+            // Apply inline styles immediately
+            if (headerTitle) {
+                headerTitle.style.fontSize = '0.9rem';
+                headerTitle.style.maxWidth = '100px';
+                headerTitle.style.overflow = 'hidden';
+                headerTitle.style.textOverflow = 'ellipsis';
+                headerTitle.style.whiteSpace = 'nowrap';
+            }
+            
+            if (adminUsername) {
+                adminUsername.style.fontSize = '0.75rem';
+                adminUsername.style.maxWidth = '100px';
+                adminUsername.style.overflow = 'hidden';
+                adminUsername.style.textOverflow = 'ellipsis';
+                adminUsername.style.whiteSpace = 'nowrap';
+                // Remove "Welcome, " text for mobile
+                if (adminUsername.textContent.includes('Welcome, ')) {
+                    adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+                }
+            }
+            
+            if (adminSection) {
+                adminSection.style.marginRight = '8px';
+                adminSection.style.gap = '4px';
+                adminSection.style.maxWidth = '100px';
+            }
+            
+            if (logo) {
+                logo.style.height = '32px';
+                logo.style.marginRight = '8px';
+            }
+            
+            if (hamburgerMenu) {
+                hamburgerMenu.style.display = 'block';
+                hamburgerMenu.style.visibility = 'visible';
+                hamburgerMenu.style.marginRight = '8px';
+            }
+        }
+    }
+    
+    // Remove "Welcome, " text for both mobile and desktop
+    function removeWelcomeText() {
+        const adminUsername = document.getElementById('adminUsername');
+        if (adminUsername && adminUsername.textContent.includes('Welcome, ')) {
+            adminUsername.textContent = adminUsername.textContent.replace('Welcome, ', '');
+        }
+    }
+    
+    // Apply immediately
+    applyMobileStyles();
+    removeWelcomeText();
+    
+    // Initial check
+    handleMobileHeader();
+    
+    // Check on resize
+    window.addEventListener('resize', handleMobileHeader);
+
     // Update username display
         fetch('session_check.php')
             .then(r => r.json())
             .then(data => {
-                document.getElementById('adminUsername').textContent = 'Welcome, ' + data.username;
+                document.getElementById('adminUsername').textContent = data.username; // Remove "Welcome, " prefix
                 if (data.isMainAdmin) {
                     document.getElementById('addAccountLink').style.display = 'block';
                 } else {
@@ -2189,6 +2543,12 @@
         
         // Add compact print class to body
         document.body.classList.add('print-mode');
+        
+        // Ensure page break is applied to B. SRS/PEIS section
+        const srsSection = document.querySelector('.page-break-before');
+        if (srsSection) {
+            srsSection.style.pageBreakBefore = 'always';
+        }
         
         // Print the page
         window.print();
