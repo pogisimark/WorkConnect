@@ -53,30 +53,73 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             return ($value == 1 || $value === '1' || $value === true) ? 'Yes' : 'No';
         }
         
-        // Helper function to format skills
+        // Helper function to format skills - Enhanced to match job applicant card display
         function formatSkills($jobseeker) {
-            $skills = [];
-            if ($jobseeker['skill_auto_mechanic']) $skills[] = 'Auto Mechanic';
-            if ($jobseeker['skill_electrician']) $skills[] = 'Electrician';
-            if ($jobseeker['skill_photography']) $skills[] = 'Photography';
-            if ($jobseeker['skill_beautician']) $skills[] = 'Beautician';
-            if ($jobseeker['skill_embroidery']) $skills[] = 'Embroidery';
-            if ($jobseeker['skill_plumbing']) $skills[] = 'Plumbing';
-            if ($jobseeker['skill_carpentry']) $skills[] = 'Carpentry';
-            if ($jobseeker['skill_gardening']) $skills[] = 'Gardening';
-            if ($jobseeker['skill_sewing']) $skills[] = 'Sewing';
-            if ($jobseeker['skill_computer']) $skills[] = 'Computer Literacy';
-            if ($jobseeker['skill_masonry']) $skills[] = 'Masonry';
-            if ($jobseeker['skill_stenography']) $skills[] = 'Stenography';
-            if ($jobseeker['skill_domestic']) $skills[] = 'Domestic Work';
-            if ($jobseeker['skill_painter']) $skills[] = 'Painting/Art';
-            if ($jobseeker['skill_tailoring']) $skills[] = 'Tailoring';
-            if ($jobseeker['skill_driver']) $skills[] = 'Driving';
-            if ($jobseeker['skill_painting']) $skills[] = 'Painting';
-            if ($jobseeker['skill_others'] && $jobseeker['skill_others'] !== 'n/a') {
-                $skills[] = 'Others: ' . $jobseeker['skill_others'];
+            $predefinedSkills = [];
+            $otherSkills = [];
+            
+            // Collect predefined skills
+            if ($jobseeker['skill_auto_mechanic'] && ($jobseeker['skill_auto_mechanic'] === 1 || $jobseeker['skill_auto_mechanic'] === '1')) $predefinedSkills[] = 'Auto mechanic';
+            if ($jobseeker['skill_electrician'] && ($jobseeker['skill_electrician'] === 1 || $jobseeker['skill_electrician'] === '1')) $predefinedSkills[] = 'Electrician';
+            if ($jobseeker['skill_photography'] && ($jobseeker['skill_photography'] === 1 || $jobseeker['skill_photography'] === '1')) $predefinedSkills[] = 'Photography';
+            if ($jobseeker['skill_beautician'] && ($jobseeker['skill_beautician'] === 1 || $jobseeker['skill_beautician'] === '1')) $predefinedSkills[] = 'Beautician';
+            if ($jobseeker['skill_embroidery'] && ($jobseeker['skill_embroidery'] === 1 || $jobseeker['skill_embroidery'] === '1')) $predefinedSkills[] = 'Embroidery';
+            if ($jobseeker['skill_plumbing'] && ($jobseeker['skill_plumbing'] === 1 || $jobseeker['skill_plumbing'] === '1')) $predefinedSkills[] = 'Plumbing';
+            if ($jobseeker['skill_carpentry'] && ($jobseeker['skill_carpentry'] === 1 || $jobseeker['skill_carpentry'] === '1')) $predefinedSkills[] = 'Carpentry work';
+            if ($jobseeker['skill_gardening'] && ($jobseeker['skill_gardening'] === 1 || $jobseeker['skill_gardening'] === '1')) $predefinedSkills[] = 'Gardening';
+            if ($jobseeker['skill_sewing'] && ($jobseeker['skill_sewing'] === 1 || $jobseeker['skill_sewing'] === '1')) $predefinedSkills[] = 'Sewing dresses';
+            if ($jobseeker['skill_computer'] && ($jobseeker['skill_computer'] === 1 || $jobseeker['skill_computer'] === '1')) $predefinedSkills[] = 'Computer literature';
+            if ($jobseeker['skill_masonry'] && ($jobseeker['skill_masonry'] === 1 || $jobseeker['skill_masonry'] === '1')) $predefinedSkills[] = 'Masonry';
+            if ($jobseeker['skill_stenography'] && ($jobseeker['skill_stenography'] === 1 || $jobseeker['skill_stenography'] === '1')) $predefinedSkills[] = 'Stenography';
+            if ($jobseeker['skill_domestic'] && ($jobseeker['skill_domestic'] === 1 || $jobseeker['skill_domestic'] === '1')) $predefinedSkills[] = 'Domestic chores';
+            if ($jobseeker['skill_painter'] && ($jobseeker['skill_painter'] === 1 || $jobseeker['skill_painter'] === '1')) $predefinedSkills[] = 'Painter/Artist';
+            if ($jobseeker['skill_tailoring'] && ($jobseeker['skill_tailoring'] === 1 || $jobseeker['skill_tailoring'] === '1')) $predefinedSkills[] = 'Tailoring';
+            if ($jobseeker['skill_driver'] && ($jobseeker['skill_driver'] === 1 || $jobseeker['skill_driver'] === '1')) $predefinedSkills[] = 'Driver';
+            if ($jobseeker['skill_painting'] && ($jobseeker['skill_painting'] === 1 || $jobseeker['skill_painting'] === '1')) $predefinedSkills[] = 'Painting job';
+            
+            // Parse and collect other skills
+            if ($jobseeker['skill_others'] && $jobseeker['skill_others'] !== 'n/a' && $jobseeker['skill_others'] !== '') {
+                $othersText = trim($jobseeker['skill_others']);
+                // Split by common separators: comma, semicolon, "and", "or", newline
+                $separators = [',', ';', ' and ', ' or ', '\n', '\r\n'];
+                $skills = [$othersText];
+                
+                // Split by each separator
+                foreach ($separators as $separator) {
+                    $newSkills = [];
+                    foreach ($skills as $skill) {
+                        if (strpos($skill, $separator) !== false) {
+                            $newSkills = array_merge($newSkills, array_filter(array_map('trim', explode($separator, $skill))));
+                        } else {
+                            $newSkills[] = $skill;
+                        }
+                    }
+                    $skills = $newSkills;
+                }
+                
+                // Clean up and filter out empty strings
+                $otherSkills = array_filter(
+                    array_map('trim', $skills),
+                    function($skill) {
+                        return $skill !== '' && $skill !== 'n/a' && strlen($skill) > 1;
+                    }
+                );
             }
-            return empty($skills) ? 'None specified' : implode(', ', $skills);
+            
+            $result = '';
+            
+            // Display predefined skills
+            if (!empty($predefinedSkills)) {
+                $result .= '<strong>Predefined Skills:</strong> ' . implode(', ', $predefinedSkills);
+            }
+            
+            // Display other skills
+            if (!empty($otherSkills)) {
+                if (!empty($predefinedSkills)) $result .= '<br><br>';
+                $result .= '<strong>Other Skills:</strong> ' . implode(', ', $otherSkills);
+            }
+            
+            return empty($predefinedSkills) && empty($otherSkills) ? 'None specified' : $result;
         }
         
         // Helper function to format disability
@@ -230,39 +273,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class='section'>
                         <h3>II. EMPLOYMENT STATUS</h3>";
         
-        // Employment Status Section
-        if ($jobseeker['employed']) {
+        // Employment Status Section - Updated to match job applicant card display
+        if ($jobseeker['employed'] && ($jobseeker['employed'] === 1 || $jobseeker['employed'] === '1')) {
             $message .= "<div class='field'><strong>Employment Status:</strong> <span>Employed</span></div>";
-            if ($jobseeker['employment_type_wage']) $message .= "<div class='field'><strong>Wage Employed:</strong> <span>" . formatBoolean($jobseeker['employment_type_wage']) . "</span></div>";
-            if ($jobseeker['employment_type_self']) {
+            if ($jobseeker['employment_type_wage'] && ($jobseeker['employment_type_wage'] === 1 || $jobseeker['employment_type_wage'] === '1')) {
+                $message .= "<div class='field'><strong>Wage Employed:</strong> <span>" . formatBoolean($jobseeker['employment_type_wage']) . "</span></div>";
+                // selfTypeFields (Voluntary, Vendor, etc.) are under wage employed
+                if ($jobseeker['self_type_voluntary'] && ($jobseeker['self_type_voluntary'] === 1 || $jobseeker['self_type_voluntary'] === '1')) $message .= "<div class='field'><strong>Voluntary/PhilHealth:</strong> <span>" . formatBoolean($jobseeker['self_type_voluntary']) . "</span></div>";
+                if ($jobseeker['self_type_vendor'] && ($jobseeker['self_type_vendor'] === 1 || $jobseeker['self_type_vendor'] === '1')) $message .= "<div class='field'><strong>Vendor / Retailer:</strong> <span>" . formatBoolean($jobseeker['self_type_vendor']) . "</span></div>";
+                if ($jobseeker['self_type_homebased'] && ($jobseeker['self_type_homebased'] === 1 || $jobseeker['self_type_homebased'] === '1')) $message .= "<div class='field'><strong>Home-based worker:</strong> <span>" . formatBoolean($jobseeker['self_type_homebased']) . "</span></div>";
+                if ($jobseeker['self_type_transport'] && ($jobseeker['self_type_transport'] === 1 || $jobseeker['self_type_transport'] === '1')) $message .= "<div class='field'><strong>Transport:</strong> <span>" . formatBoolean($jobseeker['self_type_transport']) . "</span></div>";
+                if ($jobseeker['self_type_domestic'] && ($jobseeker['self_type_domestic'] === 1 || $jobseeker['self_type_domestic'] === '1')) $message .= "<div class='field'><strong>Domestic Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_domestic']) . "</span></div>";
+                if ($jobseeker['self_type_fisherfolk'] && ($jobseeker['self_type_fisherfolk'] === 1 || $jobseeker['self_type_fisherfolk'] === '1')) $message .= "<div class='field'><strong>Fisherfolk:</strong> <span>" . formatBoolean($jobseeker['self_type_fisherfolk']) . "</span></div>";
+                if ($jobseeker['self_type_others'] && ($jobseeker['self_type_others'] === 1 || $jobseeker['self_type_others'] === '1') && $jobseeker['other_jobs']) $message .= "<div class='field'><strong>Other Job/s:</strong> <span>" . $jobseeker['other_jobs'] . "</span></div>";
+            }
+            if ($jobseeker['employment_type_self'] && ($jobseeker['employment_type_self'] === 1 || $jobseeker['employment_type_self'] === '1')) {
                 $message .= "<div class='field'><strong>Self-Employed:</strong> <span>" . formatBoolean($jobseeker['employment_type_self']) . "</span></div>";
-                if ($jobseeker['self_type_voluntary']) $message .= "<div class='field'><strong>PhilHealth Member (Voluntary):</strong> <span>" . formatBoolean($jobseeker['self_type_voluntary']) . "</span></div>";
-                if ($jobseeker['self_type_vendor']) $message .= "<div class='field'><strong>Vendor/Retailer:</strong> <span>" . formatBoolean($jobseeker['self_type_vendor']) . "</span></div>";
-                if ($jobseeker['self_type_homebased']) $message .= "<div class='field'><strong>Home-based Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_homebased']) . "</span></div>";
-                if ($jobseeker['self_type_transport']) $message .= "<div class='field'><strong>Transport:</strong> <span>" . formatBoolean($jobseeker['self_type_transport']) . "</span></div>";
-                if ($jobseeker['self_type_domestic']) $message .= "<div class='field'><strong>Domestic Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_domestic']) . "</span></div>";
-                if ($jobseeker['self_type_fisherfolk']) $message .= "<div class='field'><strong>Fisherfolk:</strong> <span>" . formatBoolean($jobseeker['self_type_fisherfolk']) . "</span></div>";
-                if ($jobseeker['self_type_others'] && $jobseeker['self_type_other']) $message .= "<div class='field'><strong>Other Self-Employment:</strong> <span>" . $jobseeker['self_type_other'] . "</span></div>";
+                if ($jobseeker['self_employed_specify'] && $jobseeker['self_employed_specify'] !== 'n/a' && $jobseeker['self_employed_specify'] !== '') {
+                    $message .= "<div class='field'><strong>Self-Employed Specify:</strong> <span>" . $jobseeker['self_employed_specify'] . "</span></div>";
+                }
             }
         }
         
-        if ($jobseeker['unemployed']) {
+        if ($jobseeker['unemployed'] && ($jobseeker['unemployed'] === 1 || $jobseeker['unemployed'] === '1')) {
             $message .= "<div class='field'><strong>Employment Status:</strong> <span>Unemployed</span></div>";
             if ($jobseeker['unemployed_months']) $message .= "<div class='field'><strong>Duration Looking for Work:</strong> <span>" . $jobseeker['unemployed_months'] . " months</span></div>";
-            if ($jobseeker['unemployed_type_first']) $message .= "<div class='field'><strong>First-time Jobseeker/Graduate:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_first']) . "</span></div>";
-            if ($jobseeker['unemployed_type_local']) $message .= "<div class='field'><strong>Local Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_local']) . "</span></div>";
-            if ($jobseeker['unemployed_type_resigned']) $message .= "<div class='field'><strong>Resigned:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_resigned']) . "</span></div>";
-            if ($jobseeker['unemployed_type_finished']) $message .= "<div class='field'><strong>Finished Contract (OFW):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_finished']) . "</span></div>";
-            if ($jobseeker['unemployed_type_public']) $message .= "<div class='field'><strong>Public Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_public']) . "</span></div>";
-            if ($jobseeker['unemployed_type_retired']) $message .= "<div class='field'><strong>Retired:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_retired']) . "</span></div>";
-            if ($jobseeker['unemployed_type_terminated']) $message .= "<div class='field'><strong>Terminated/Laid off (Local):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_terminated']) . "</span></div>";
+            if ($jobseeker['unemployed_type_first'] && ($jobseeker['unemployed_type_first'] === 1 || $jobseeker['unemployed_type_first'] === '1')) $message .= "<div class='field'><strong>First-time Jobseeker/Graduate:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_first']) . "</span></div>";
+            if ($jobseeker['unemployed_type_local'] && ($jobseeker['unemployed_type_local'] === 1 || $jobseeker['unemployed_type_local'] === '1')) $message .= "<div class='field'><strong>Local Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_local']) . "</span></div>";
+            if ($jobseeker['unemployed_type_resigned'] && ($jobseeker['unemployed_type_resigned'] === 1 || $jobseeker['unemployed_type_resigned'] === '1')) $message .= "<div class='field'><strong>Resigned:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_resigned']) . "</span></div>";
+            if ($jobseeker['unemployed_type_finished'] && ($jobseeker['unemployed_type_finished'] === 1 || $jobseeker['unemployed_type_finished'] === '1')) $message .= "<div class='field'><strong>Finished Contract (OFW):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_finished']) . "</span></div>";
+            if ($jobseeker['unemployed_type_public'] && ($jobseeker['unemployed_type_public'] === 1 || $jobseeker['unemployed_type_public'] === '1')) $message .= "<div class='field'><strong>Public Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_public']) . "</span></div>";
+            if ($jobseeker['unemployed_type_retired'] && ($jobseeker['unemployed_type_retired'] === 1 || $jobseeker['unemployed_type_retired'] === '1')) $message .= "<div class='field'><strong>Retired:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_retired']) . "</span></div>";
+            if ($jobseeker['unemployed_type_terminated'] && ($jobseeker['unemployed_type_terminated'] === 1 || $jobseeker['unemployed_type_terminated'] === '1')) $message .= "<div class='field'><strong>Terminated/Laid off (Local):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_terminated']) . "</span></div>";
         }
         
-        if ($jobseeker['ofw']) $message .= "<div class='field'><strong>OFW Status:</strong> <span>" . $jobseeker['ofw'] . "</span></div>";
+        if ($jobseeker['ofw']) $message .= "<div class='field'><strong>OFW:</strong> <span>" . $jobseeker['ofw'] . "</span></div>";
         if ($jobseeker['ofw_country']) $message .= "<div class='field'><strong>OFW Country:</strong> <span>" . $jobseeker['ofw_country'] . "</span></div>";
         if ($jobseeker['returnee']) $message .= "<div class='field'><strong>OFW Returnee:</strong> <span>" . $jobseeker['returnee'] . "</span></div>";
         if ($jobseeker['deployment_country']) $message .= "<div class='field'><strong>Deployment Country:</strong> <span>" . $jobseeker['deployment_country'] . "</span></div>";
-        if ($jobseeker['return_month'] && $jobseeker['return_year']) $message .= "<div class='field'><strong>Return to Philippines:</strong> <span>" . $jobseeker['return_month'] . " " . $jobseeker['return_year'] . "</span></div>";
+        if ($jobseeker['return_month']) $message .= "<div class='field'><strong>Month of Return:</strong> <span>" . $jobseeker['return_month'] . "</span></div>";
+        if ($jobseeker['return_year']) $message .= "<div class='field'><strong>Year of Return:</strong> <span>" . $jobseeker['return_year'] . "</span></div>";
         if ($jobseeker['abroad']) $message .= "<div class='field'><strong>Employed Abroad in Philippines:</strong> <span>" . $jobseeker['abroad'] . "</span></div>";
         if ($jobseeker['beneficiary']) $message .= "<div class='field'><strong>Job Beneficiary:</strong> <span>" . $jobseeker['beneficiary'] . "</span></div>";
         if ($jobseeker['household_id']) $message .= "<div class='field'><strong>Household ID:</strong> <span>" . $jobseeker['household_id'] . "</span></div>";
@@ -396,7 +446,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     <div class='section'>
                         <h3>IX. OTHER SKILLS ACQUIRED</h3>
-                        <div class='field'><strong>Technical Skills:</strong> <span>" . formatSkills($jobseeker) . "</span></div>
+                        <div class='field'>" . formatSkills($jobseeker) . "</div>
                     </div>";
         
         if ($jobseeker['resume_file']) {

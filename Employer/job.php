@@ -747,6 +747,60 @@
     font-weight: 600;
 }
 
+/* Skills Badge Styles */
+.skills-category {
+    margin-bottom: 16px;
+}
+
+.skills-label {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.skills-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.skill-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.skill-badge.predefined {
+    background: linear-gradient(135deg, #e3f2fd, #f0f4ff);
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+
+.skill-badge.other {
+    background: linear-gradient(135deg, #f3e5f5, #fce4ec);
+    color: #7b1fa2;
+    border: 1px solid #ce93d8;
+}
+
+.skill-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.skill-badge.predefined:hover {
+    background: linear-gradient(135deg, #bbdefb, #e3f2fd);
+}
+
+.skill-badge.other:hover {
+    background: linear-gradient(135deg, #ce93d8, #f3e5f5);
+}
+
 /* Responsive improvements */
 @media (max-width: 600px) {
     .details-section {
@@ -765,7 +819,16 @@
     
     .work-experience-item {
         padding: 8px;
-        }
+    }
+    
+    .skills-badges {
+        gap: 6px;
+    }
+    
+    .skill-badge {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
     }
 
     /* Resume Modal Button Hover Effects */
@@ -1794,31 +1857,81 @@
             }
             
             function formatIndividualSkills(j) {
-                const skills = [];
-                if (j.skill_auto_mechanic && (j.skill_auto_mechanic === 1 || j.skill_auto_mechanic === '1')) skills.push('Auto mechanic');
-                if (j.skill_electrician && (j.skill_electrician === 1 || j.skill_electrician === '1')) skills.push('Electrician');
-                if (j.skill_photography && (j.skill_photography === 1 || j.skill_photography === '1')) skills.push('Photography');
-                if (j.skill_beautician && (j.skill_beautician === 1 || j.skill_beautician === '1')) skills.push('Beautician');
-                if (j.skill_embroidery && (j.skill_embroidery === 1 || j.skill_embroidery === '1')) skills.push('Embroidery');
-                if (j.skill_plumbing && (j.skill_plumbing === 1 || j.skill_plumbing === '1')) skills.push('Plumbing');
-                if (j.skill_carpentry && (j.skill_carpentry === 1 || j.skill_carpentry === '1')) skills.push('Carpentry work');
-                if (j.skill_gardening && (j.skill_gardening === 1 || j.skill_gardening === '1')) skills.push('Gardening');
-                if (j.skill_sewing && (j.skill_sewing === 1 || j.skill_sewing === '1')) skills.push('Sewing dresses');
-                if (j.skill_computer && (j.skill_computer === 1 || j.skill_computer === '1')) skills.push('Computer literature');
-                if (j.skill_masonry && (j.skill_masonry === 1 || j.skill_masonry === '1')) skills.push('Masonry');
-                if (j.skill_stenography && (j.skill_stenography === 1 || j.skill_stenography === '1')) skills.push('Stenography');
-                if (j.skill_domestic && (j.skill_domestic === 1 || j.skill_domestic === '1')) skills.push('Domestic chores');
-                if (j.skill_painter && (j.skill_painter === 1 || j.skill_painter === '1')) skills.push('Painter/Artist');
-                if (j.skill_tailoring && (j.skill_tailoring === 1 || j.skill_tailoring === '1')) skills.push('Tailoring');
-                if (j.skill_driver && (j.skill_driver === 1 || j.skill_driver === '1')) skills.push('Driver');
-                if (j.skill_painting && (j.skill_painting === 1 || j.skill_painting === '1')) skills.push('Painting job');
+                const predefinedSkills = [];
+                const otherSkills = [];
                 
+                // Collect predefined skills
+                if (j.skill_auto_mechanic && (j.skill_auto_mechanic === 1 || j.skill_auto_mechanic === '1')) predefinedSkills.push('Auto mechanic');
+                if (j.skill_electrician && (j.skill_electrician === 1 || j.skill_electrician === '1')) predefinedSkills.push('Electrician');
+                if (j.skill_photography && (j.skill_photography === 1 || j.skill_photography === '1')) predefinedSkills.push('Photography');
+                if (j.skill_beautician && (j.skill_beautician === 1 || j.skill_beautician === '1')) predefinedSkills.push('Beautician');
+                if (j.skill_embroidery && (j.skill_embroidery === 1 || j.skill_embroidery === '1')) predefinedSkills.push('Embroidery');
+                if (j.skill_plumbing && (j.skill_plumbing === 1 || j.skill_plumbing === '1')) predefinedSkills.push('Plumbing');
+                if (j.skill_carpentry && (j.skill_carpentry === 1 || j.skill_carpentry === '1')) predefinedSkills.push('Carpentry work');
+                if (j.skill_gardening && (j.skill_gardening === 1 || j.skill_gardening === '1')) predefinedSkills.push('Gardening');
+                if (j.skill_sewing && (j.skill_sewing === 1 || j.skill_sewing === '1')) predefinedSkills.push('Sewing dresses');
+                if (j.skill_computer && (j.skill_computer === 1 || j.skill_computer === '1')) predefinedSkills.push('Computer literature');
+                if (j.skill_masonry && (j.skill_masonry === 1 || j.skill_masonry === '1')) predefinedSkills.push('Masonry');
+                if (j.skill_stenography && (j.skill_stenography === 1 || j.skill_stenography === '1')) predefinedSkills.push('Stenography');
+                if (j.skill_domestic && (j.skill_domestic === 1 || j.skill_domestic === '1')) predefinedSkills.push('Domestic chores');
+                if (j.skill_painter && (j.skill_painter === 1 || j.skill_painter === '1')) predefinedSkills.push('Painter/Artist');
+                if (j.skill_tailoring && (j.skill_tailoring === 1 || j.skill_tailoring === '1')) predefinedSkills.push('Tailoring');
+                if (j.skill_driver && (j.skill_driver === 1 || j.skill_driver === '1')) predefinedSkills.push('Driver');
+                if (j.skill_painting && (j.skill_painting === 1 || j.skill_painting === '1')) predefinedSkills.push('Painting job');
+                
+                // Parse and collect other skills
                 if (j.skill_others && j.skill_others !== 'n/a' && j.skill_others !== '') {
-                    skills.push('Others: ' + j.skill_others);
+                    const othersText = j.skill_others.trim();
+                    // Split by common separators: comma, semicolon, "and", "or", newline
+                    const separators = [',', ';', ' and ', ' or ', '\n', '\r\n'];
+                    let skills = [othersText];
+                    
+                    // Split by each separator
+                    separators.forEach(separator => {
+                        const newSkills = [];
+                        skills.forEach(skill => {
+                            if (skill.includes(separator)) {
+                                newSkills.push(...skill.split(separator).map(s => s.trim()).filter(s => s !== ''));
+                            } else {
+                                newSkills.push(skill);
+                            }
+                        });
+                        skills = newSkills;
+                    });
+                    
+                    // Clean up and filter out empty strings
+                    otherSkills.push(...skills
+                        .map(skill => skill.trim())
+                        .filter(skill => skill !== '' && skill !== 'n/a')
+                        .filter(skill => skill.length > 1)); // Filter out single characters
                 }
                 
-                if (skills.length === 0) return '';
-                return `<div class="field-item"><strong>Skills:</strong> ${skills.join(', ')}</div>`;
+                let result = '';
+                
+                // Display predefined skills as badges
+                if (predefinedSkills.length > 0) {
+                    result += '<div class="skills-category">';
+                    result += '<div class="skills-label"><strong>Predefined Skills:</strong></div>';
+                    result += '<div class="skills-badges">';
+                    predefinedSkills.forEach(skill => {
+                        result += `<span class="skill-badge predefined">${skill}</span>`;
+                    });
+                    result += '</div></div>';
+                }
+                
+                // Display other skills as badges
+                if (otherSkills.length > 0) {
+                    result += '<div class="skills-category">';
+                    result += '<div class="skills-label"><strong>Other Skills:</strong></div>';
+                    result += '<div class="skills-badges">';
+                    otherSkills.forEach(skill => {
+                        result += `<span class="skill-badge other">${skill}</span>`;
+                    });
+                    result += '</div></div>';
+                }
+                
+                if (predefinedSkills.length === 0 && otherSkills.length === 0) return '';
+                return result;
             }
             
             function formatDisability(j) {
@@ -1867,37 +1980,47 @@
                 <h3 class="section-title">II. EMPLOYMENT STATUS</h3>
                 <div class="section-content">`;
             
-            if (j.employed) {
+            // Display only the relevant employment status section based on actual data
+            if (j.employed && (j.employed === 1 || j.employed === '1')) {
                 content += `<div class="employment-type"><strong>Employed</strong></div>`;
-                if (j.employment_type_wage) content += formatBooleanField('Wage Employed', j.employment_type_wage);
-                if (j.employment_type_self) {
-                    content += formatBooleanField('Self-Employed', j.employment_type_self);
-                    if (j.self_type_voluntary) content += formatBooleanField('PhilHealth Member (Voluntary)', j.self_type_voluntary);
-                    if (j.self_type_vendor) content += formatBooleanField('Vendor/Retailer', j.self_type_vendor);
-                    if (j.self_type_homebased) content += formatBooleanField('Home-based Worker', j.self_type_homebased);
-                    if (j.self_type_transport) content += formatBooleanField('Transport', j.self_type_transport);
-                    if (j.self_type_domestic) content += formatBooleanField('Domestic Worker', j.self_type_domestic);
-                    if (j.self_type_fisherfolk) content += formatBooleanField('Fisherfolk', j.self_type_fisherfolk);
-                    if (j.self_type_others && j.self_type_other) content += formatField('Other Self-Employment', j.self_type_other);
+                if (j.employment_type_wage && (j.employment_type_wage === 1 || j.employment_type_wage === '1')) {
+                    content += formatBooleanField('Wage Employed', j.employment_type_wage);
+                    // selfTypeFields (Voluntary, Vendor, etc.) are under wage employed
+                    if (j.self_type_voluntary && (j.self_type_voluntary === 1 || j.self_type_voluntary === '1')) content += formatBooleanField('Voluntary/PhilHealth', j.self_type_voluntary);
+                    if (j.self_type_vendor && (j.self_type_vendor === 1 || j.self_type_vendor === '1')) content += formatBooleanField('Vendor / Retailer', j.self_type_vendor);
+                    if (j.self_type_homebased && (j.self_type_homebased === 1 || j.self_type_homebased === '1')) content += formatBooleanField('Home-based worker', j.self_type_homebased);
+                    if (j.self_type_transport && (j.self_type_transport === 1 || j.self_type_transport === '1')) content += formatBooleanField('Transport', j.self_type_transport);
+                    if (j.self_type_domestic && (j.self_type_domestic === 1 || j.self_type_domestic === '1')) content += formatBooleanField('Domestic Worker', j.self_type_domestic);
+                    if (j.self_type_fisherfolk && (j.self_type_fisherfolk === 1 || j.self_type_fisherfolk === '1')) content += formatBooleanField('Fisherfolk', j.self_type_fisherfolk);
+                    if (j.self_type_others && (j.self_type_others === 1 || j.self_type_others === '1') && j.other_jobs) content += formatField('Other Job/s', j.other_jobs);
                 }
-            }
-            
-            if (j.unemployed) {
+                if (j.employment_type_self && (j.employment_type_self === 1 || j.employment_type_self === '1')) {
+                    content += formatBooleanField('Self-Employed', j.employment_type_self);
+                    if (j.self_employed_specify && j.self_employed_specify !== 'n/a' && j.self_employed_specify !== '') {
+                        content += formatField('Self-Employed Specify', j.self_employed_specify);
+                    }
+                }
+            } else if (j.unemployed && (j.unemployed === 1 || j.unemployed === '1')) {
                 content += `<div class="employment-type"><strong>Unemployed</strong></div>`;
                 content += formatField('Duration Looking for Work', j.unemployed_months ? j.unemployed_months + ' months' : '');
-                if (j.unemployed_type_first) content += formatBooleanField('First-time Jobseeker/Graduate', j.unemployed_type_first);
-                if (j.unemployed_type_local) content += formatBooleanField('Local Contract', j.unemployed_type_local);
-                if (j.unemployed_type_resigned) content += formatBooleanField('Resigned', j.unemployed_type_resigned);
-                if (j.unemployed_type_finished) content += formatBooleanField('Finished Contract (OFW)', j.unemployed_type_finished);
-                if (j.unemployed_type_public) content += formatBooleanField('Public Contract', j.unemployed_type_public);
-                if (j.unemployed_type_retired) content += formatBooleanField('Retired', j.unemployed_type_retired);
-                if (j.unemployed_type_terminated) content += formatBooleanField('Terminated/Laid off (Local)', j.unemployed_type_terminated);
+                if (j.unemployed_type_first && (j.unemployed_type_first === 1 || j.unemployed_type_first === '1')) content += formatBooleanField('First-time Jobseeker/Graduate', j.unemployed_type_first);
+                if (j.unemployed_type_local && (j.unemployed_type_local === 1 || j.unemployed_type_local === '1')) content += formatBooleanField('Local Contract', j.unemployed_type_local);
+                if (j.unemployed_type_resigned && (j.unemployed_type_resigned === 1 || j.unemployed_type_resigned === '1')) content += formatBooleanField('Resigned', j.unemployed_type_resigned);
+                if (j.unemployed_type_finished && (j.unemployed_type_finished === 1 || j.unemployed_type_finished === '1')) content += formatBooleanField('Finished Contract (OFW)', j.unemployed_type_finished);
+                if (j.unemployed_type_public && (j.unemployed_type_public === 1 || j.unemployed_type_public === '1')) content += formatBooleanField('Public Contract', j.unemployed_type_public);
+                if (j.unemployed_type_retired && (j.unemployed_type_retired === 1 || j.unemployed_type_retired === '1')) content += formatBooleanField('Retired', j.unemployed_type_retired);
+                if (j.unemployed_type_terminated && (j.unemployed_type_terminated === 1 || j.unemployed_type_terminated === '1')) content += formatBooleanField('Terminated/Laid off (Local)', j.unemployed_type_terminated);
+            } else {
+                // If neither employed nor unemployed is clearly set, show a default message
+                content += `<div class="field-item"><strong>Employment Status:</strong> Not specified</div>`;
             }
             
-            content += formatField('OFW Status', j.ofw);
+            content += formatField('OFW', j.ofw);
             content += formatField('OFW Country', j.ofw_country);
             content += formatField('OFW Returnee', j.returnee);
             content += formatField('Deployment Country', j.deployment_country);
+            content += formatField('Month of Return', j.return_month);
+            content += formatField('Year of Return', j.return_year);
             content += formatField('Employed Abroad in Philippines', j.abroad);
             content += formatField('Job Beneficiary', j.beneficiary);
             content += formatField('Household ID', j.household_id);

@@ -304,7 +304,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $self_type_domestic = getbool('self_type_domestic');
     $self_type_fisherfolk = getbool('self_type_fisherfolk');
     $self_type_others = getbool('self_type_others');
-    $self_type_other = $conn->real_escape_string(getval('self_type_other'));
+    $other_jobs = $conn->real_escape_string(getval('other_jobs'));
     $unemployed = getbool('unemployed');
     $unemployed_months = $conn->real_escape_string(getval('unemployed_months'));
     $unemployed_type_first = getbool('unemployed_type_first');
@@ -436,7 +436,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $sql = "INSERT INTO jobseeker (
         user_id, surname, firstname, middlename, suffix, dob, sex, religion, civilstatus, street, barangay, municipality, province, tin, height, contact, email,
         hasDisability, disability_speech, disability_hearing, disability_visual, disability_mental, disability_others, disability_other,
-        employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_others, self_type_other,
+        employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_others, other_jobs,
         unemployed, unemployed_months, unemployed_type_first, unemployed_type_local, unemployed_type_resigned, unemployed_type_finished, unemployed_type_public, unemployed_type_retired, unemployed_type_terminated, terminated_country,
         ofw, ofw_country, returnee, deployment_country, return_month, return_year, abroad, beneficiary, household_id,
         occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, overseas1, overseas2, overseas3,
@@ -455,7 +455,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     ) VALUES (
         $user_id, '$surname', '$firstname', '$middlename', '$suffix', '$dob', '$sex', '$religion', '$civilstatus', '$street', '$barangay', '$municipality', '$province', '$tin', '$height', '$contact', '$email',
         $hasDisability, $disability_speech, $disability_hearing, $disability_visual, $disability_mental, $disability_others, '$disability_other',
-        $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_others, '$self_type_other',
+        $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_others, '$other_jobs',
         $unemployed, '$unemployed_months', $unemployed_type_first, $unemployed_type_local, $unemployed_type_resigned, $unemployed_type_finished, $unemployed_type_public, $unemployed_type_retired, $unemployed_type_terminated, '$terminated_country',
         '$ofw', '$ofw_country', '$returnee', '$deployment_country', '$return_month', '$return_year', '$abroad', '$beneficiary', '$household_id',
         '$occupation1', '$occupation2', '$occupation3', $fulltime, $parttime, '$local1', '$local2', '$local3', '$overseas1', '$overseas2', '$overseas3',
@@ -1592,19 +1592,19 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label for="surname">SURNAME<span class="required-asterisk">*</span></label>
-                <input type="text" id="surname" name="surname" pattern="[A-Za-z\s\-]{2,30}" required>
+                <input type="text" id="surname" name="surname" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
               </div>
               <div class="form-group">
                 <label for="firstname">FIRST NAME<span class="required-asterisk">*</span></label>
-                <input type="text" id="firstname" name="firstname" pattern="[A-Za-z\s\-]{2,30}" required>
+                <input type="text" id="firstname" name="firstname" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
               </div>
               <div class="form-group">
                 <label for="middlename">MIDDLE NAME</label>
-                <input type="text" id="middlename" name="middlename" pattern="[A-Za-z\s\-]{0,30}">
+                <input type="text" id="middlename" name="middlename" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label for="suffix">SUFFIX</label>
-                <input type="text" id="suffix" name="suffix" pattern="[A-Za-z0-9\.]{0,8}">
+                <input type="text" id="suffix" name="suffix" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\.]{0,40}" maxlength="40">
               </div>
             </div>
             <div class="form-row">
@@ -1622,7 +1622,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label for="religion">RELIGION</label>
-                <input type="text" id="religion" name="religion" pattern="[A-Za-z\s\-]{2,30}">
+                <input type="text" id="religion" name="religion" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label for="civilstatus">CIVIL STATUS<span class="required-asterisk">*</span></label>
@@ -1644,39 +1644,39 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label for="street">House no./Street/Village<span class="required-asterisk">*</span></label>
-                <input type="text" id="street" name="street" pattern=".{2,40}">
+                <input type="text" id="street" name="street" pattern=".{2,50}" maxlength="50">
               </div>
               <div class="form-group">
                 <label for="barangay">Barangay<span class="required-asterisk">*</span></label>
-                <input type="text" id="barangay" name="barangay" pattern=".{2,40}">
+                <input type="text" id="barangay" name="barangay" pattern=".{2,40}" maxlength="40">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="municipality">Municipality/City<span class="required-asterisk">*</span></label>
-                <input type="text" id="municipality" name="municipality" pattern=".{2,40}">
+                <input type="text" id="municipality" name="municipality" pattern=".{2,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label for="province">Province<span class="required-asterisk">*</span></label>
-                <input type="text" id="province" name="province" pattern=".{2,40}">
+                <input type="text" id="province" name="province" pattern=".{2,40}" maxlength="40">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="tin">TIN</label>
-                <input type="text" id="tin" name="tin" pattern="[0-9\-]{9,15}">
+                <input type="text" id="tin" name="tin" pattern="[0-9]{3}-[0-9]{3}-[0-9]{3}(-[0-9]{3})?" placeholder="123-456-789 or 123-456-789-012">
               </div>
               <div class="form-group">
                 <label for="height">HEIGHT (FT.)</label>
-                <input type="text" id="height" name="height" pattern="[0-9\.]{1,5}">
+                <input type="text" id="height" name="height" pattern="[0-9']{1,5}" placeholder="5'6 or 5'10">
               </div>
               <div class="form-group">
                 <label for="contact">CONTACT NUMBER<span class="required-asterisk">*</span></label>
-                <input type="text" id="contact" name="contact" pattern="[0-9\-\+]{7,15}" required>
+                <input type="text" id="contact" name="contact" pattern="[0-9]{4}-[0-9]{3}-[0-9]{4}" required placeholder="0912-345-6789">
               </div>
               <div class="form-group">
                 <label for="email">E-MAIL<span class="required-asterisk">*</span></label>
-                <input type="email" id="email" name="email" required>
+                <input type="email" id="email" name="email" maxlength="40" required>
               </div>
             </div>
             <div class="form-row">
@@ -1712,7 +1712,7 @@ $conn->close();
             <div class="form-row indent" id="employedFields" style="pointer-events: none; opacity: 0.6;">
               <label><input type="checkbox" name="employment_type_wage" value="wage" disabled> Wage employed</label>
               <label><input type="checkbox" name="employment_type_self" value="self" disabled> Self-employed</label>
-              <input type="text" name="self_employed_specify" placeholder="If self-employed, specify" pattern=".{0,40}" disabled style="display: none;">
+              <input type="text" name="self_employed_specify" placeholder="If self-employed, specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,50}" maxlength="50" disabled style="display: none;">
             </div>
             <div class="form-row indent" id="selfTypeFields" style="pointer-events: none; opacity: 0.6;">
               <label><input type="checkbox" name="self_type_voluntary" value="voluntary" disabled> Voluntary/PhilHealth</label>
@@ -1722,7 +1722,7 @@ $conn->close();
               <label><input type="checkbox" name="self_type_domestic" value="domestic" disabled> Domestic Worker</label>
               <label><input type="checkbox" name="self_type_fisherfolk" value="fisherfolk" disabled> Fisherfolk</label>
               <label><input type="checkbox" name="self_type_others" value="others" disabled> Others</label>
-              <input type="text" name="self_type_other" placeholder="If others, specify" pattern=".{0,40}" disabled>
+              <input type="text" name="other_jobs" placeholder="If others, specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,50}" maxlength="50" disabled>
             </div>
             <div class="form-row">
               <label>
@@ -1732,7 +1732,7 @@ $conn->close();
             </div>
             <div class="form-row indent" id="unemployedFields" style="pointer-events: none; opacity: 0.6;">
               <label for="unemployed_months">How long looking for work? (months):</label>
-              <input type="text" id="unemployed_months" name="unemployed_months" pattern="[0-9]{0,3}" disabled>
+              <input type="text" id="unemployed_months" name="unemployed_months" pattern="[0-9]{0,30}" maxlength="30" disabled>
             </div>
             <div class="form-row indent" id="unemployedTypeFields" style="pointer-events: none; opacity: 0.6;">
               <label><input type="checkbox" name="unemployed_type_first" value="first" disabled> First-time Jobseeker/Graduate</label>
@@ -1743,7 +1743,7 @@ $conn->close();
               <label><input type="checkbox" name="unemployed_type_retired" value="retired" disabled> Retired</label>
               <label><input type="checkbox" name="unemployed_type_terminated" value="terminated" disabled> Terminated/Laid off (local)</label>
               <label for="terminated_country" style="display: none;">If terminated/laid off, country:</label>
-              <input type="text" id="terminated_country" name="terminated_country" pattern=".{0,40}" disabled style="display: none;">
+              <input type="text" id="terminated_country" name="terminated_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,50}" maxlength="50" disabled style="display: none;">
             </div>
             <div class="form-row">
               <label>Are you an OFW?<span class="required-asterisk">*</span></label>
@@ -1751,7 +1751,7 @@ $conn->close();
               <label><input type="radio" name="ofw" value="no" id="ofwNo"> No</label>
               <span id="ofwCountryGroup" style="display:none;">
                 <label for="ofw_country">Specify Country<span class="required-asterisk">*</span></label>
-                <input type="text" id="ofw_country" name="ofw_country" pattern=".{0,40}">
+                <input type="text" id="ofw_country" name="ofw_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
               </span>
             </div>
             <div class="form-row">
@@ -1761,7 +1761,7 @@ $conn->close();
             </div>
             <div class="form-row" id="returneeFields" style="display: none;">
               <label for="deployment_country">Local country of deployment:<span class="required-asterisk">*</span></label>
-              <input type="text" id="deployment_country" name="deployment_country" pattern=".{0,40}">
+              <input type="text" id="deployment_country" name="deployment_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
             </div>
             <div class="form-row" id="returneeReturnFields" style="display: none;">
               <div class="form-group">
@@ -1858,24 +1858,24 @@ $conn->close();
               <label><input type="checkbox" name="parttime"> Part-time</label>
             </div>
             <div class="form-row">
-              <input type="text" name="occupation1" placeholder="1." required>
-              <input type="text" name="occupation2" placeholder="2.">
-              <input type="text" name="occupation3" placeholder="3.">
+              <input type="text" name="occupation1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
+              <input type="text" name="occupation2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="occupation3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
             </div>
             <div class="form-row">
               <label>PREFERRED WORK LOCATION</label>
             </div>
             <div class="form-row">
               <label>Local (specify cities/municipalities):<span class="required-asterisk">*</span></label>
-              <input type="text" name="local1" placeholder="1.">
-              <input type="text" name="local2" placeholder="2.">
-              <input type="text" name="local3" placeholder="3.">
+              <input type="text" name="local1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
+              <input type="text" name="local2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="local3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
             </div>
             <div class="form-row">
               <label>Overseas (specify countries):<span class="required-asterisk">*</span></label>
-              <input type="text" name="overseas1" placeholder="1.">
-              <input type="text" name="overseas2" placeholder="2.">
-              <input type="text" name="overseas3" placeholder="3.">
+              <input type="text" name="overseas1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
+              <input type="text" name="overseas2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="overseas3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
             </div>
             </fieldset>
             <div class="form-actions">
@@ -1912,7 +1912,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label>Others</label>
-                <input type="text" name="other_language" placeholder="Specify">
+                <input type="text" name="other_language" placeholder="Specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
                 <label><input type="checkbox" name="other_read">Read</label>
                 <label><input type="checkbox" name="other_write">Write</label>
                 <label><input type="checkbox" name="other_speak">Speak</label>
@@ -1952,7 +1952,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <label>Year Graduated</label>
-              <input type="text" name="year_graduated">
+              <input type="text" name="year_graduated" pattern="[0-9]{0,10}" maxlength="10" placeholder="e.g., 2023">
             </div>
             <div class="form-row">
               <label>If Undergraduate</label>
@@ -1969,7 +1969,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label for="last_attended">Year Last Attended</label>
-                <input type="text" name="last_attended" id="last_attended" placeholder="Year Last Attended">
+                <input type="text" name="last_attended" id="last_attended" placeholder="e.g., 2023" pattern="[0-9]{0,10}" maxlength="10">
               </div>
             </div>
             </fieldset>
@@ -1992,21 +1992,21 @@ $conn->close();
               <div class="header">Training Institution</div>
               <div class="header">Skills Acquired</div>
               <div class="header">Certificates Received</div>
-              <input type="text" name="training_course_1" placeholder="Course 1">
-              <input type="text" name="training_hours_1" placeholder="Hours">
-              <input type="text" name="training_institution_1" placeholder="Institution">
-              <input type="text" name="training_skills_1" placeholder="Skills">
-              <input type="text" name="training_cert_1" placeholder="Certificate">
-              <input type="text" name="training_course_2" placeholder="Course 2">
-              <input type="text" name="training_hours_2" placeholder="Hours">
-              <input type="text" name="training_institution_2" placeholder="Institution">
-              <input type="text" name="training_skills_2" placeholder="Skills">
-              <input type="text" name="training_cert_2" placeholder="Certificate">
-              <input type="text" name="training_course_3" placeholder="Course 3">
-              <input type="text" name="training_hours_3" placeholder="Hours">
-              <input type="text" name="training_institution_3" placeholder="Institution">
-              <input type="text" name="training_skills_3" placeholder="Skills">
-              <input type="text" name="training_cert_3" placeholder="Certificate">
+              <input type="text" name="training_course_1" placeholder="Course 1" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_hours_1" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_institution_1" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_skills_1" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_cert_1" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_course_2" placeholder="Course 2" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_hours_2" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_institution_2" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_skills_2" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_cert_2" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_course_3" placeholder="Course 3" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_hours_3" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_institution_3" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_skills_3" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_cert_3" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
             </div>
             </fieldset>
             <div class="form-actions">
@@ -2022,37 +2022,37 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>Eligibility (Civil Service)</label>
-                <input type="text" name="eligibility_1" placeholder="Eligibility 1">
+                <input type="text" name="eligibility_1" placeholder="Eligibility 1" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Date Taken</label>
-                <input type="text" name="eligibility_date_1" placeholder="Date">
+                <input type="date" name="eligibility_date_1">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="eligibility_2" placeholder="Eligibility 2">
+                <input type="text" name="eligibility_2" placeholder="Eligibility 2" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
               </div>
               <div class="form-group">
-                <input type="text" name="eligibility_date_2" placeholder="Date">
+                <input type="date" name="eligibility_date_2">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Professional License (PRC)</label>
-                <input type="text" name="prc_1" placeholder="PRC License 1">
+                <input type="text" name="prc_1" placeholder="PRC License 1" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Valid Until</label>
-                <input type="text" name="prc_valid_1" placeholder="Valid Until">
+                <input type="date" name="prc_valid_1">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="prc_2" placeholder="PRC License 2">
+                <input type="text" name="prc_2" placeholder="PRC License 2" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
               </div>
               <div class="form-group">
-                <input type="text" name="prc_valid_2" placeholder="Valid Until">
+                <input type="date" name="prc_valid_2">
               </div>
             </div>
             </fieldset>
@@ -2072,21 +2072,21 @@ $conn->close();
               <div style="font-weight:bold;">Position</div>
               <div style="font-weight:bold;">Number of Months</div>
               <div style="font-weight:bold;">Status</div>
-              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;">
-              <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;">
-              <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;">
-              <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;">
-              <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;">
-              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;">
-              <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;">
-              <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;">
-              <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;">
-              <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;">
-              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;">
-              <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;">
-              <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;">
-              <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;">
-              <input type="text" name="status_3" placeholder="Status" style="width:100%;height:38px;">
+              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="status_3" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
             </div>
             </fieldset>
             <div class="form-actions">
@@ -2120,7 +2120,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <label>Others:</label>
-              <input type="text" name="skill_others" placeholder="Others">
+              <input type="text" name="skill_others" placeholder="Others" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]*">
             </div>
           </fieldset>
           <fieldset>
@@ -2274,6 +2274,7 @@ $conn->close();
       const barangay = document.getElementById('barangay');
       const municipality = document.getElementById('municipality');
       const province = document.getElementById('province');
+      const tin = document.getElementById('tin');
       const contact = document.getElementById('contact');
       const email = document.getElementById('email');
       
@@ -2400,6 +2401,46 @@ $conn->close();
         });
         return; // Prevent navigation
       }
+      
+      // Check TIN validation - must be empty, 9 digits, or 12 digits
+      const tinValue = tin.value.replace(/[^0-9]/g, ''); // Remove hyphens to count digits only
+      if (tinValue.length > 0 && tinValue.length !== 9 && tinValue.length !== 12) {
+        Swal.fire({
+          title: 'Invalid TIN Format!',
+          text: 'TIN must be empty, 9 digits (xxx-xxx-xxx), or 12 digits (xxx-xxx-xxx-xxxx).',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9800'
+        });
+        return; // Prevent navigation
+      }
+      
+      // Check contact number validation - must be exactly 11 digits
+      const contactValue = contact.value.replace(/[^0-9]/g, ''); // Remove hyphens to count digits only
+      if (contactValue.length !== 11) {
+        Swal.fire({
+          title: 'Invalid Contact Number!',
+          text: 'Contact number must be exactly 11 digits (xxxx-xxx-xxxx).',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9800'
+        });
+        return; // Prevent navigation
+      }
+      
+      // Check email validation - must have proper email format with @ and domain
+      const emailValue = email.value.trim();
+      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailPattern.test(emailValue)) {
+        Swal.fire({
+          title: 'Invalid Email Format!',
+          text: 'Please enter a valid email address (e.g., sample@gmail.com, sample@yahoo.com).',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9800'
+        });
+        return; // Prevent navigation
+      }
     }
     
     // Check for employment status section validation when moving from section1_2 (employment status section)
@@ -2454,9 +2495,9 @@ $conn->close();
         
         // If wage employed is selected
         if (wageEmployed.checked) {
-          const wageOptions = document.querySelectorAll('input[name^="self_type_"]:not([name="self_type_others"]):not([name="self_type_other"])');
+          const wageOptions = document.querySelectorAll('input[name^="self_type_"]:not([name="self_type_others"]):not([name="other_jobs"])');
           const othersCheckbox = document.querySelector('input[name="self_type_others"]');
-          const othersField = document.querySelector('input[name="self_type_other"]');
+          const othersField = document.querySelector('input[name="other_jobs"]');
           
           let hasWageOption = false;
           wageOptions.forEach(option => {
@@ -3056,8 +3097,36 @@ $conn->close();
   document.getElementById('employed').addEventListener('change', function() {
     toggleEmployedFields();
     toggleSelfTypeFields();
+    
+    // If employed is checked, uncheck and disable unemployed
+    if (this.checked) {
+      const unemployedCheckbox = document.getElementById('unemployed');
+      unemployedCheckbox.checked = false;
+      unemployedCheckbox.disabled = true;
+      toggleUnemployedFields(); // Hide unemployed fields
+    } else {
+      // If employed is unchecked, enable unemployed checkbox
+      const unemployedCheckbox = document.getElementById('unemployed');
+      unemployedCheckbox.disabled = false;
+    }
   });
-  document.getElementById('unemployed').addEventListener('change', toggleUnemployedFields);
+  
+  document.getElementById('unemployed').addEventListener('change', function() {
+    toggleUnemployedFields();
+    
+    // If unemployed is checked, uncheck and disable employed
+    if (this.checked) {
+      const employedCheckbox = document.getElementById('employed');
+      employedCheckbox.checked = false;
+      employedCheckbox.disabled = true;
+      toggleEmployedFields(); // Hide employed fields
+      toggleSelfTypeFields(); // Hide self-employed fields
+    } else {
+      // If unemployed is unchecked, enable employed checkbox
+      const employedCheckbox = document.getElementById('employed');
+      employedCheckbox.disabled = false;
+    }
+  });
   // Terminated checkbox triggers show/hide of country field
   document.querySelector('input[name="unemployed_type_terminated"]').addEventListener('change', function() {
     const terminatedCountryLabel = document.querySelector('label[for="terminated_country"]');
@@ -3078,16 +3147,47 @@ $conn->close();
   document.querySelector('input[name="employment_type_self"]').addEventListener('change', function() {
     toggleSelfTypeFields();
     toggleEmployedFields();
+    
+    // If self-employed is checked, uncheck and disable wage employed
+    if (this.checked) {
+      const wageEmployedCheckbox = document.querySelector('input[name="employment_type_wage"]');
+      wageEmployedCheckbox.checked = false;
+      wageEmployedCheckbox.disabled = true;
+    } else {
+      // If self-employed is unchecked, enable wage employed checkbox
+      const wageEmployedCheckbox = document.querySelector('input[name="employment_type_wage"]');
+      wageEmployedCheckbox.disabled = false;
+    }
   });
+  
   // Wage employed checkbox triggers toggleEmployedFields
   document.querySelector('input[name="employment_type_wage"]').addEventListener('change', function() {
     toggleEmployedFields();
+    
+    // If wage employed is checked, uncheck and disable self-employed and its components
+    if (this.checked) {
+      const selfEmployedCheckbox = document.querySelector('input[name="employment_type_self"]');
+      selfEmployedCheckbox.checked = false;
+      selfEmployedCheckbox.disabled = true;
+      
+      // Hide and disable self-employed specify field
+      const selfSpecifyField = document.querySelector('input[name="self_employed_specify"]');
+      selfSpecifyField.style.display = 'none';
+      selfSpecifyField.disabled = true;
+      selfSpecifyField.value = '';
+      
+      // Note: selfTypeFields (Voluntary, Vendor, etc.) are under wage employed, so they should remain enabled
+    } else {
+      // If wage employed is unchecked, enable self-employed checkbox
+      const selfEmployedCheckbox = document.querySelector('input[name="employment_type_self"]');
+      selfEmployedCheckbox.disabled = false;
+    }
   });
 
 
   // Others checkboxes and textboxes
   setupOthersCheckbox('disability_others', 'disability_other');
-  setupOthersCheckbox('self_type_others', 'self_type_other');
+  setupOthersCheckbox('self_type_others', 'other_jobs');
   setupOthersCheckbox('unemployed_type_others', 'terminated_country');
 
   // OFW radio logic
@@ -3121,6 +3221,1197 @@ $conn->close();
   
   // Call the function to set the max date
   setMaxDateOfBirth();
+
+  // Name field validation - prevent numerical and unwanted characters
+  function validateNameField(input) {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    input.value = input.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 40 characters
+    if (input.value.length > 40) {
+      input.value = input.value.substring(0, 40);
+    }
+  }
+
+  // Add event listeners for name fields
+  document.getElementById('surname').addEventListener('input', function() {
+    validateNameField(this);
+  });
+
+  document.getElementById('firstname').addEventListener('input', function() {
+    validateNameField(this);
+  });
+
+  document.getElementById('middlename').addEventListener('input', function() {
+    validateNameField(this);
+  });
+
+  document.getElementById('suffix').addEventListener('input', function() {
+    // For suffix, we don't allow spaces, only letters, periods, and Filipino characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\.]/g, '');
+    
+    // Limit to maximum 40 characters
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.getElementById('religion').addEventListener('input', function() {
+    validateNameField(this);
+  });
+
+  // Address fields validation - street field limit to 50 characters, others to 40
+  document.getElementById('street').addEventListener('input', function() {
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.getElementById('barangay').addEventListener('input', function() {
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.getElementById('municipality').addEventListener('input', function() {
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.getElementById('province').addEventListener('input', function() {
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Email field validation - limit to 40 characters
+  document.getElementById('email').addEventListener('input', function() {
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Self-employed specify field validation - only allow letters and Filipino characters
+  document.querySelector('input[name="self_employed_specify"]').addEventListener('input', function() {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 50 characters
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  // Other jobs field validation - only allow letters and Filipino characters
+  document.querySelector('input[name="other_jobs"]').addEventListener('input', function() {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 50 characters
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  // Unemployed months field validation - only allow numbers
+  document.getElementById('unemployed_months').addEventListener('input', function() {
+    // Remove any characters that are not numbers
+    this.value = this.value.replace(/[^0-9]/g, '');
+    
+    // Limit to maximum 30 characters
+    if (this.value.length > 30) {
+      this.value = this.value.substring(0, 30);
+    }
+  });
+
+  // Terminated country field validation - only allow letters and Filipino characters
+  document.getElementById('terminated_country').addEventListener('input', function() {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 50 characters
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  // OFW country field validation - only allow letters and Filipino characters
+  document.getElementById('ofw_country').addEventListener('input', function() {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 30 characters
+    if (this.value.length > 30) {
+      this.value = this.value.substring(0, 30);
+    }
+  });
+
+  // Deployment country field validation - only allow letters and Filipino characters
+  document.getElementById('deployment_country').addEventListener('input', function() {
+    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    
+    // Limit to maximum 30 characters
+    if (this.value.length > 30) {
+      this.value = this.value.substring(0, 30);
+    }
+  });
+
+  // Job preference fields validation - only allow letters and Filipino characters
+  // Occupation fields
+  document.querySelector('input[name="occupation1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="occupation2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="occupation3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Local work location fields
+  document.querySelector('input[name="local1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="local2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="local3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Overseas work location fields
+  document.querySelector('input[name="overseas1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="overseas2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="overseas3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Other language field validation - only allow letters and Filipino characters
+  document.querySelector('input[name="other_language"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 30) {
+      this.value = this.value.substring(0, 30);
+    }
+  });
+
+  // Year fields validation - only allow numbers
+  document.querySelector('input[name="year_graduated"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  document.getElementById('last_attended').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  // Technical training fields validation
+  // Text fields (alphabetic only, max 40 characters)
+  document.querySelector('input[name="training_course_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_institution_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_skills_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_cert_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_course_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_institution_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_skills_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_cert_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_course_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_institution_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_skills_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="training_cert_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Hours fields (numeric only, max 10 characters)
+  document.querySelector('input[name="training_hours_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="training_hours_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="training_hours_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  // Eligibility and PRC fields validation - allow letters, numbers, and parentheses
+  document.querySelector('input[name="eligibility_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="eligibility_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="prc_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="prc_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 40) {
+      this.value = this.value.substring(0, 40);
+    }
+  });
+
+  // Work experience fields validation
+  // Text fields (alphabetic + numeric + parentheses, max 50 characters)
+  document.querySelector('input[name="company_name_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_name_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_name_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
+    }
+  });
+
+  // Months fields (numeric only, max 10 characters)
+  document.querySelector('input[name="months_1"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="months_2"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="months_3"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    if (this.value.length > 10) {
+      this.value = this.value.substring(0, 10);
+    }
+  });
+
+  // Skills others field validation - only allow letters and commas
+  document.querySelector('input[name="skill_others"]').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]/g, '');
+  });
+
+  // TIN field validation - only allow numbers and automatically format with hyphens
+  document.getElementById('tin').addEventListener('input', function() {
+    // Remove any characters that are not numbers
+    let value = this.value.replace(/[^0-9]/g, '');
+    
+    // Limit to maximum 12 digits
+    if (value.length > 12) {
+      value = value.substring(0, 12);
+    }
+    
+    // Auto-format with hyphens based on length
+    if (value.length <= 3) {
+      this.value = value;
+    } else if (value.length <= 6) {
+      this.value = value.substring(0, 3) + '-' + value.substring(3);
+    } else if (value.length <= 9) {
+      this.value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6);
+    } else {
+      this.value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6, 9) + '-' + value.substring(9);
+    }
+  });
+
+  // Height field validation - only allow numbers and apostrophe
+  document.getElementById('height').addEventListener('input', function() {
+    // Remove any characters that are not numbers or apostrophe
+    this.value = this.value.replace(/[^0-9']/g, '');
+    
+    // Limit to maximum 5 characters
+    if (this.value.length > 5) {
+      this.value = this.value.substring(0, 5);
+    }
+  });
+
+  // Contact number field validation - only allow numbers and automatically format with hyphens
+  document.getElementById('contact').addEventListener('input', function() {
+    // Remove any characters that are not numbers
+    let value = this.value.replace(/[^0-9]/g, '');
+    
+    // Limit to maximum 11 digits
+    if (value.length > 11) {
+      value = value.substring(0, 11);
+    }
+    
+    // Auto-format with hyphens based on length (xxxx-xxx-xxxx pattern)
+    if (value.length <= 4) {
+      this.value = value;
+    } else if (value.length <= 7) {
+      this.value = value.substring(0, 4) + '-' + value.substring(4);
+    } else {
+      this.value = value.substring(0, 4) + '-' + value.substring(4, 7) + '-' + value.substring(7);
+    }
+  });
+
+  // Prevent pasting of invalid characters
+  function preventInvalidPaste(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      // Show a brief warning
+      const input = event.target;
+      const originalBorder = input.style.borderColor;
+      input.style.borderColor = '#ff9800';
+      setTimeout(() => {
+        input.style.borderColor = originalBorder;
+      }, 1000);
+    }
+  }
+
+  // Add paste event listeners
+  document.getElementById('surname').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('firstname').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('middlename').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('religion').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="self_employed_specify"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="other_jobs"]').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('unemployed_months').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      const input = event.target;
+      const originalBorder = input.style.borderColor;
+      input.style.borderColor = '#ff9800';
+      setTimeout(() => {
+        input.style.borderColor = originalBorder;
+      }, 1000);
+    } else if (pastedText.length > 30) {
+      // If valid but too long, truncate it
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 30);
+    }
+  });
+  document.getElementById('terminated_country').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('ofw_country').addEventListener('paste', preventInvalidPaste);
+  document.getElementById('deployment_country').addEventListener('paste', preventInvalidPaste);
+  
+  // Job preference fields paste event listeners
+  document.querySelector('input[name="occupation1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="occupation2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="occupation3"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="local1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="local2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="local3"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="overseas1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="overseas2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="overseas3"]').addEventListener('paste', preventInvalidPaste);
+  
+  // Other language field paste event listener
+  document.querySelector('input[name="other_language"]').addEventListener('paste', preventInvalidPaste);
+  
+  // Year fields paste event listeners - only allow numbers
+  document.querySelector('input[name="year_graduated"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in year fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+
+  document.getElementById('last_attended').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in year fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+  
+  // Technical training fields paste event listeners
+  // Text fields paste event listeners (alphabetic only)
+  document.querySelector('input[name="training_course_1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_institution_1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_skills_1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_cert_1"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_course_2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_institution_2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_skills_2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_cert_2"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_course_3"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_institution_3"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_skills_3"]').addEventListener('paste', preventInvalidPaste);
+  document.querySelector('input[name="training_cert_3"]').addEventListener('paste', preventInvalidPaste);
+  
+  // Hours fields paste event listeners (numeric only)
+  document.querySelector('input[name="training_hours_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in hours fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="training_hours_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in hours fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="training_hours_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in hours fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+  
+  // Eligibility and PRC fields paste event listeners - allow letters, numbers, and parentheses
+  document.querySelector('input[name="eligibility_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 40) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="eligibility_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 40) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="prc_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 40) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 40);
+    }
+  });
+
+  document.querySelector('input[name="prc_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 40) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 40);
+    }
+  });
+  
+  // Work experience fields paste event listeners
+  // Text fields paste event listeners (alphabetic + numeric + parentheses)
+  document.querySelector('input[name="company_name_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_name_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_name_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="company_address_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="position_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  document.querySelector('input[name="status_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 50) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 50);
+    }
+  });
+
+  // Months fields paste event listeners (numeric only)
+  document.querySelector('input[name="months_1"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in months fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="months_2"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in months fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+
+  document.querySelector('input[name="months_3"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only numbers (0-9) are allowed in months fields.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    } else if (pastedText.length > 10) {
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 10);
+    }
+  });
+  
+  // Skills others field paste event listener - only allow letters and commas
+  document.querySelector('input[name="skill_others"]').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      Swal.fire({
+        title: 'Invalid Characters!',
+        text: 'Only letters (including Filipino alphabet) and commas (,) are allowed in the Others field.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+    }
+  });
+  document.getElementById('tin').addEventListener('paste', function(event) {
+    event.preventDefault();
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    
+    // Extract only numbers from pasted text
+    let numbersOnly = pastedText.replace(/[^0-9]/g, '');
+    
+    // Limit to maximum 12 digits
+    if (numbersOnly.length > 12) {
+      numbersOnly = numbersOnly.substring(0, 12);
+    }
+    
+    // Auto-format with hyphens based on length
+    if (numbersOnly.length <= 3) {
+      this.value = numbersOnly;
+    } else if (numbersOnly.length <= 6) {
+      this.value = numbersOnly.substring(0, 3) + '-' + numbersOnly.substring(3);
+    } else if (numbersOnly.length <= 9) {
+      this.value = numbersOnly.substring(0, 3) + '-' + numbersOnly.substring(3, 6) + '-' + numbersOnly.substring(6);
+    } else {
+      this.value = numbersOnly.substring(0, 3) + '-' + numbersOnly.substring(3, 6) + '-' + numbersOnly.substring(6, 9) + '-' + numbersOnly.substring(9);
+    }
+    
+    // Trigger input event to ensure formatting is applied
+    this.dispatchEvent(new Event('input'));
+  });
+  document.getElementById('height').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[0-9']*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      const input = event.target;
+      const originalBorder = input.style.borderColor;
+      input.style.borderColor = '#ff9800';
+      setTimeout(() => {
+        input.style.borderColor = originalBorder;
+      }, 1000);
+    } else if (pastedText.length > 5) {
+      // If valid but too long, truncate it
+      event.preventDefault();
+      const input = event.target;
+      input.value = pastedText.substring(0, 5);
+    }
+  });
+  document.getElementById('contact').addEventListener('paste', function(event) {
+    event.preventDefault();
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    
+    // Extract only numbers from pasted text
+    let numbersOnly = pastedText.replace(/[^0-9]/g, '');
+    
+    // Limit to maximum 11 digits
+    if (numbersOnly.length > 11) {
+      numbersOnly = numbersOnly.substring(0, 11);
+    }
+    
+    // Auto-format with hyphens based on length (xxxx-xxx-xxxx pattern)
+    if (numbersOnly.length <= 4) {
+      this.value = numbersOnly;
+    } else if (numbersOnly.length <= 7) {
+      this.value = numbersOnly.substring(0, 4) + '-' + numbersOnly.substring(4);
+    } else {
+      this.value = numbersOnly.substring(0, 4) + '-' + numbersOnly.substring(4, 7) + '-' + numbersOnly.substring(7);
+    }
+    
+    // Trigger input event to ensure formatting is applied
+    this.dispatchEvent(new Event('input'));
+  });
+  document.getElementById('suffix').addEventListener('paste', function(event) {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    const validPattern = /^[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\.]*$/;
+    
+    if (!validPattern.test(pastedText)) {
+      event.preventDefault();
+      const input = event.target;
+      const originalBorder = input.style.borderColor;
+      input.style.borderColor = '#ff9800';
+      setTimeout(() => {
+        input.style.borderColor = originalBorder;
+      }, 1000);
+    }
+  });
 
   // Initial step
   showStep1();
