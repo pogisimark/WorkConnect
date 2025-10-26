@@ -5,6 +5,21 @@ date_default_timezone_set('Asia/Manila');
 require_once 'session_check.php';
 require_once 'db.php';
 
+// Ensure session is properly started and user is authenticated
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Additional session validation
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Generate unique session token for iframe security
+$session_token = hash('sha256', session_id() . $_SESSION['user_id'] . time());
+$_SESSION['iframe_token'] = $session_token;
+
 // Get user applications
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT * FROM jobseeker WHERE user_id = ? ORDER BY submission_year DESC, submission_month DESC");
@@ -37,6 +52,32 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        /* Spinner Animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Loading indicator styles */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a3876;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .loading-spinner {
+                width: 18px;
+                height: 18px;
+                border-width: 2px;
+            }
+        }
+        
     /* Mobile-first responsive design */
     @media (max-width: 768px) {
         .dashboard-header {
@@ -689,6 +730,15 @@ $conn->close();
             overflow-x: hidden;
             margin: 0 !important;
             padding: 0 !important;
+            display: none; /* Ensure all sections are hidden by default */
+        }
+        
+        /* Profile summary section within dashboard */
+        .profile-summary-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
         }
         
         /* Fix welcome card */
@@ -1231,7 +1281,7 @@ $conn->close();
     #apply-section {
         position: relative;
         z-index: 1;
-        width: 100%;
+        width: 96%;
         max-width: 100%;
     }
     
@@ -1302,7 +1352,7 @@ $conn->close();
 
         <div class="main-content">
             <!-- Dashboard Section -->
-            <div id="dashboard-section" class="content-section"> 
+            <div id="dashboard-section" class="content-section" style="display: block;"> 
                 <div class="welcome-card">
                     <h1>Welcome to WorkConnect, <?php echo htmlspecialchars($_SESSION['firstname']); ?>!</h1>
                     <p>Track your job applications and manage your profile</p>
@@ -1349,7 +1399,7 @@ $conn->close();
                     </div>
                 </div>
 
-                <div class="content-section">
+                <div class="profile-summary-section">
                     <h2 class="section-title">Profile Summary</h2>
                     <div class="profile-summary">
                         <div class="profile-item">
@@ -1369,9 +1419,15 @@ $conn->close();
             </div>
 
             <!-- Apply Section -->
-            <div id="apply-section"  style="display: none;"> 
+            <div id="apply-section" class="content-section" style="display: none;"> 
                 <h2 class="section-title">Job Application Form</h2>
-                <iframe id="apply-iframe" src="apply.html" width="100%" frameborder="0" style="border-radius: 8px; border: none; height: auto;"></iframe>
+                <div id="apply-container">
+                    <div id="loading-indicator" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin: 10px 0 0 0; color: #666;">Loading application form for your session...</p>
+                    </div>
+                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" style="border-radius: 8px; border: none; height: auto;"></iframe>
+                </div>
             </div>
 
             <!-- Profile Section -->
@@ -1408,7 +1464,7 @@ $conn->close();
                                         <strong><?php echo htmlspecialchars($app['firstname'] . ' ' . $app['surname']); ?></strong>
                                        
                                         <small style="color: #666;">
-                                            Submitted: <?php echo date('M j, Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year'])); ?>
+                                            Submitted: <?php echo date('M j, Y', strtotime($app['submission_date'])); ?>
                                             <?php if ($app['occupation1']): ?>
                                                 | Position: <?php echo htmlspecialchars($app['occupation1']); ?>
                                             <?php endif; ?>
@@ -1435,30 +1491,91 @@ $conn->close();
     </div>
 
     <script>
+        
+        // Handle URL hash changes (for direct links)
+        function handleHashChange() {
+            const hash = window.location.hash.substring(1); // Remove the #
+            if (hash && ['dashboard', 'apply', 'profile'].includes(hash)) {
+                showSection(hash);
+            }
+        }
+        
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashChange);
+        
+        // Check hash on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            handleHashChange();
+        });
+        
+        // Function to hide loading indicator with timer
+        function hideLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                // Hide after 2 seconds to ensure iframe content is loaded
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+        
+        // Auto-hide loading indicator when apply section is shown
         function showSection(section) {
-            // Hide all sections
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('apply-section').style.display = 'none';
-            document.getElementById('profile-section').style.display = 'none';
+            // Update URL hash
+            window.location.hash = section;
             
-            // Remove active class from all nav items (desktop and mobile)
-            document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
-            document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(sec => {
+                sec.style.display = 'none';
+            });
             
             // Show selected section
-            document.getElementById(section + '-section').style.display = 'block';
-            
-            // Add active class to clicked nav item
-            if (event && event.target) {
-                event.target.classList.add('active');
+            const targetSection = document.getElementById(section + '-section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                
+                // If showing apply section, hide loading indicator after delay
+                if (section === 'apply') {
+                    hideLoadingIndicator();
+                }
             }
             
-            // Also update mobile nav active state
+            // Update active nav item
+            document.querySelectorAll('.sidebar-nav a').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === '#' + section) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Update mobile nav
             document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
                 if (item.getAttribute('data-section') === section) {
                     item.classList.add('active');
                 }
             });
+        }
+        
+        // Function to load apply form with proper session isolation
+        function loadApplyFormWithSession() {
+            const iframe = document.getElementById('apply-iframe');
+            if (iframe) {
+                // Generate unique timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const sessionId = '<?php echo session_id(); ?>';
+                const userId = '<?php echo $_SESSION['user_id']; ?>';
+                const sessionToken = '<?php echo $session_token; ?>';
+                
+                // Show loading indicator
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'block';
+                }
+                
+                // Reload iframe with fresh session parameters
+                iframe.src = `apply.php?session_id=${sessionId}&user_id=${userId}&token=${sessionToken}&t=${timestamp}`;
+            }
         }
         
         function toggleProfileMenu() {
