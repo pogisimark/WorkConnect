@@ -206,6 +206,23 @@
       font-weight: 600;
     }
     
+    .step-number-label {
+      font-size: 10px;
+      color: #999;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    
+    .step.active .step-number-label {
+      color: #1976d2;
+      font-weight: 600;
+    }
+    
+    .step.completed .step-number-label {
+      color: #4caf50;
+      font-weight: 600;
+    }
+    
     /* Adjust form container max width */
     .apply-form-container {
       max-width: 1000px;
@@ -227,24 +244,32 @@
         margin: 0 !important;
       }
       
+      .progress-indicator {
+        margin-bottom: 15px !important;
+        padding: 10px !important;
+      }
+      
       .progress-steps {
         flex-direction: column !important;
-        gap: 10px !important;
-        padding: 15px !important;
+        gap: 8px !important;
+        padding: 10px !important;
+        margin-bottom: 10px !important;
       }
       
       .step {
-        flex-direction: row !important;
-        text-align: left !important;
+        flex-direction: column !important;
+        text-align: center !important;
         padding: 8px !important;
         background: #f8f9fa !important;
         border-radius: 8px !important;
         margin-bottom: 5px !important;
+        align-items: center !important;
+        gap: 4px !important;
       }
       
       .step-number {
-        margin-right: 15px !important;
-        margin-bottom: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 4px !important;
         width: 30px !important;
         height: 30px !important;
         font-size: 12px !important;
@@ -255,16 +280,70 @@
         font-weight: 500 !important;
       }
       
+      .step-number-label {
+        font-size: 8px !important;
+        margin-top: 1px !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+        width: 100% !important;
+      }
+      
+      /* Mobile step content layout */
+      .step > div:not(.step-number) {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
+        align-items: center !important;
+        text-align: center !important;
+      }
+      
       /* Form sections mobile optimization */
       .form-section {
-        padding: 15px !important;
-        margin: 10px 0 !important;
+        padding: 10px !important;
+        margin: 5px 0 !important;
+      }
+      
+      /* Educational background section mobile optimization */
+      #section2_3 .form-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+        margin-bottom: 10px !important;
+      }
+      
+      #section2_3 .form-group {
+        width: 100% !important;
+        margin-bottom: 8px !important;
+      }
+      
+      #section2_3 .form-group label {
+        font-size: 0.85rem !important;
+        margin-bottom: 4px !important;
+      }
+      
+      #section2_3 select,
+      #section2_3 input {
+        padding: 8px !important;
+        font-size: 13px !important;
+        width: 100% !important;
+      }
+      
+      /* Compact layout for "If Undergraduate" section */
+      #section2_3 .form-row:has(.form-group) {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        align-items: flex-end !important;
+      }
+      
+      #section2_3 .form-row:has(.form-group) .form-group {
+        flex: 1 !important;
+        margin-bottom: 0 !important;
       }
       
       .form-title {
-        font-size: 1.2rem !important;
-        line-height: 1.3 !important;
-        margin-bottom: 20px !important;
+        font-size: 1.1rem !important;
+        line-height: 1.2 !important;
+        margin-bottom: 10px !important;
         text-align: center !important;
       }
       
@@ -348,9 +427,9 @@
       .form-actions {
         display: flex !important;
         justify-content: space-between !important;
-        gap: 10px !important;
-        margin-top: 20px !important;
-        padding: 15px 0 !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+        padding: 10px 0 !important;
       }
       
       .back-btn, .next-btn {
@@ -508,9 +587,15 @@
         padding: 5px !important;
       }
       
+      .progress-indicator {
+        margin-bottom: 10px !important;
+        padding: 8px !important;
+      }
+      
       .progress-steps {
-        padding: 10px !important;
-        gap: 8px !important;
+        padding: 8px !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
       }
       
       .step {
@@ -528,20 +613,67 @@
         font-size: 10px !important;
       }
       
+      .step-number-label {
+        font-size: 7px !important;
+        margin-top: 1px !important;
+        line-height: 1.1 !important;
+        text-align: center !important;
+        width: 100% !important;
+        display: block !important;
+      }
+      
+      /* Ensure consistent column layout for small mobile */
+      .step {
+        flex-direction: column !important;
+        text-align: center !important;
+        align-items: center !important;
+      }
+      
       .form-section {
-        padding: 10px !important;
-        margin: 5px 0 !important;
+        padding: 8px !important;
+        margin: 3px 0 !important;
+      }
+      
+      /* Educational background section mobile optimization for smaller screens */
+      #section2_3 .form-row {
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+      }
+      
+      #section2_3 .form-group {
+        margin-bottom: 6px !important;
+      }
+      
+      #section2_3 .form-group label {
+        font-size: 0.8rem !important;
+        margin-bottom: 3px !important;
+      }
+      
+      #section2_3 select,
+      #section2_3 input {
+        padding: 6px !important;
+        font-size: 12px !important;
+      }
+      
+      /* Compact layout for "If Undergraduate" section on smaller screens */
+      #section2_3 .form-row:has(.form-group) {
+        gap: 8px !important;
+      }
+      
+      #section2_3 .form-row:has(.form-group) .form-group {
+        flex: 1 !important;
+        margin-bottom: 0 !important;
       }
       
       .form-title {
         font-size: 1rem !important;
         line-height: 1.2 !important;
-        margin-bottom: 15px !important;
+        margin-bottom: 8px !important;
       }
       
       fieldset {
-        padding: 10px !important;
-        margin: 10px 0 !important;
+        padding: 8px !important;
+        margin: 5px 0 !important;
       }
       
       legend {
@@ -586,9 +718,9 @@
       }
       
       .form-actions {
-        gap: 8px !important;
-        margin-top: 15px !important;
-        padding: 10px 0 !important;
+        gap: 6px !important;
+        margin-top: 8px !important;
+        padding: 8px 0 !important;
       }
       
       .back-btn, .next-btn {
@@ -661,6 +793,31 @@
       
       .resume-upload-hint {
         font-size: 0.75rem !important;
+      }
+      
+      /* Extra small mobile SweetAlert adjustments */
+      .swal2-popup {
+        width: 95% !important;
+        max-width: 350px !important;
+        font-size: 13px !important;
+        padding: 15px !important;
+      }
+      
+      .swal2-title {
+        font-size: 16px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      .swal2-html-container {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        margin: 12px 0 !important;
+      }
+      
+      .swal2-confirm {
+        font-size: 13px !important;
+        padding: 8px 16px !important;
+        margin-top: 12px !important;
       }
     }
     
@@ -792,6 +949,64 @@
       font-size: 1rem !important;
       flex-shrink: 0 !important;
     }
+    
+    /* Required field asterisk styling */
+    .required-asterisk {
+      color: #dc3545;
+      font-weight: bold;
+      margin-left: 2px;
+    }
+    
+    /* Hide SweetAlert checkbox on mobile */
+    @media (max-width: 768px) {
+      .swal2-checkbox {
+        display: none !important;
+      }
+      
+      .swal2-checkbox + label {
+        display: none !important;
+      }
+      
+      .swal2-html-container input[type="checkbox"] {
+        display: none !important;
+      }
+      
+      .swal2-html-container label {
+        display: none !important;
+      }
+      
+      /* Hide any checkbox-related elements in SweetAlert */
+      .swal2-popup input[type="checkbox"],
+      .swal2-popup .swal2-checkbox,
+      .swal2-popup .swal2-checkbox + label {
+        display: none !important;
+      }
+      
+      /* Mobile SweetAlert sizing adjustments */
+      .swal2-popup {
+        width: 90% !important;
+        max-width: 400px !important;
+        font-size: 14px !important;
+        padding: 20px !important;
+      }
+      
+      .swal2-title {
+        font-size: 18px !important;
+        margin-bottom: 15px !important;
+      }
+      
+      .swal2-html-container {
+        font-size: 14px !important;
+        line-height: 1.4 !important;
+        margin: 15px 0 !important;
+      }
+      
+      .swal2-confirm {
+        font-size: 14px !important;
+        padding: 10px 20px !important;
+        margin-top: 15px !important;
+      }
+    }
   </style>
 </head>
 <body>  
@@ -803,42 +1018,52 @@
           <div class="step active" id="step1Indicator">
             <div class="step-number">I</div>
             <div class="step-label">Personal Info</div>
+            <div class="step-number-label">Step 1</div>
           </div>
           <div class="step" id="step2Indicator">
             <div class="step-number">II</div>
             <div class="step-label">Employment</div>
+            <div class="step-number-label">Step 2</div>
           </div>
           <div class="step" id="step3Indicator">
             <div class="step-number">III</div>
             <div class="step-label">Job Preference</div>
+            <div class="step-number-label">Step 3</div>
           </div>
           <div class="step" id="step4Indicator">
             <div class="step-number">IV</div>
             <div class="step-label">Language</div>
+            <div class="step-number-label">Step 4</div>
           </div>
           <div class="step" id="step5Indicator">
             <div class="step-number">V</div>
             <div class="step-label">Education</div>
+            <div class="step-number-label">Step 5</div>
           </div>
           <div class="step" id="step6Indicator">
             <div class="step-number">VI</div>
             <div class="step-label">Training</div>
+            <div class="step-number-label">Step 6</div>
           </div>
           <div class="step" id="step7Indicator">
             <div class="step-number">VII</div>
             <div class="step-label">Eligibility</div>
+            <div class="step-number-label">Step 7</div>
           </div>
           <div class="step" id="step8Indicator">
             <div class="step-number">VIII</div>
             <div class="step-label">Experience</div>
+            <div class="step-number-label">Step 8</div>
           </div>
           <div class="step" id="step9Indicator">
             <div class="step-number">IX</div>
             <div class="step-label">Skills</div>
+            <div class="step-number-label">Step 9</div>
           </div>
           <div class="step" id="step10Indicator">
             <div class="step-number">X</div>
             <div class="step-label">Resume</div>
+            <div class="step-number-label">Step 10</div>
           </div>
         </div>
         <div class="progress-bar">
@@ -863,11 +1088,11 @@
               <legend>I. PERSONAL INFORMATION</legend>
             <div class="form-row">
               <div class="form-group">
-                <label for="surname">SURNAME</label>
+                <label for="surname">SURNAME<span class="required-asterisk">*</span></label>
                 <input type="text" id="surname" name="surname" pattern="[A-Za-z\s\-]{2,30}" required>
               </div>
               <div class="form-group">
-                <label for="firstname">FIRST NAME</label>
+                <label for="firstname">FIRST NAME<span class="required-asterisk">*</span></label>
                 <input type="text" id="firstname" name="firstname" pattern="[A-Za-z\s\-]{2,30}" required>
               </div>
               <div class="form-group">
@@ -881,11 +1106,11 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="dob">DATE OF BIRTH</label>
-                <input type="date" id="dob" name="dob" required>
+                <label for="dob">DATE OF BIRTH<span class="required-asterisk">*</span></label>
+                <input type="date" id="dob" name="dob" max="2006-12-31" required>
               </div>
               <div class="form-group">
-                <label for="sex">SEX</label>
+                <label for="sex">SEX<span class="required-asterisk">*</span></label>
                 <select id="sex" name="sex" required>
                   <option value="">Select</option>
                   <option value="male">Male</option>
@@ -897,7 +1122,7 @@
                 <input type="text" id="religion" name="religion" pattern="[A-Za-z\s\-]{2,30}">
               </div>
               <div class="form-group">
-                <label for="civilstatus">CIVIL STATUS</label>
+                <label for="civilstatus">CIVIL STATUS<span class="required-asterisk">*</span></label>
                 <select id="civilstatus" name="civilstatus" required>
                   <option value="">Select</option>
                   <option value="single">Single</option>
@@ -915,21 +1140,21 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="street">House no./Street/Village</label>
+                <label for="street">House no./Street/Village<span class="required-asterisk">*</span></label>
                 <input type="text" id="street" name="street" pattern=".{2,40}">
               </div>
               <div class="form-group">
-                <label for="barangay">Barangay</label>
+                <label for="barangay">Barangay<span class="required-asterisk">*</span></label>
                 <input type="text" id="barangay" name="barangay" pattern=".{2,40}">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="municipality">Municipality/City</label>
+                <label for="municipality">Municipality/City<span class="required-asterisk">*</span></label>
                 <input type="text" id="municipality" name="municipality" pattern=".{2,40}">
               </div>
               <div class="form-group">
-                <label for="province">Province</label>
+                <label for="province">Province<span class="required-asterisk">*</span></label>
                 <input type="text" id="province" name="province" pattern=".{2,40}">
               </div>
             </div>
@@ -943,11 +1168,11 @@
                 <input type="text" id="height" name="height" pattern="[0-9\.]{1,5}">
               </div>
               <div class="form-group">
-                <label for="contact">CONTACT NUMBER</label>
+                <label for="contact">CONTACT NUMBER<span class="required-asterisk">*</span></label>
                 <input type="text" id="contact" name="contact" pattern="[0-9\-\+]{7,15}" required>
               </div>
               <div class="form-group">
-                <label for="email">E-MAIL</label>
+                <label for="email">E-MAIL<span class="required-asterisk">*</span></label>
                 <input type="email" id="email" name="email" required>
               </div>
             </div>
@@ -978,7 +1203,7 @@
             <div class="form-row">
               <label>
                 <input type="checkbox" name="employed" id="employed">
-                <strong>Employed</strong>
+                <strong>Employed<span class="required-asterisk">*</span></strong>
               </label>
             </div>
             <div class="form-row indent" id="employedFields" style="pointer-events: none; opacity: 0.6;">
@@ -999,7 +1224,7 @@
             <div class="form-row">
               <label>
                 <input type="checkbox" name="unemployed" id="unemployed">
-                <strong>Unemployed</strong>
+                <strong>Unemployed<span class="required-asterisk">*</span></strong>
               </label>
             </div>
             <div class="form-row indent" id="unemployedFields" style="pointer-events: none; opacity: 0.6;">
@@ -1018,26 +1243,26 @@
               <input type="text" id="terminated_country" name="terminated_country" pattern=".{0,40}" disabled style="display: none;">
             </div>
             <div class="form-row">
-              <label>Are you an OFW?</label>
+              <label>Are you an OFW?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="ofw" value="yes" id="ofwYes"> Yes</label>
               <label><input type="radio" name="ofw" value="no" id="ofwNo"> No</label>
               <span id="ofwCountryGroup" style="display:none;">
-                <label for="ofw_country">Specify Country</label>
+                <label for="ofw_country">Specify Country<span class="required-asterisk">*</span></label>
                 <input type="text" id="ofw_country" name="ofw_country" pattern=".{0,40}">
               </span>
             </div>
             <div class="form-row">
-              <label>Are you a returnee (OFW)?</label>
+              <label>Are you a returnee (OFW)?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="returnee" value="yes" id="returneeYes"> Yes</label>
               <label><input type="radio" name="returnee" value="no" id="returneeNo"> No</label>
             </div>
             <div class="form-row" id="returneeFields" style="display: none;">
-              <label for="deployment_country">Local country of deployment:</label>
+              <label for="deployment_country">Local country of deployment:<span class="required-asterisk">*</span></label>
               <input type="text" id="deployment_country" name="deployment_country" pattern=".{0,40}">
             </div>
             <div class="form-row" id="returneeReturnFields" style="display: none;">
               <div class="form-group">
-                <label for="return_month">Month of return to Philippines:</label>
+                <label for="return_month">Month of return to Philippines:<span class="required-asterisk">*</span></label>
                 <select id="return_month" name="return_month">
                   <option value="">Select Month</option>
                   <option value="January">January</option>
@@ -1055,7 +1280,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="return_year">Year of return to Philippines:</label>
+                <label for="return_year">Year of return to Philippines:<span class="required-asterisk">*</span></label>
                 <select id="return_year" name="return_year">
                   <option value="">Select Year</option>
                   <option value="2024">2024</option>
@@ -1097,16 +1322,16 @@
               </div>
             </div>
             <div class="form-row">
-              <label>Are/were employed abroad in the Philippines:</label>
+              <label>Are/were employed abroad in the Philippines:<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="abroad" value="yes"> Yes</label>
               <label><input type="radio" name="abroad" value="no"> No</label>
             </div>
             <div class="form-row">
-              <label>Are you a job beneficiary?</label>
+              <label>Are you a job beneficiary?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="beneficiary" value="yes" id="beneficiaryYes"> Yes</label>
               <label><input type="radio" name="beneficiary" value="no" id="beneficiaryNo"> No</label>
               <span id="householdIdGroup" style="display:none;">
-                <label for="household_id">If yes, provide Household ID No.:</label>
+                <label for="household_id">If yes, provide Household ID No.:<span class="required-asterisk">*</span></label>
                 <input type="text" id="household_id" name="household_id" pattern="[A-Za-z0-9\-]{0,20}">
               </span>
             </div>
@@ -1125,7 +1350,7 @@
             <fieldset>
               <legend>III. JOB PREFERENCE</legend>
             <div class="form-row">
-              <label>PREFERRED OCCUPATION</label>
+              <label>PREFERRED OCCUPATION<span class="required-asterisk">*</span></label>
               <label><input type="checkbox" name="fulltime"> Full-time</label>
               <label><input type="checkbox" name="parttime"> Part-time</label>
             </div>
@@ -1138,13 +1363,13 @@
               <label>PREFERRED WORK LOCATION</label>
             </div>
             <div class="form-row">
-              <label>Local (specify cities/municipalities):</label>
+              <label>Local (specify cities/municipalities):<span class="required-asterisk">*</span></label>
               <input type="text" name="local1" placeholder="1.">
               <input type="text" name="local2" placeholder="2.">
               <input type="text" name="local3" placeholder="3.">
             </div>
             <div class="form-row">
-              <label>Overseas (specify countries):</label>
+              <label>Overseas (specify countries):<span class="required-asterisk">*</span></label>
               <input type="text" name="overseas1" placeholder="1.">
               <input type="text" name="overseas2" placeholder="2.">
               <input type="text" name="overseas3" placeholder="3.">
@@ -1203,12 +1428,12 @@
             <fieldset>
               <legend>V. EDUCATIONAL BACKGROUND</legend>
             <div class="form-row">
-              <label>Currently in School?</label>
+              <label>Currently in School?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="inschool" value="yes"> Yes</label>
               <label><input type="radio" name="inschool" value="no"> No</label>
             </div>
             <div class="form-row">
-              <label>Level</label>
+              <label>Level<span class="required-asterisk">*</span></label>
               <select name="level" id="levelSelect" onchange="toggleCourseField()">
                 <option value="">Select</option>
                 <option>Elementary</option>
@@ -1406,7 +1631,7 @@
               <div class="esignature-upload-wrapper">
                 <label for="esignature" class="esignature-label">
                   <i class="esignature-icon">✍️</i>
-                  <span class="esignature-text">Upload Your E-Signature</span>
+                  <span class="esignature-text">Upload Your E-Signature<span class="required-asterisk">*</span></span>
                   <span class="esignature-subtext">Click to select your signature image</span>
                 </label>
                 <input type="file" id="esignature" name="esignature" accept="image/*" required class="esignature-input">
@@ -2383,14 +2608,77 @@
   toggleSelfTypeFields();
   toggleUnemployedFields();
 
+  // Set maximum date for date of birth (18+ years old)
+  function setMaxDateOfBirth() {
+    const currentYear = new Date().getFullYear();
+    const maxYear = currentYear - 18;
+    const maxDate = `${maxYear}-12-31`;
+    document.getElementById('dob').setAttribute('max', maxDate);
+  }
+  
+  // Call the function to set the max date
+  setMaxDateOfBirth();
+
   // Initial step
   showStep1();
   updateProgressIndicator(1);
 
+  // Duplicate entry validation function
+  async function checkDuplicateEntry() {
+    const surname = document.getElementById('surname').value.trim();
+    const firstname = document.getElementById('firstname').value.trim();
+    const middlename = document.getElementById('middlename').value.trim();
+    const suffix = document.getElementById('suffix').value.trim();
+    
+    // Normalize data for case-insensitive comparison
+    // Treat empty strings, "n/a", and null as empty for proper comparison
+    const normalizedSurname = surname.toLowerCase().trim();
+    const normalizedFirstname = firstname.toLowerCase().trim();
+    const normalizedMiddlename = (middlename.toLowerCase().trim() === 'n/a' || middlename.toLowerCase().trim() === 'null' || middlename.toLowerCase().trim() === '') ? '' : middlename.toLowerCase().trim();
+    const normalizedSuffix = (suffix.toLowerCase().trim() === 'n/a' || suffix.toLowerCase().trim() === 'null' || suffix.toLowerCase().trim() === '') ? '' : suffix.toLowerCase().trim();
+    
+    try {
+      const response = await fetch('check_duplicate.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `surname=${encodeURIComponent(normalizedSurname)}&firstname=${encodeURIComponent(normalizedFirstname)}&middlename=${encodeURIComponent(normalizedMiddlename)}&suffix=${encodeURIComponent(normalizedSuffix)}`
+      });
+      
+      const result = await response.json();
+      
+        if (result.duplicate) {
+          Swal.fire({
+            title: 'Duplicate Entry Detected!',
+            html: `A record with the same name combination already exists:<br><br>
+                   <strong>Name:</strong> ${result.existingName}<br><br>
+                   Please refrain from submitting duplicate forms.`,
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800',
+            allowOutsideClick: false
+          });
+          return false;
+        }
+      return true;
+    } catch (error) {
+      console.error('Error checking duplicate:', error);
+      // If there's an error checking duplicates, allow submission to proceed
+      return true;
+    }
+  }
+
   // Validation and AJAX submit
-  document.getElementById('jobseekerForm').addEventListener('submit', function(e) {
+  document.getElementById('jobseekerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     let valid = true;
+    
+    // Check for duplicate entry first
+    const isNotDuplicate = await checkDuplicateEntry();
+    if (!isNotDuplicate) {
+      return; // Stop submission if duplicate is found
+    }
     
     // Check for e-signature validation before final submission
     const esignatureInput = document.getElementById('esignature');
@@ -2465,14 +2753,29 @@
            showStep1();
          });
        } else {
-         // Show SweetAlert error message
-         Swal.fire({
-           title: 'Error!',
-           text: data.message,
-           icon: 'error',
-           confirmButtonText: 'OK',
-           confirmButtonColor: '#f44336'
-         });
+         // Check if it's a duplicate error
+         if (data.duplicate_info) {
+           // Show SweetAlert duplicate error with detailed info
+           Swal.fire({
+             title: 'Duplicate Entry Detected!',
+             html: `A record with the same name combination already exists:<br><br>
+                    <strong>Name:</strong> ${data.duplicate_info.existing_name}<br><br>
+                    Please verify your information or contact support if this is an error.`,
+             icon: 'warning',
+             confirmButtonText: 'OK',
+             confirmButtonColor: '#ff9800',
+             allowOutsideClick: false
+           });
+         } else {
+           // Show SweetAlert error message
+           Swal.fire({
+             title: 'Error!',
+             text: data.message,
+             icon: 'error',
+             confirmButtonText: 'OK',
+             confirmButtonColor: '#f44336'
+           });
+         }
        }
      })
      .catch(error => {

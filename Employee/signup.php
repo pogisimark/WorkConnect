@@ -93,14 +93,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             <div class="form-group">
                 <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required 
+                <input type="email" id="email" name="email" maxlength="40" required 
                        value="<?php echo htmlspecialchars($email ?? ''); ?>">
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
                 <div class="password-input-container">
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" maxlength="30" required>
                     <i class="fas fa-eye password-toggle" onclick="togglePassword('password')"></i>
                 </div>
                 <div class="password-requirements">Minimum 8 characters, 1 capital letter, 1 number</div>
@@ -109,7 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="form-group">
                 <label for="confirm_password">Confirm Password</label>
                 <div class="password-input-container">
-                    <input type="password" id="confirm_password" name="confirm_password" required>
+                    <input type="password" id="confirm_password" name="confirm_password" maxlength="30" required>
                     <i class="fas fa-eye password-toggle" onclick="togglePassword('confirm_password')"></i>
                 </div>
             </div>

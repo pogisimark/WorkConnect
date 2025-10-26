@@ -69,14 +69,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form method="POST" action="">
             <div class="form-group">
                 <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required 
+                <input type="email" id="email" name="email" maxlength="40" required 
                        value="<?php echo htmlspecialchars($email ?? ''); ?>">
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
                 <div class="password-input-container">
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" maxlength="30" required>
                     <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
                 </div>
             </div>
@@ -114,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <form id="forgotPasswordForm">
                     <div class="form-group">
                         <label for="resetEmail">Email Address</label>
-                        <input type="email" id="resetEmail" name="email" required>
+                        <input type="email" id="resetEmail" name="email" maxlength="40" required>
                     </div>
                     <button type="submit" class="reset-btn" id="resetBtn">
                         <span class="btn-text">Send Reset Link</span>

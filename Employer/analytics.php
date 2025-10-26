@@ -132,6 +132,95 @@
             height: 300px !important;
             width: 100% !important;
         }
+        /* Desktop and Laptop Responsive Design */
+        @media (min-width: 1200px) {
+            .main-content {
+                padding: 40px;
+            }
+            
+            canvas {
+                max-height: 400px !important;
+            }
+            
+            #registrationChart {
+                height: 400px !important;
+            }
+            
+            #statusChart {
+                height: 400px !important;
+            }
+        }
+        
+        @media (min-width: 992px) and (max-width: 1199px) {
+            .main-content {
+                padding: 32px;
+            }
+            
+            canvas {
+                max-height: 350px !important;
+            }
+            
+            #registrationChart {
+                height: 400px !important;
+            }
+            
+            #statusChart {
+                height: 350px !important;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 991px) {
+            .main-content {
+                padding: 24px;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 20px !important;
+            }
+            
+            canvas {
+                max-height: 300px !important;
+            }
+            
+            #registrationChart {
+                height: 300px !important;
+            }
+            
+            #statusChart {
+                height: 300px !important;
+            }
+        }
+        
+        @media (min-width: 481px) and (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .charts-container {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 20px !important;
+            }
+            
+            .registration-chart-container,
+            .status-chart-container {
+                width: 100% !important;
+            }
+            
+            canvas {
+                max-height: 320px !important;
+            }
+            
+            #registrationChart {
+                height: 320px !important;
+            }
+            
+            #statusChart {
+                height: 320px !important;
+            }
+        }
+        
         @media (max-width: 768px) {
             .header {
                 padding: 8px 16px;
@@ -146,7 +235,6 @@
             .header-title {
                 font-size: 1.4rem;
             }
-            
             
             .header div {
                 margin-left: auto !important;
@@ -271,12 +359,52 @@
                 font-size: 1rem;
             }
             
-            .main-content > div:nth-child(2) {
-                grid-template-columns: 1fr;
-                gap: 16px;
+            /* Mobile: Stack charts vertically - Registration Trends first, then Application Status */
+            .charts-container {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 24px !important;
             }
             
-            .main-content > div:nth-child(3) {
+            /* Registration Trends Chart - Full width on mobile */
+            .registration-chart-container {
+                width: 100% !important;
+                order: 1; /* First on mobile */
+            }
+            
+            /* Application Status Chart - Full width on mobile */
+            .status-chart-container {
+                width: 100% !important;
+                order: 2; /* Second on mobile */
+            }
+            
+            /* Mobile filter adjustments */
+            .registration-chart-container > div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            
+            .registration-chart-container > div:first-child > div:last-child {
+                width: 100% !important;
+                flex-wrap: wrap !important;
+            }
+            
+            .registration-chart-container select {
+                min-width: 120px !important;
+                font-size: 0.8rem !important;
+            }
+            
+            /* Mobile chart container adjustments */
+            .registration-chart-container {
+                padding: 20px !important;
+            }
+            
+            .status-chart-container {
+                padding: 20px !important;
+            }
+            
+            .main-content > div:nth-child(2) {
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
@@ -292,15 +420,42 @@
             }
             
             canvas {
-                max-height: 250px !important;
+                max-height: 350px !important;
             }
             
             #registrationChart {
-                height: 250px !important;
+                height: 400px !important;
             }
             
             #statusChart {
-                height: 250px !important;
+                height: 400px !important;
+            }
+            
+            /* Increase table/chart container size for mobile */
+            .registration-chart-container,
+            .status-chart-container {
+                min-height: 450px !important;
+            }
+            
+            /* Mobile-specific chart padding adjustments */
+            .registration-chart-container canvas {
+                padding: 10px !important;
+            }
+            
+            /* Mobile chart options for smaller dots */
+            .registration-chart-container {
+                position: relative;
+            }
+            
+            .registration-chart-container::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                pointer-events: none;
+                z-index: 1;
             }
         }
         
@@ -369,16 +524,42 @@
                 font-size: 0.8rem;
             }
             
+            /* Small mobile chart adjustments */
+            .charts-container {
+                gap: 16px !important;
+            }
+            
+            .registration-chart-container,
+            .status-chart-container {
+                padding: 16px !important;
+            }
+            
+            .registration-chart-container h3,
+            .status-chart-container h3 {
+                font-size: 1.1rem !important;
+            }
+            
+            /* Small mobile chart padding for better data point visibility */
+            .registration-chart-container canvas {
+                padding: 15px !important;
+            }
+            
             canvas {
-                max-height: 200px !important;
+                max-height: 320px !important;
             }
             
             #registrationChart {
-                height: 200px !important;
+                height: 320px !important;
             }
             
             #statusChart {
-                height: 200px !important;
+                height: 320px !important;
+            }
+            
+            /* Increase small mobile table/chart container size */
+            .registration-chart-container,
+            .status-chart-container {
+                min-height: 360px !important;
             }
         }
         
@@ -523,16 +704,36 @@
             </div>
 
             <!-- Charts Section -->
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px;">
+            <div class="charts-container" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px;">
                 
                  <!-- Registration Trends Chart -->
-                 <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1);">
+                 <div class="registration-chart-container" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1);">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                          <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">📊 Registration Trends</h3>
-                         <div style="display: flex; gap: 12px; align-items: center;">
+                         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                              <select id="trendFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 0.9rem;">
                                  <option value="12months">Last 12 Months</option>
                                  <option value="yearly" id="yearlyOption">Yearly (2020-2025)</option>
+                                 <option value="monthly">Specific Month</option>
+                             </select>
+                             <select id="monthFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 0.9rem; display: none;">
+                                 <option value="">Select Month</option>
+                                 <option value="01">January</option>
+                                 <option value="02">February</option>
+                                 <option value="03">March</option>
+                                 <option value="04">April</option>
+                                 <option value="05">May</option>
+                                 <option value="06">June</option>
+                                 <option value="07">July</option>
+                                 <option value="08">August</option>
+                                 <option value="09">September</option>
+                                 <option value="10">October</option>
+                                 <option value="11">November</option>
+                                 <option value="12">December</option>
+                             </select>
+                             <select id="yearFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; font-size: 0.9rem; display: none;">
+                                 <option value="">Select Year</option>
+                                 <!-- Years will be populated by JavaScript -->
                              </select>
                          </div>
                      </div>
@@ -540,7 +741,7 @@
                  </div>
 
                 <!-- Application Status Pie Chart -->
-                <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1);">
+                <div class="status-chart-container" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1);">
                     <h3 style="margin: 0 0 20px 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">🎯 Application Status</h3>
                     <canvas id="statusChart" width="300" height="300"></canvas>
                 </div>
@@ -934,7 +1135,7 @@
      let chartsCreated = false;
 
      // Generate trends data based on filter
-     function generateTrendsData(jobseekers, filterType) {
+     function generateTrendsData(jobseekers, filterType, selectedMonth = null, selectedYear = null) {
          const trendsData = [];
          
          if (filterType === '12months') {
@@ -965,6 +1166,68 @@
                  }).length;
                  
                  trendsData.push({ month: year.toString(), count: count });
+             }
+         } else if (filterType === 'monthly' && selectedMonth && selectedYear) {
+             // Specific month data - show daily breakdown within the selected month
+             console.log('Filtering for month:', selectedMonth, 'year:', selectedYear);
+             
+             const selectedMonthInt = parseInt(selectedMonth);
+             const selectedYearInt = parseInt(selectedYear);
+             
+             // Get the number of days in the selected month
+             const daysInMonth = new Date(selectedYearInt, selectedMonthInt, 0).getDate();
+             console.log('Days in month:', daysInMonth);
+             
+             // Create daily data for the entire month
+             for (let day = 1; day <= daysInMonth; day++) {
+                 const count = jobseekers.filter(j => {
+                     if (j.submission_day && j.submission_month && j.submission_year) {
+                         const jobseekerDay = parseInt(j.submission_day);
+                         const jobseekerMonth = parseInt(j.submission_month);
+                         const jobseekerYear = parseInt(j.submission_year);
+                         
+                         return jobseekerDay === day && 
+                                jobseekerMonth === selectedMonthInt && 
+                                jobseekerYear === selectedYearInt;
+                     }
+                     return false;
+                 }).length;
+                 
+                 trendsData.push({ month: `Day ${day}`, count: count });
+                 console.log(`Day ${day}: ${count} registrations`);
+             }
+             
+             console.log('Found daily trends data:', trendsData);
+             
+             // If no daily data found, check if we have monthly data and distribute it
+             const totalMonthlyCount = trendsData.reduce((sum, day) => sum + day.count, 0);
+             console.log('Total monthly count from daily data:', totalMonthlyCount);
+             
+             if (totalMonthlyCount === 0) {
+                 // Try to get monthly count from the original data
+                 const monthlyCount = jobseekers.filter(j => {
+                     if (j.submission_month && j.submission_year) {
+                         const jobseekerMonth = parseInt(j.submission_month);
+                         const jobseekerYear = parseInt(j.submission_year);
+                         
+                         return jobseekerMonth === selectedMonthInt && 
+                                jobseekerYear === selectedYearInt;
+                     }
+                     return false;
+                 }).length;
+                 
+                 console.log('Monthly count from monthly data:', monthlyCount);
+                 
+                 if (monthlyCount > 0) {
+                     // Distribute the monthly count across days (put it all on day 15 for visualization)
+                     const newTrendsData = [];
+                     for (let day = 1; day <= daysInMonth; day++) {
+                         const count = day === 15 ? monthlyCount : 0; // Put all registrations on day 15
+                         newTrendsData.push({ month: `Day ${day}`, count: count });
+                     }
+                     console.log('Redistributed monthly data:', newTrendsData);
+                     return newTrendsData;
+                 }
              }
          }
          
@@ -1018,13 +1281,17 @@
             // Update UI
             updateAnalyticsUI();
             
-            // Wait a bit for DOM to be ready, then create charts
-            if (!chartsCreated) {
-                setTimeout(() => {
-                    createCharts();
-                    chartsCreated = true;
-                }, 100);
-            }
+             // Wait a bit for DOM to be ready, then create charts
+             if (!chartsCreated) {
+                 setTimeout(() => {
+                     console.log('Creating charts after data fetch...');
+                     createCharts();
+                     chartsCreated = true;
+                 }, 100);
+             } else {
+                 console.log('Charts already created, updating registration chart...');
+                 createRegistrationChart();
+             }
             
         } catch (error) {
             console.error('Error fetching analytics data:', error);
@@ -1188,51 +1455,124 @@
          ];
          
          console.log('Monthly data for chart:', monthlyData);
+         console.log('Chart labels:', monthlyData.map(trend => trend.month));
+         console.log('Chart data:', monthlyData.map(trend => trend.count));
+         console.log('Max value in data:', Math.max(...monthlyData.map(trend => trend.count)));
+         console.log('Min value in data:', Math.min(...monthlyData.map(trend => trend.count)));
          
          // Registration Trends Chart
          const registrationCtx = document.getElementById('registrationChart');
          if (registrationCtx) {
+             console.log('Registration chart canvas found');
              try {
+                 // Destroy existing chart if it exists
+                 if (window.registrationChart && typeof window.registrationChart.destroy === 'function') {
+                     console.log('Destroying existing registration chart');
+                     window.registrationChart.destroy();
+                 }
+                 
+                 console.log('Creating new registration chart...');
+                 
+                 // Determine chart type based on data points and filter type
+                 let chartType = 'line';
+                 
+                 // Only use bar chart for single data points
+                 if (monthlyData.length === 1) {
+                     chartType = 'bar';
+                 }
+                 // For all other cases (including daily data), use line chart
+                 else {
+                     chartType = 'line';
+                 }
+                 
+                 // Check if mobile device for smaller dots
+                 const isMobile = window.innerWidth <= 768;
+                 const pointRadius = isMobile ? 4 : 8;
+                 const pointHoverRadius = isMobile ? 6 : 10;
+                 
+                 console.log('Using chart type:', chartType, 'for', monthlyData.length, 'data points');
+                 console.log('Mobile device:', isMobile, 'Point radius:', pointRadius);
+                 
                  window.registrationChart = new Chart(registrationCtx.getContext('2d'), {
-                     type: 'line',
+                     type: chartType,
                      data: {
                          labels: monthlyData.map(trend => trend.month),
                          datasets: [{
                              label: 'New Registrations',
                              data: monthlyData.map(trend => trend.count),
                              borderColor: '#1976d2',
-                             backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                             borderWidth: 3,
-                             fill: true,
-                             tension: 0.4,
+                             backgroundColor: chartType === 'bar' ? '#1976d2' : 'rgba(25, 118, 210, 0.1)',
+                             borderWidth: chartType === 'bar' ? 0 : 3,
+                             fill: chartType === 'line',
+                             tension: chartType === 'line' ? 0.4 : 0,
                              pointBackgroundColor: '#1976d2',
                              pointBorderColor: '#fff',
-                             pointBorderWidth: 2,
-                             pointRadius: 6
+                             pointBorderWidth: isMobile ? 2 : 3,
+                             pointRadius: chartType === 'line' ? pointRadius : 0,
+                             pointHoverRadius: chartType === 'line' ? pointHoverRadius : 0,
+                             pointHoverBackgroundColor: '#1565c0',
+                             pointHoverBorderColor: '#fff',
+                             pointHoverBorderWidth: isMobile ? 2 : 3
                          }]
                      },
                      options: {
                          responsive: true,
                          maintainAspectRatio: false,
                          resizeDelay: 0,
+                         layout: {
+                             padding: {
+                                 top: 20,
+                                 bottom: 20,
+                                 left: 10,
+                                 right: 10
+                             }
+                         },
                          animation: {
                              duration: 0
                          },
                          plugins: {
                              legend: {
                                  display: false
+                             },
+                             tooltip: {
+                                 enabled: true,
+                                 callbacks: {
+                                     title: function(context) {
+                                         return context[0].label;
+                                     },
+                                     label: function(context) {
+                                         return `${context.parsed.y} registrations`;
+                                     }
+                                 }
                              }
                          },
                          scales: {
                              y: {
                                  beginAtZero: true,
+                                 min: -0.5,
+                                 max: Math.max(5, Math.max(...monthlyData.map(trend => trend.count)) + 1),
                                  grid: {
-                                     color: 'rgba(0,0,0,0.1)'
+                                     color: 'rgba(0,0,0,0.1)',
+                                     drawBorder: false
+                                 },
+                                 ticks: {
+                                     callback: function(value) {
+                                         return Number.isInteger(value) && value >= 0 ? value : null;
+                                     },
+                                     padding: 15,
+                                     stepSize: 1
                                  }
                              },
                              x: {
                                  grid: {
                                      display: false
+                                 },
+                                 ticks: {
+                                     maxRotation: monthlyData.length > 15 ? 45 : 0,
+                                     font: {
+                                         size: monthlyData.length > 15 ? 9 : 11
+                                     },
+                                     padding: 15
                                  }
                              }
                          }
@@ -1244,6 +1584,13 @@
              }
          } else {
              console.error('Registration chart canvas not found');
+             // Try to find the canvas element
+             const canvas = document.querySelector('#registrationChart');
+             if (canvas) {
+                 console.log('Canvas element found:', canvas);
+             } else {
+                 console.error('Canvas element with id "registrationChart" not found in DOM');
+             }
          }
      }
 
@@ -1321,15 +1668,56 @@
          }
      }
 
+     // Handle filter change and show/hide dropdowns
+     function handleFilterChange() {
+         const filterType = document.getElementById('trendFilter').value;
+         const monthFilter = document.getElementById('monthFilter');
+         const yearFilter = document.getElementById('yearFilter');
+         
+         if (filterType === 'monthly') {
+             monthFilter.style.display = 'block';
+             yearFilter.style.display = 'block';
+         } else {
+             monthFilter.style.display = 'none';
+             yearFilter.style.display = 'none';
+         }
+         
+         // Update chart if monthly filter is selected and both month and year are chosen
+         if (filterType === 'monthly' && monthFilter.value && yearFilter.value) {
+             updateTrendsChart();
+         } else if (filterType !== 'monthly') {
+             updateTrendsChart();
+         }
+     }
+     
+     // Populate year dropdown
+     function populateYearDropdown() {
+         const yearFilter = document.getElementById('yearFilter');
+         const currentYear = new Date().getFullYear();
+         
+         // Clear existing options
+         yearFilter.innerHTML = '<option value="">Select Year</option>';
+         
+         // Add years from current year down to 2020
+         for (let year = currentYear; year >= 2020; year--) {
+             const option = document.createElement('option');
+             option.value = year;
+             option.textContent = year;
+             yearFilter.appendChild(option);
+         }
+     }
+     
      // Update trends chart based on filter (automatic)
      async function updateTrendsChart() {
          const filterType = document.getElementById('trendFilter').value;
+         const selectedMonth = document.getElementById('monthFilter').value;
+         const selectedYear = document.getElementById('yearFilter').value;
          
          try {
              const jobseekerResponse = await fetch('jobseekers.php');
              const jobseekers = await jobseekerResponse.json();
              
-             analyticsData.monthlyTrends = generateTrendsData(jobseekers, filterType);
+             analyticsData.monthlyTrends = generateTrendsData(jobseekers, filterType, selectedMonth, selectedYear);
              
              console.log('Updated trends data:', analyticsData.monthlyTrends);
              
@@ -1361,8 +1749,13 @@
              yearlyOption.textContent = `Yearly (2020-${currentYear})`;
          }
          
-         // Add event listener for automatic filter change
-         document.getElementById('trendFilter').addEventListener('change', updateTrendsChart);
+         // Add event listeners for filter changes
+         document.getElementById('trendFilter').addEventListener('change', handleFilterChange);
+         document.getElementById('monthFilter').addEventListener('change', updateTrendsChart);
+         document.getElementById('yearFilter').addEventListener('change', updateTrendsChart);
+         
+         // Populate year dropdown
+         populateYearDropdown();
          
          // Check if Chart.js is loaded
          if (typeof Chart === 'undefined') {
@@ -1379,6 +1772,7 @@
              };
              document.head.appendChild(script);
          } else {
+             console.log('Chart.js is available, fetching analytics data...');
              fetchAnalyticsData();
          }
      });

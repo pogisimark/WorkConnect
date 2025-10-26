@@ -1,5 +1,10 @@
 <?php
-ob_start(); // Start output buffering at the very beginning
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Start output buffering to catch any unexpected output
+ob_start();
 
 $host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
@@ -8,7 +13,14 @@ $db   = "WorkConnect";
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    // Clear any output and return JSON error
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit;
 }
 
 
@@ -20,7 +32,35 @@ function getbool($key) {
     return isset($_POST[$key]) ? 1 : 0;
 }
 
+function sendJsonResponse($success, $message, $data = null) {
+    // Clear any previous output
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    
+    // Set proper headers
+    header('Content-Type: application/json');
+    http_response_code($success ? 200 : 400);
+    
+    // Prepare response
+    $response = ['success' => $success, 'message' => $message];
+    if ($data !== null) {
+        $response = array_merge($response, $data);
+    }
+    
+    echo json_encode($response);
+    exit;
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    // Debug: Log that we received a POST request
+    error_log("POST request received");
+    
+    // Simple test response first
+    if (isset($_POST['test'])) {
+        sendJsonResponse(true, 'Test successful');
+    }
     
     $resume_filename = '';
     if (isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] == UPLOAD_ERR_OK) {
@@ -38,35 +78,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Validate file extension
         if (!in_array($ext, $allowed_ext)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Invalid file type. Please upload JPG, PNG, PDF, DOC, or DOCX files only.']);
-            exit;
+            sendJsonResponse(false, 'Invalid file type. Please upload JPG, PNG, PDF, DOC, or DOCX files only.');
         }
         
         // Validate MIME type
         if (!in_array($mime_type, $allowed_mime_types)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Invalid file type detected. Please upload a valid file.']);
-            exit;
+            sendJsonResponse(false, 'Invalid file type detected. Please upload a valid file.');
         }
         
         // Validate file size
         if ($file_size > $max_size) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'File size too large. Maximum size is 5MB.']);
-            exit;
+            sendJsonResponse(false, 'File size too large. Maximum size is 5MB.');
         }
         
         $resume_filename = uniqid('resume_') . '.' . $ext;
@@ -75,22 +97,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $resume_filepath = $resume_dir . $resume_filename;
         
         if (!move_uploaded_file($_FILES['resume_file']['tmp_name'], $resume_filepath)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Failed to upload file. Please try again.']);
-            exit;
+            sendJsonResponse(false, 'Failed to upload file. Please try again.');
         }
     } else if (isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] !== UPLOAD_ERR_NO_FILE) {
-        if (ob_get_level()) {
-            ob_clean();
-        }
-        http_response_code(400);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'File upload error. Please try again.']);
-        exit;
+        sendJsonResponse(false, 'File upload error. Please try again.');
     }
 
     // Get submission month and year
@@ -113,35 +123,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Validate file extension
         if (!in_array($ext, $allowed_ext)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Invalid e-signature file type. Please upload JPG, PNG, or GIF files only.']);
-            exit;
+            sendJsonResponse(false, 'Invalid e-signature file type. Please upload JPG, PNG, or GIF files only.');
         }
         
         // Validate MIME type
         if (!in_array($mime_type, $allowed_mime_types)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Invalid e-signature file type detected. Please upload a valid image file.']);
-            exit;
+            sendJsonResponse(false, 'Invalid e-signature file type detected. Please upload a valid image file.');
         }
         
         // Validate file size
         if ($file_size > $max_size) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(400);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'E-signature file size too large. Maximum size is 2MB.']);
-            exit;
+            sendJsonResponse(false, 'E-signature file size too large. Maximum size is 2MB.');
         }
         
         $esignature_filename = uniqid('esignature_') . '.' . $ext;
@@ -150,28 +142,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $esignature_filepath = $esignature_dir . $esignature_filename;
         
         if (!move_uploaded_file($_FILES['esignature']['tmp_name'], $esignature_filepath)) {
-            if (ob_get_level()) {
-                ob_clean();
-            }
-            http_response_code(500);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Failed to upload e-signature file. Please try again.']);
-            exit;
+            sendJsonResponse(false, 'Failed to upload e-signature file. Please try again.');
         }
     } else if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] !== UPLOAD_ERR_NO_FILE) {
-        if (ob_get_level()) {
-            ob_clean();
-        }
-        http_response_code(400);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'E-signature file upload error. Please try again.']);
-        exit;
+        sendJsonResponse(false, 'E-signature file upload error. Please try again.');
     }
     // Personal Information
-    $surname = $conn->real_escape_string(getval('surname'));
-    $firstname = $conn->real_escape_string(getval('firstname'));
-    $middlename = $conn->real_escape_string(getval('middlename'));
-    $suffix = $conn->real_escape_string(getval('suffix'));
+    $surname = $conn->real_escape_string(getval('surname', ''));
+    $firstname = $conn->real_escape_string(getval('firstname', ''));
+    $middlename = $conn->real_escape_string(getval('middlename', ''));
+    $suffix = $conn->real_escape_string(getval('suffix', ''));
+    
+    // Server-side duplicate check - only check firstname, lastname, middlename, and suffix
+    try {
+        $duplicate_check_sql = "SELECT id, surname, firstname, middlename, suffix 
+                               FROM jobseeker 
+                               WHERE LOWER(surname) = LOWER(?) 
+                               AND LOWER(firstname) = LOWER(?) 
+                               AND COALESCE(NULLIF(NULLIF(middlename, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')
+                               AND COALESCE(NULLIF(NULLIF(suffix, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')";
+        
+        $duplicate_stmt = $conn->prepare($duplicate_check_sql);
+        if (!$duplicate_stmt) {
+            error_log("Duplicate check prepare failed: " . $conn->error);
+            sendJsonResponse(false, 'Database prepare error: ' . $conn->error);
+        }
+        
+        $duplicate_stmt->bind_param("ssss", $surname, $firstname, $middlename, $suffix);
+        $duplicate_stmt->execute();
+        $duplicate_result = $duplicate_stmt->get_result();
+    } catch (Exception $e) {
+        error_log("Duplicate check error: " . $e->getMessage());
+        sendJsonResponse(false, 'Duplicate check failed: ' . $e->getMessage());
+    }
+    
+    if ($duplicate_result->num_rows > 0) {
+        $existing_record = $duplicate_result->fetch_assoc();
+        
+        // Format the existing name for display
+        $existing_name = $existing_record['firstname'];
+        if (!empty($existing_record['middlename']) && $existing_record['middlename'] !== 'n/a') {
+            $existing_name .= ' ' . $existing_record['middlename'];
+        }
+        $existing_name .= ' ' . $existing_record['surname'];
+        if (!empty($existing_record['suffix']) && $existing_record['suffix'] !== 'n/a') {
+            $existing_name .= ' ' . $existing_record['suffix'];
+        }
+        
+        sendJsonResponse(false, 'Duplicate entry detected! A record with the same name combination already exists.', [
+            'duplicate_info' => [
+                'existing_name' => $existing_name
+            ]
+        ]);
+    }
+    $duplicate_stmt->close();
     $dob = $conn->real_escape_string(getval('dob'));
     $sex = $conn->real_escape_string(getval('sex'));
     $religion = $conn->real_escape_string(getval('religion'));
@@ -379,24 +403,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         '$resume_filename', '$esignature_filename', $submission_month, $submission_year, 'Pending'
     )";
 
-    if ($conn->query($sql) === TRUE) {
-        // Clear any previous output
-        if (ob_get_level()) {
-            ob_clean();
+    try {
+        if ($conn->query($sql) === TRUE) {
+            sendJsonResponse(true, 'Registration saved successfully!');
+        } else {
+            error_log("Database insert error: " . $conn->error);
+            sendJsonResponse(false, 'Database error: ' . $conn->error);
         }
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'message' => 'Registration saved successfully!']);
-        exit;
-    } else {
-        // Clear any previous output
-        if (ob_get_level()) {
-            ob_clean();
-        }
-        http_response_code(500);
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
-        exit;
+    } catch (Exception $e) {
+        error_log("Database insert exception: " . $e->getMessage());
+        sendJsonResponse(false, 'Database insert failed: ' . $e->getMessage());
     }
+} else {
+    // Not a POST request
+    sendJsonResponse(false, 'Invalid request method');
 }
 $conn->close();
 ?>

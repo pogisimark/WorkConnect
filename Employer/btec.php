@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect BTEC Monthly Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -736,14 +737,15 @@
             background: #e9ecef;
             padding: 12px;
             border-radius: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             font-size: 0.8rem;
             color: #495057;
             line-height: 1.4;
         }
         
         .skills-input-container {
-            margin-top: 8px;
+            margin-top: 16px;
+            margin-bottom: 8px;
         }
         
         .skills-specify-input {
@@ -763,13 +765,14 @@
         
         .filtered-skills-display {
             background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 8px;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
             font-size: 0.9rem;
             color: #495057;
-            line-height: 1.4;
+            line-height: 1.5;
             border: 1px solid #dee2e6;
+            min-height: 60px;
         }
         
         .filtered-skills-display strong {
@@ -785,13 +788,15 @@
             display: inline-block;
             background: #233a8b;
             color: white;
-            padding: 6px 12px;
-            margin: 4px 6px 4px 0;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 8px 16px;
+            margin: 4px 8px 4px 0;
+            border-radius: 25px;
+            font-size: 0.9rem;
             font-weight: 500;
-            box-shadow: 0 2px 4px rgba(35,58,139,0.2);
+            box-shadow: 0 2px 6px rgba(35,58,139,0.3);
             transition: all 0.2s ease;
+            white-space: nowrap;
+            min-width: fit-content;
         }
         
         .skill-box:hover {
@@ -801,12 +806,13 @@
         }
         
         .skill-count {
-            background: rgba(255,255,255,0.2);
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 6px;
-            font-size: 0.75rem;
+            background: rgba(255,255,255,0.25);
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-size: 0.8rem;
             font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.3);
         }
         
         .no-skills {
@@ -1720,6 +1726,10 @@
                                     <div class="skills-examples">
                                         <strong>Examples:</strong> Welding, Sewing, Carpentry, Caregiving, IT, Bookkeeping, Nursing, Teaching, Computer Programming, Housekeeping, Driving, etc.
                                     </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="activity-name" colspan="8">
                                     <div class="skills-input-container">
                                         <div id="filtered-skills-display" class="filtered-skills-display">
                                             <strong>Registered Skills:</strong> <span id="skills-list">No data found</span>
@@ -1733,7 +1743,7 @@
                 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="printReport()">Print Report</button>
-                    <button type="button" class="btn btn-success" onclick="exportReport()">Export to Excel</button>
+                    <button type="button" class="btn btn-success" onclick="exportReport()">📊 Export to Excel</button>
                 </div>
             </div>
         </div>
@@ -2396,6 +2406,14 @@
         
         // Sort skills alphabetically and create skill boxes
         const sortedSkills = Object.keys(skillCounts).sort();
+        
+        // Clear any existing content first
+        skillsListElement.innerHTML = '';
+        
+        // Add a container for better layout
+        const skillsContainer = document.createElement('div');
+        skillsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;';
+        
         sortedSkills.forEach(skill => {
             const count = skillCounts[skill];
             const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
@@ -2405,8 +2423,10 @@
             skillBox.className = 'skill-box';
             skillBox.innerHTML = `${capitalizedSkill}<span class="skill-count">${count}</span>`;
             
-            skillsListElement.appendChild(skillBox);
+            skillsContainer.appendChild(skillBox);
         });
+        
+        skillsListElement.appendChild(skillsContainer);
     }
     
     // Add event listeners for barangay, year, and month changes
@@ -2503,7 +2523,14 @@
     function populateYearDropdown() {
         const yearSelect = document.getElementById('year');
         
-        // Clear all existing options
+        // Check if element exists
+        if (!yearSelect) {
+            console.log('Year select element not found, retrying...');
+            setTimeout(populateYearDropdown, 200);
+            return;
+        }
+        
+        // Clear all existing options including the default "Select Year"
         yearSelect.innerHTML = '';
         
         // Add years from 2025 down to 2020, with 2025 as default
@@ -2519,6 +2546,8 @@
             
             yearSelect.appendChild(option);
         }
+        
+        console.log('Year dropdown populated successfully');
     }
     
     // Initialize month options and year dropdown on page load
@@ -2526,6 +2555,10 @@
         populateYearDropdown();
         updateMonthOptions();
     });
+    
+    // Also try immediately and with a delay as fallback
+    setTimeout(populateYearDropdown, 50);
+    setTimeout(populateYearDropdown, 500);
 
     // BTEC Report Functions
     
@@ -2564,34 +2597,14 @@
     }
     
     function exportReport() {
-        // Create a simple CSV export
+        // Enhanced Excel export with proper formatting
         const table = document.querySelector('.btec-table');
-        let csv = '';
-        
-        // Get all rows
-        const rows = table.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('th, td');
-            const rowData = [];
-            
-            cells.forEach(cell => {
-                const select = cell.querySelector('select');
-                if (select) {
-                    rowData.push(select.value || '');
-                } else {
-                    rowData.push(cell.textContent.trim());
-                }
-            });
-            
-            csv += rowData.join(',') + '\n';
-        });
-        
-        // Generate custom filename with year and months
         const year = document.getElementById('year').value || 'Unknown';
         const month1 = document.getElementById('month1').value;
         const month2 = document.getElementById('month2').value;
         const month3 = document.getElementById('month3').value;
         const barangay = document.getElementById('barangay').value || 'Unknown';
+        const cityMunicipality = document.getElementById('cityMunicipality').value || 'Norzagaray';
         
         // Build months string
         const selectedMonths = [month1, month2, month3].filter(month => month && month !== '');
@@ -2606,17 +2619,305 @@
             monthsString = `${selectedMonths[0]}_${selectedMonths[1]}_${selectedMonths[2]}`;
         }
         
-        // Create filename: BTEC_Report_Year_Months_Barangay.csv
-        const filename = `BTEC_Report_${year}_${monthsString}_${barangay}.csv`;
+        // Create filename: BTEC_Report_Year_Months_Barangay.xlsx
+        const filename = `BTEC_Report_${year}_${monthsString}_${barangay}.xlsx`;
         
-        // Create and download file
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        // Prepare data for export
+        const exportData = prepareExportData();
+        
+        // Create Excel file with proper formatting
+        createFormattedExcel(exportData, filename, year, selectedMonths, barangay, cityMunicipality);
+    }
+    
+    function prepareExportData() {
+        const table = document.querySelector('.btec-table');
+        const rows = table.querySelectorAll('tr');
+        const data = [];
+        
+        rows.forEach((row, rowIndex) => {
+            const cells = row.querySelectorAll('th, td');
+            const rowData = [];
+            
+            cells.forEach((cell, cellIndex) => {
+                const select = cell.querySelector('select');
+                let cellValue = '';
+                
+                if (select) {
+                    cellValue = select.value || '';
+                } else {
+                    cellValue = cell.textContent.trim();
+                }
+                
+                // Clean up cell value and handle special cases
+                cellValue = cellValue.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                
+                // Handle empty cells and special characters
+                if (cellValue === '' || cellValue === 'undefined' || cellValue === 'null') {
+                    cellValue = '';
+                }
+                
+                // Special handling for skills display - format it properly
+                if (cellValue.includes('Registered Skills:') && cellValue !== 'Registered Skills: No data found') {
+                    cellValue = formatSkillsForExcel(cellValue);
+                }
+                
+                // Escape commas and quotes for proper CSV handling
+                if (cellValue.includes(',') || cellValue.includes('"')) {
+                    cellValue = '"' + cellValue.replace(/"/g, '""') + '"';
+                }
+                
+                rowData.push(cellValue);
+            });
+            
+            data.push(rowData);
+        });
+        
+        return data;
+    }
+    
+    function formatSkillsForExcel(skillsText) {
+        // Extract skills from the text (e.g., "Registered Skills: Carpenting1Gaming1Gardening1Masonry3Singing1Welding1")
+        const skillsMatch = skillsText.match(/Registered Skills:\s*(.+)/);
+        if (!skillsMatch) return skillsText;
+        
+        const skillsString = skillsMatch[1];
+        
+        // Parse the skills string to extract individual skills with counts
+        const skills = [];
+        let currentSkill = '';
+        let currentCount = '';
+        let i = 0;
+        
+        while (i < skillsString.length) {
+            const char = skillsString[i];
+            
+            if (isNaN(char)) {
+                // It's a letter, add to current skill
+                currentSkill += char;
+            } else {
+                // It's a number, add to current count
+                currentCount += char;
+                
+                // Check if next character is also a number or if we're at the end
+                if (i === skillsString.length - 1 || isNaN(skillsString[i + 1])) {
+                    // We've reached the end of a skill-count pair
+                    if (currentSkill && currentCount) {
+                        const skillName = currentSkill.charAt(0).toUpperCase() + currentSkill.slice(1);
+                        const count = parseInt(currentCount) || 1;
+                        skills.push(`${skillName} (${count})`);
+                    }
+                    currentSkill = '';
+                    currentCount = '';
+                }
+            }
+            i++;
+        }
+        
+        // Format the skills nicely
+        if (skills.length === 0) {
+            return 'Registered Skills: No skills found';
+        }
+        
+        return `Registered Skills: ${skills.join(', ')}`;
+    }
+    
+    function createFormattedExcel(data, filename, year, months, barangay, cityMunicipality) {
+        // Create a new workbook
+        const wb = XLSX.utils.book_new();
+        
+        // Prepare worksheet data with proper formatting
+        const wsData = [];
+        
+        // Add report header
+        wsData.push(['BTEC MONTHLY REPORT']);
+        wsData.push([]); // Empty row
+        wsData.push(['City/Municipality:', cityMunicipality]);
+        wsData.push(['Barangay:', barangay]);
+        wsData.push(['Year:', year]);
+        wsData.push(['Months:', months.join(', ')]);
+        wsData.push(['Generated on:', new Date().toLocaleDateString()]);
+        wsData.push([]); // Empty row
+        
+        // Create proper table structure matching the web interface
+        
+        // Add table headers with proper structure
+        const headerRow1 = ['ACTIVITIES'];
+        const headerRow2 = ['']; // Empty for activities column
+        
+        // Add month headers with proper structure
+        months.forEach(month => {
+            headerRow1.push(`Month: ${month}`);
+            headerRow1.push(''); // Empty cell for the second column of each month
+            headerRow2.push('Total');
+            headerRow2.push('Female');
+        });
+        
+        // If no months selected, add default structure
+        if (months.length === 0) {
+            headerRow1.push('Month: [Select Month]');
+            headerRow1.push('');
+            headerRow2.push('Total');
+            headerRow2.push('Female');
+        }
+        
+        // Add programs/projects header
+        headerRow1.push('PROGRAMS/PROJECTS');
+        headerRow2.push(''); // Empty for programs column
+        
+        wsData.push(headerRow1);
+        wsData.push(headerRow2);
+        
+        // Add table data with proper structure
+        data.forEach((row, rowIndex) => {
+            if (row.length > 0) {
+                // Skip the original header rows from the web table
+                if (rowIndex > 1) { // Skip the first two header rows from web table
+                    wsData.push(row);
+                }
+            }
+        });
+        
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths for better display and prevent cutoff
+        const colWidths = [
+            { wch: 40 }, // Activities column - wider for long text
+        ];
+        
+        // Add widths for each month (2 columns per month)
+        const monthCount = months.length > 0 ? months.length : 1; // Default to 1 if no months
+        for (let i = 0; i < monthCount; i++) {
+            colWidths.push({ wch: 15 }); // Total column
+            colWidths.push({ wch: 15 }); // Female column
+        }
+        
+        // Add width for programs/projects column
+        colWidths.push({ wch: 50 }); // Programs/Projects column
+        
+        ws['!cols'] = colWidths;
+        
+        // Set row heights for better readability
+        const rowHeights = [];
+        for (let i = 0; i < wsData.length; i++) {
+            if (i === 0) {
+                rowHeights.push({ hpt: 30 }); // Header row
+            } else if (i >= 7) { // Table data rows
+                rowHeights.push({ hpt: 20 }); // Slightly taller for better readability
+            } else {
+                rowHeights.push({ hpt: 18 }); // Standard height
+            }
+        }
+        ws['!rows'] = rowHeights;
+        
+        // Apply formatting to cells
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        
+        // Style the header row (row 0)
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+            if (!ws[cellAddress]) ws[cellAddress] = { v: '' };
+            ws[cellAddress].s = {
+                font: { bold: true, size: 16, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "233A8B" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+        }
+        
+        // Find table start row (after header info)
+        const tableStartRow = wsData.length - data.length + 1; // After our custom headers
+        
+        // Style table headers and data
+        for (let row = tableStartRow; row <= range.e.r; row++) {
+            for (let col = range.s.c; col <= range.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                if (!ws[cellAddress]) continue;
+                
+                const cell = ws[cellAddress];
+                const cellValue = cell.v || '';
+                
+                // Determine cell styling based on content
+                let cellStyle = {
+                    alignment: { horizontal: "left", vertical: "center", wrapText: true },
+                    border: {
+                        top: { style: "thin", color: { rgb: "000000" } },
+                        bottom: { style: "thin", color: { rgb: "000000" } },
+                        left: { style: "thin", color: { rgb: "000000" } },
+                        right: { style: "thin", color: { rgb: "000000" } }
+                    }
+                };
+                
+                // Style section headers (A. SUMMARY, B. SRS/PEIS)
+                if (cellValue.includes('A. SUMMARY') || cellValue.includes('B. SRS/PEIS')) {
+                    cellStyle.font = { bold: true, size: 12, color: { rgb: "233A8B" } };
+                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
+                    cellStyle.alignment.horizontal = "left";
+                }
+                // Style subsection headers
+                else if (cellValue.includes('Posting of Job Vacancies') || 
+                         cellValue.includes('Skills Training Assisted') ||
+                         cellValue.includes('Livelihood Program Beneficiaries') ||
+                         cellValue.includes('Career Guidance Seminar') ||
+                         cellValue.includes('Employment Coaching') ||
+                         cellValue.includes('Age:') ||
+                         cellValue.includes('Marital Status:') ||
+                         cellValue.includes('Educational Attainment:') ||
+                         cellValue.includes('Employment Status:') ||
+                         cellValue.includes('Length of Service') ||
+                         cellValue.includes('Job Seekers:') ||
+                         cellValue.includes('No. of Skills Registered')) {
+                    cellStyle.font = { bold: true, size: 11, color: { rgb: "495057" } };
+                    cellStyle.fill = { fgColor: { rgb: "E9ECEF" } };
+                    cellStyle.alignment.horizontal = "left";
+                }
+                // Style table headers (Month headers, Total, Female)
+                else if (row === tableStartRow || row === tableStartRow + 1) {
+                    cellStyle.font = { bold: true, size: 10, color: { rgb: "FFFFFF" } };
+                    cellStyle.fill = { fgColor: { rgb: "233A8B" } };
+                    cellStyle.alignment.horizontal = "center";
+                }
+                // Style activity names
+                else if (col === 0 && cellValue && !cellValue.includes('A.') && !cellValue.includes('B.')) {
+                    cellStyle.font = { bold: false, size: 10 };
+                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
+                    cellStyle.alignment.horizontal = "left";
+                }
+                // Style data cells (numeric values) - check if it's a data column (not activities or programs)
+                else if (col > 0 && col < (1 + monthCount * 2) && cellValue && !isNaN(cellValue) && cellValue !== '') {
+                    cellStyle.font = { bold: true, size: 11, color: { rgb: "233A8B" } };
+                    cellStyle.alignment.horizontal = "center";
+                    cellStyle.fill = { fgColor: { rgb: "F0F8FF" } }; // Light blue background for data
+                }
+                // Style programs/projects column (last column)
+                else if (col === (1 + monthCount * 2)) {
+                    cellStyle.font = { size: 9, color: { rgb: "6C757D" } };
+                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
+                    cellStyle.alignment.horizontal = "left";
+                }
+                // Default styling
+                else {
+                    cellStyle.font = { size: 10 };
+                    cellStyle.alignment.horizontal = "left";
+                }
+                
+                cell.s = cellStyle;
+            }
+        }
+        
+        // Add freeze panes to keep headers visible
+        ws['!freeze'] = { xSplit: 0, ySplit: tableStartRow + 2 };
+        
+        // Add the worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'BTEC Report');
+        
+        // Generate and download the file
+        XLSX.writeFile(wb, filename);
     }
     </script>
 

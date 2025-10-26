@@ -1239,7 +1239,7 @@
     </div>
     <div class="layout">
         <div class="sidebar">
-            <a href="dashboard.php">📊 DASHBOARD</a>
+            <a href="Dashboard.php">📊 DASHBOARD</a>
             <a href="job.php">👥 JOB APPLICANTS</a>
             <a href="#"class="active">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
@@ -1473,7 +1473,7 @@
         </div>
         <div class="barangay-card" data-barangay="Friendship Village Resources (FVR)">
             <img src="../assets/image/fvr logo.png" alt="Friendship Village Resources (FVR)">
-            <div class="barangay-name">Friendship Villaga Resources (FVR)</div>
+            <div class="barangay-name">Friendship Village Resources (FVR)</div>
         </div>
         <div class="barangay-card" data-barangay="Matictic">
             <img src="../assets/image/matictic logo.png" alt="Matictic">
