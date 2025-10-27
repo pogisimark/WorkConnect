@@ -41,9 +41,6 @@ function readAnnouncements() {
     $category = $_GET['category'] ?? '';
     $search = $_GET['search'] ?? '';
     
-    // Debug: Log the request
-    error_log("Employee API: Reading announcements with status=$status, limit=$limit");
-    
     // Build query
     $query = "SELECT a.*, 
                      GROUP_CONCAT(DISTINCT at.tag_name) as tags,
@@ -70,8 +67,8 @@ function readAnnouncements() {
         $types .= "ss";
     }
     
-    // Filter out expired announcements (temporarily disabled for debugging)
-    // $query .= " AND (a.expiration_date IS NULL OR a.expiration_date >= CURDATE())";
+    // Filter out expired announcements
+    $query .= " AND (a.expiration_date IS NULL OR a.expiration_date >= CURDATE())";
     
     $query .= " GROUP BY a.id ORDER BY a.date_posted DESC";
     
@@ -123,9 +120,28 @@ function trackView() {
     // Get IP address
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
     
-    // Check if user already viewed this announcement
-    $check_stmt = $conn->prepare("SELECT id FROM announcement_views WHERE announcement_id = ? AND user_id = ?");
-    $check_stmt->bind_param("ii", $announcement_id, $user_id);
+    // Validate user_id exists in jobseeker table if provided
+    if ($user_id) {
+        $user_check_stmt = $conn->prepare("SELECT user_id FROM jobseeker WHERE user_id = ?");
+        $user_check_stmt->bind_param("i", $user_id);
+        $user_check_stmt->execute();
+        $user_check_result = $user_check_stmt->get_result();
+        
+        if ($user_check_result->num_rows === 0) {
+            // User doesn't exist in jobseeker table, set user_id to null
+            $user_id = null;
+        }
+    }
+    
+    // Check if user already viewed this announcement (by user_id or IP)
+    if ($user_id) {
+        $check_stmt = $conn->prepare("SELECT id FROM announcement_views WHERE announcement_id = ? AND user_id = ?");
+        $check_stmt->bind_param("ii", $announcement_id, $user_id);
+    } else {
+        $check_stmt = $conn->prepare("SELECT id FROM announcement_views WHERE announcement_id = ? AND ip_address = ? AND user_id IS NULL");
+        $check_stmt->bind_param("is", $announcement_id, $ip_address);
+    }
+    
     $check_stmt->execute();
     $check_result = $check_stmt->get_result();
     
@@ -135,7 +151,7 @@ function trackView() {
         $stmt->bind_param("iis", $announcement_id, $user_id, $ip_address);
         
         if (!$stmt->execute()) {
-            throw new Exception('Failed to track view');
+            throw new Exception('Failed to track view: ' . $stmt->error);
         }
     }
     

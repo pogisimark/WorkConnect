@@ -487,15 +487,9 @@ if ($isIframe) {
                 ...currentFilters
             });
             
-            console.log('Loading announcements with params:', params.toString());
-            
             fetch(`announcement_api.php?action=read&${params}`)
-                .then(response => {
-                    console.log('API Response status:', response.status);
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    console.log('API Response data:', data);
                     if (data.success) {
                         announcements = data.announcements.filter(announcement => {
                             // Filter out expired announcements
@@ -508,7 +502,6 @@ if ($isIframe) {
                             }
                             return true;
                         });
-                        console.log('Filtered announcements:', announcements);
                         renderAnnouncements();
                     } else {
                         showError('Error loading announcements: ' + data.error);
@@ -631,20 +624,38 @@ if ($isIframe) {
                 </div>
             `;
             document.getElementById('announcementModal').style.display = 'flex';
+            
+            // Refresh announcements to update view count
+            setTimeout(() => {
+                loadAnnouncements();
+            }, 1000);
         }
         
         // Track view
         function trackView(announcementId) {
+            console.log('Tracking view for announcement:', announcementId);
+            console.log('User ID:', <?php echo $_SESSION['user_id'] ?? 'null'; ?>);
+            console.log('Session data:', <?php echo json_encode($_SESSION); ?>);
+            
             fetch('announcement_api.php?action=track_view', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ 
-                    announcement_id: announcementId,
-                    user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>
+                    announcement_id: announcementId
                 })
-            }).catch(error => console.error('Error tracking view:', error));
+            })
+            .then(response => {
+                console.log('Track view response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Track view response:', data);
+            })
+            .catch(error => {
+                console.error('Error tracking view:', error);
+            });
         }
         
         // Apply filters

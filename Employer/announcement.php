@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Announcements</title>
-    <!-- TinyMCE Self-hosted -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+    <!-- TinyMCE CDN -->
+    <script src="https://cdn.tiny.cloud/1/qbup3ic2zsyyu28gja8d5ky9bianyypyl7t9vs3bfxl60sqy/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -800,7 +800,7 @@
             }
             
             .search-spinner {
-                right: 5px;
+                right: 4px;
                 width: 8px;
                 height: 8px;
                 border-width: 1px;
@@ -845,9 +845,14 @@
                     <h2 style="color:#233a8b; font-size:1.8rem; font-weight:bold; margin:0;">Announcements</h2>
                     <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Manage and create announcements for job seekers</p>
                 </div>
-                <button id="createAnnouncementBtn" style="background:#233a8b; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-weight:600; cursor:pointer; font-size:1rem;">
-                    📢 Create New Announcement
-                </button>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button id="refreshBtn" style="background:#4caf50; color:#fff; border:none; padding:12px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.9rem;">
+                        🔄 Refresh
+                    </button>
+                    <button id="createAnnouncementBtn" style="background:#233a8b; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-weight:600; cursor:pointer; font-size:1rem;">
+                        📢 Create New Announcement
+                    </button>
+                </div>
             </div>
 
             <!-- Stats Overview -->
@@ -1302,6 +1307,25 @@ function loadAnnouncements() {
             searchInput.classList.remove('loading');
             searchSpinner.classList.remove('active');
         });
+}
+
+// Refresh announcements and stats
+function refreshData() {
+    const refreshBtn = document.getElementById('refreshBtn');
+    const originalText = refreshBtn.innerHTML;
+    
+    // Show loading state
+    refreshBtn.innerHTML = '<span class="spinner"></span>Refreshing...';
+    refreshBtn.disabled = true;
+    
+    loadAnnouncements();
+    loadStats();
+    
+    // Reset button after a short delay
+    setTimeout(() => {
+        refreshBtn.innerHTML = originalText;
+        refreshBtn.disabled = false;
+    }, 1000);
 }
 
 // Render announcements table
@@ -2004,7 +2028,7 @@ function previewAnnouncement() {
     document.getElementById('previewModal').style.display = 'flex';
 }
 
-// Initialize TinyMCE (with domain registration fix)
+// Initialize TinyMCE
 function initTinyMCE() {
     tinymce.init({
         selector: '#announcementDescription',
@@ -2024,10 +2048,7 @@ function initTinyMCE() {
             editor.on('change', function () {
                 editor.save();
             });
-        },
-        // Add domain registration bypass
-        branding: false,
-        promotion: false
+        }
     });
 }
 
@@ -2038,8 +2059,12 @@ document.addEventListener('DOMContentLoaded', function() {
     setupFileUpload();
     initTinyMCE();
     
+    // Auto-refresh data every 30 seconds to update view counts
+    setInterval(refreshData, 30000);
+    
     // Event listeners
     document.getElementById('createAnnouncementBtn').addEventListener('click', createAnnouncement);
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
     document.getElementById('closeModalBtn').addEventListener('click', () => document.getElementById('announcementModal').style.display = 'none');
     document.getElementById('cancelBtn').addEventListener('click', () => document.getElementById('announcementModal').style.display = 'none');
     document.getElementById('previewBtn').addEventListener('click', previewAnnouncement);

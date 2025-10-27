@@ -1,8 +1,18 @@
 <?php
-include 'session_protect.php';
+session_start();
 include 'db.php';
 
 header('Content-Type: application/json');
+
+// Check for valid session (either admin or employee)
+$isAdmin = isset($_SESSION['username']); // Admin session
+$isEmployee = isset($_SESSION['user_id']); // Employee session
+
+if (!$isAdmin && !$isEmployee) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized access']);
+    exit;
+}
 
 // Get the request method and action
 $method = $_SERVER['REQUEST_METHOD'];
@@ -91,7 +101,12 @@ try {
 }
 
 function createAnnouncement() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -337,7 +352,12 @@ function getSingleAnnouncement() {
 }
 
 function updateAnnouncement() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -410,7 +430,12 @@ function updateAnnouncement() {
 }
 
 function deleteAnnouncement() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $input = json_decode(file_get_contents('php://input'), true);
     $id = intval($input['id'] ?? 0);
@@ -458,7 +483,12 @@ function deleteAnnouncement() {
 }
 
 function changeStatus() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -506,7 +536,12 @@ function changeStatus() {
 }
 
 function uploadFile() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $announcement_id = intval($_POST['announcement_id'] ?? 0);
     
@@ -569,7 +604,12 @@ function uploadFile() {
 }
 
 function deleteFile() {
-    global $conn;
+    global $conn, $isAdmin;
+    
+    // Check admin privileges
+    if (!$isAdmin) {
+        throw new Exception('Admin privileges required');
+    }
     
     $input = json_decode(file_get_contents('php://input'), true);
     $file_id = intval($input['file_id'] ?? 0);
@@ -629,7 +669,7 @@ function trackView() {
     $stmt->bind_param("iis", $announcement_id, $user_id, $ip_address);
     
     if (!$stmt->execute()) {
-        throw new Exception('Failed to track view');
+        throw new Exception('Failed to track view: ' . $stmt->error);
     }
     
     echo json_encode([
