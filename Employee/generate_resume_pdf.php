@@ -58,6 +58,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
+// Handle both GET and POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     error_log("Processing POST request");
     
@@ -73,13 +74,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     $resumeId = (int)($input['resume_id'] ?? 0);
-    error_log("Resume ID extracted: " . $resumeId);
+    error_log("Resume ID extracted from POST: " . $resumeId);
     
-    if ($resumeId <= 0) {
-        error_log("Invalid resume ID: " . $resumeId);
-        http_response_code(400);
-        exit('Invalid resume ID');
-    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    error_log("Processing GET request");
+    
+    $resumeId = (int)($_GET['resume_id'] ?? 0);
+    error_log("Resume ID extracted from GET: " . $resumeId);
+    
+} else {
+    error_log("Invalid request method: " . $_SERVER['REQUEST_METHOD']);
+    http_response_code(405);
+    exit('Method not allowed');
+}
+
+if ($resumeId <= 0) {
+    error_log("Invalid resume ID: " . $resumeId);
+    http_response_code(400);
+    exit('Invalid resume ID');
+}
     
     try {
         // Get main resume data

@@ -3211,49 +3211,11 @@ $conn->close();
                 }
             });
             
-            // Generate PDF
-            fetch('generate_resume_pdf.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ resume_id: resumeId })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                } else {
-                    throw new Error('Failed to generate PDF');
-                }
-            })
-            .then(blob => {
-                // Create download link with proper filename
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = resumeName + '.pdf'; // Use the actual resume name
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                
-                // Clean up
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                }, 100);
-                
-                // Close the loading indicator
-                Swal.close();
-            })
-            .catch(error => {
-                console.error('Error generating PDF:', error);
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to generate PDF. Please try again.',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            });
+            // Generate PDF using direct download approach
+            window.open('generate_resume_pdf.php?resume_id=' + resumeId, '_blank');
+            
+            // Close the loading indicator
+            Swal.close();
         }
         
         function deleteResume(resumeId) {
