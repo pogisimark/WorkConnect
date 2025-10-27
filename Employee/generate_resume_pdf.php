@@ -228,10 +228,7 @@ $pdf->writeHTML($html, true, false, true, false, '');
     } catch (Exception $e) {
         http_response_code(500);
         exit('Error generating PDF: ' . $e->getMessage());
-} else {
-    http_response_code(405);
-    exit('Method not allowed');
-}
+    }
 
 function generateResumeHTML($resume) {
     $profileImage = $resume['profile_image'];
