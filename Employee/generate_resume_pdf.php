@@ -93,8 +93,8 @@ if ($resumeId <= 0) {
     http_response_code(400);
     exit('Invalid resume ID');
 }
-    
-    try {
+
+try {
         // Get main resume data
         $stmt = $conn->prepare("SELECT * FROM resumes_new WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ii", $resumeId, $userId);
@@ -228,7 +228,6 @@ $pdf->writeHTML($html, true, false, true, false, '');
     } catch (Exception $e) {
         http_response_code(500);
         exit('Error generating PDF: ' . $e->getMessage());
-    }
 } else {
     http_response_code(405);
     exit('Method not allowed');
