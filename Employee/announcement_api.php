@@ -70,8 +70,8 @@ function readAnnouncements() {
         $types .= "ss";
     }
     
-    // Filter out expired announcements
-    $query .= " AND (a.expiration_date IS NULL OR a.expiration_date >= CURDATE())";
+    // Filter out expired announcements (temporarily disabled for debugging)
+    // $query .= " AND (a.expiration_date IS NULL OR a.expiration_date >= CURDATE())";
     
     $query .= " GROUP BY a.id ORDER BY a.date_posted DESC";
     
