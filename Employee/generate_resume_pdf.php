@@ -1,8 +1,41 @@
 <?php
 // Generate Resume PDF - NEW VERSION WITH SPECIFIC COLUMNS
-require_once 'session_check.php';
-require_once 'db.php';
-require_once '../vendor/autoload.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors to client
+ini_set('log_errors', 1);     // Log errors to error log
+
+// Log the start of PDF generation
+error_log("=== PDF GENERATION START ===");
+error_log("Request method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+error_log("User Agent: " . ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'));
+
+try {
+    require_once 'session_check.php';
+    error_log("Session check loaded successfully");
+} catch (Exception $e) {
+    error_log("Session check failed: " . $e->getMessage());
+    http_response_code(500);
+    exit('Session check failed');
+}
+
+try {
+    require_once 'db.php';
+    error_log("Database connection loaded successfully");
+} catch (Exception $e) {
+    error_log("Database connection failed: " . $e->getMessage());
+    http_response_code(500);
+    exit('Database connection failed');
+}
+
+try {
+    require_once '../vendor/autoload.php';
+    error_log("Vendor autoload loaded successfully");
+} catch (Exception $e) {
+    error_log("Vendor autoload failed: " . $e->getMessage());
+    http_response_code(500);
+    exit('Vendor autoload failed');
+}
 
 // Define TCPDF constants if not already defined
 if (!defined('PDF_PAGE_ORIENTATION')) {
@@ -15,6 +48,8 @@ if (!defined('PDF_PAGE_FORMAT')) {
     define('PDF_PAGE_FORMAT', 'A4');
 }
 
+error_log("TCPDF constants defined successfully");
+
 // Ensure user is authenticated
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -24,10 +59,24 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    error_log("Processing POST request");
+    
+    // Get JSON input with error handling
+    $rawInput = file_get_contents('php://input');
+    error_log("Raw input received: " . $rawInput);
+    
+    $input = json_decode($rawInput, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log("JSON decode error: " . json_last_error_msg());
+        http_response_code(400);
+        exit('Invalid JSON input: ' . json_last_error_msg());
+    }
+    
     $resumeId = (int)($input['resume_id'] ?? 0);
+    error_log("Resume ID extracted: " . $resumeId);
     
     if ($resumeId <= 0) {
+        error_log("Invalid resume ID: " . $resumeId);
         http_response_code(400);
         exit('Invalid resume ID');
     }
