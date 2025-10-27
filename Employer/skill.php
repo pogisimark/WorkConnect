@@ -2327,14 +2327,11 @@ function fetchBarangayTable(barangay) {
             let count = 0;
             if (data.success && data.data.length) {
                 data.data.forEach((row, idx) => {
-                    // Debug: Log survey_date values
-                    console.log('Row', idx, 'survey_date:', row.survey_date, 'type:', typeof row.survey_date);
-                    
                     // Display survey_date if it exists and is not null
                     let surveyDateVal = (row.survey_date && row.survey_date !== '0000-00-00' && row.survey_date !== null) ? row.survey_date : '';
                     html += `<tr data-id="${row.id}">
                         <td>${idx+1}</td>
-                        <td><input type="date" value="${surveyDateVal}" readonly class="clean-date-input" /></td>
+                        <td><input type="date" value="${surveyDateVal}" readonly /></td>
                         <td><input type="text" value="${row.printed_name||''}" readonly /></td>
                         <td><input type="checkbox" ${row.ftjs==='yes'?'checked':''} disabled /></td>
                         <td><input type="checkbox" ${row.ftjs==='no'?'checked':''} disabled /></td>
