@@ -15,12 +15,12 @@ try {
         SUM(CASE WHEN ftjs = 'yes' THEN 1 ELSE 0 END) as first_time_jobseekers,
         SUM(CASE WHEN covid = 'yes' THEN 1 ELSE 0 END) as covid_displaced,
         SUM(CASE WHEN ue = 'yes' THEN 1 ELSE 0 END) as unemployed,
-        SUM(CASE WHEN we = 'yes' THEN 1 ELSE 0 END) as wage_employed,
-        SUM(CASE WHEN se = 'yes' THEN 1 ELSE 0 END) as self_employed,
-        SUM(CASE WHEN education = 'Elementary' THEN 1 ELSE 0 END) as elementary,
-        SUM(CASE WHEN education = 'High School' THEN 1 ELSE 0 END) as high_school,
-        SUM(CASE WHEN education = 'College' THEN 1 ELSE 0 END) as college,
-        SUM(CASE WHEN education = 'Vocational' THEN 1 ELSE 0 END) as vocational
+        SUM(CASE WHEN we_position IS NOT NULL AND we_position != '' THEN 1 ELSE 0 END) as wage_employed,
+        SUM(CASE WHEN se_business IS NOT NULL AND se_business != '' THEN 1 ELSE 0 END) as self_employed,
+        SUM(CASE WHEN education LIKE '%Elementary%' THEN 1 ELSE 0 END) as elementary,
+        SUM(CASE WHEN education LIKE '%High School%' THEN 1 ELSE 0 END) as high_school,
+        SUM(CASE WHEN education LIKE '%College%' THEN 1 ELSE 0 END) as college,
+        SUM(CASE WHEN education LIKE '%Vocational%' THEN 1 ELSE 0 END) as vocational
     FROM skill_registry";
     
     $result = $conn->query($query);
