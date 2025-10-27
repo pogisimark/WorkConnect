@@ -612,11 +612,13 @@
     <div class="layout">
         <div class="sidebar">
             <a href="Dashboard.php">📊 DASHBOARD</a>
-            <a href="job.php">👥 JOB APPLICANTS</a>
+            <a href="job_postings.php">💼 JOB POSTINGS</a>
+            <a href="job.php">👥 JOBSEEKERS</a>
             <a href="skill.php">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
             <a href="#" class="active">📊 Analytics</a>
+            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
             <a href="logout.php" class="logout">🚪 Logout</a>
         </div>
         <div class="main-content">
@@ -762,7 +764,7 @@
                 <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; border-radius: 16px; padding: 24px; text-align: center;">
                     <div style="font-size: 3rem; margin-bottom: 8px;">🎯</div>
                     <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 8px;" id="successRate">0%</div>
-                    <div style="font-size: 1rem; opacity: 0.9;">Success Rate</div>
+                    <div style="font-size: 1rem; opacity: 0.9;">Success Referral Rate</div>
                 </div>
 
                 <!-- Average Processing Time -->

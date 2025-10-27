@@ -552,11 +552,13 @@
     <div class="layout">
         <div class="sidebar">
             <a href="#" class="active">📊 DASHBOARD</a>
-            <a href="job.php">👥 JOB APPLICANTS</a>
+            <a href="job_postings.php">💼 JOB POSTINGS</a>
+            <a href="job.php">👥 JOBSEEKERS</a>
             <a href="skill.php">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
             <a href="analytics.php">📊 Analytics</a>
+            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
             <a href="logout.php" class="logout">🚪 Logout</a>
         </div>
         <div class="main-content">
@@ -579,8 +581,8 @@
                         <div style="background:#233a8b;color:white;padding:6px 12px;border-radius:20px;font-size:0.85rem;font-weight:600;">REGISTERED</div>
                     </div>
                     <div id="jobseekersCount" style="font-size:2.8rem;font-weight:bold;color:#233a8b;margin-bottom:8px;">...</div>
-                    <div style="font-size:1.1rem;color:#555;font-weight:500;">Total Job Applicants</div>
-                    <div style="font-size:0.9rem;color:#888;margin-top:4px;">Active Job Applicants in the system</div>
+                    <div style="font-size:1.1rem;color:#555;font-weight:500;">Total Job Seekers</div>
+                    <div style="font-size:0.9rem;color:#888;margin-top:4px;">Active Job Seekers in the system</div>
                 </div>
 
                 <div style="background:linear-gradient(135deg,#e8f5e8,#f0f8f0);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(34,139,34,0.08);border-left:4px solid #22c55e;">
@@ -625,7 +627,7 @@
                         <a href="job.php" class="quick-action-link" style="display:flex;align-items:center;gap:12px;padding:16px;background:white;border-radius:12px;text-decoration:none;color:#333;box-shadow:0 2px 8px rgba(0,0,0,0.05);transition:all 0.3s ease;border-left:4px solid #233a8b;cursor:pointer;">
                             <div class="quick-action-icon" style="font-size:1.5rem;transition:transform 0.3s ease;">👥</div>
                             <div>
-                                <div class="quick-action-title" style="font-weight:600;color:#233a8b;transition:color 0.3s ease;">Review Job Applicants</div>
+                                <div class="quick-action-title" style="font-weight:600;color:#233a8b;transition:color 0.3s ease;">Review Job Seekers</div>
                                 <div class="quick-action-desc" style="font-size:0.9rem;color:#666;transition:color 0.3s ease;">Manage pending applications</div>
                             </div>
                         </a>

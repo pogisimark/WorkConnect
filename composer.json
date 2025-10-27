@@ -1,9 +1,10 @@
 {
     "name": "workconnect/email-system",
-    "description": "WorkConnect Email System with PHPMailer",
+    "description": "WorkConnect Email System with PHPMailer and Resume Builder",
     "type": "project",
     "require": {
-        "phpmailer/phpmailer": "^6.8"
+        "phpmailer/phpmailer": "^6.8",
+        "tecnickcom/tcpdf": "^6.6"
     },
     "config": {
         "optimize-autoloader": true

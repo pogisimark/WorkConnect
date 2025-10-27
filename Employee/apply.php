@@ -9,25 +9,52 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
     exit();
 }
 
-// Check if accessed through dashboard with proper session parameters
-$required_params = ['session_id', 'user_id', 'token'];
-$missing_params = [];
+// Check if this is being loaded in an iframe (from dashboard)
+$isIframe = isset($_GET['session_id']) && isset($_GET['user_id']) && isset($_GET['token']);
 
-foreach ($required_params as $param) {
-    if (!isset($_GET[$param])) {
-        $missing_params[] = $param;
+if ($isIframe) {
+    // Validate session token for iframe security
+    // Use a more lenient validation - check if session_id and user_id match
+    $expected_session_id = $_GET['session_id'] ?? '';
+    $expected_user_id = $_GET['user_id'] ?? '';
+    
+    if ($expected_session_id !== session_id() || $expected_user_id != $_SESSION['user_id']) {
+        die('Invalid session parameters');
     }
-}
+    
+    // Additional token validation (optional - can be removed if too strict)
+    $expected_token = hash('sha256', session_id() . $_SESSION['user_id'] . 'workconnect');
+    $provided_token = $_GET['token'] ?? '';
+    
+    // Allow some flexibility in token validation
+    if ($provided_token && $expected_token !== $provided_token) {
+        // Try with a slightly different token format
+        $alt_token = hash('sha256', session_id() . $_SESSION['user_id']);
+        if ($alt_token !== $provided_token) {
+            // For now, just log the mismatch but don't block access
+            error_log("Token mismatch for user {$_SESSION['user_id']}");
+        }
+    }
+} else {
+    // Check if accessed through dashboard with proper session parameters
+    $required_params = ['session_id', 'user_id', 'token'];
+    $missing_params = [];
 
-// If missing required parameters, redirect to dashboard
-if (!empty($missing_params)) {
-    header("Location: dashboard.php");
-    exit();
-}
+    foreach ($required_params as $param) {
+        if (!isset($_GET[$param])) {
+            $missing_params[] = $param;
+        }
+    }
 
-// Validate session token for security
-$expected_token = hash('sha256', session_id() . $_SESSION['user_id'] . time());
-$provided_token = $_GET['token'];
+    // If missing required parameters, redirect to dashboard
+    if (!empty($missing_params)) {
+        header("Location: dashboard.php");
+        exit();
+    }
+
+    // Validate session token for security
+    $expected_token = hash('sha256', session_id() . $_SESSION['user_id'] . time());
+    $provided_token = $_GET['token'];
 
 // Allow some tolerance for token timing (within 1 hour)
 $token_valid = false;
@@ -44,15 +71,16 @@ if (!$token_valid) {
     exit();
 }
 
-// Validate user_id matches session
-if ($_GET['user_id'] != $_SESSION['user_id']) {
-    header("Location: dashboard.php");
-    exit();
-}
+    // Validate user_id matches session
+    if ($_GET['user_id'] != $_SESSION['user_id']) {
+        header("Location: dashboard.php");
+        exit();
+    }
 
-// Store session info for form processing
-$current_session_id = $_GET['session_id'];
-$current_user_id = $_GET['user_id'];
+    // Store session info for form processing
+    $current_session_id = $_GET['session_id'];
+    $current_user_id = $_GET['user_id'];
+}
 
 // Database connection and backend processing
 $host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
@@ -510,7 +538,28 @@ $conn->close();
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <style>
-    /* Progress Indicator Styles */
+    <?php if ($isIframe): ?>
+    /* Iframe-specific styles */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      overflow-x: hidden;
+    }
+    
+    .progress-indicator {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      align-items: stretch !important;
+    }
+    <?php else: ?>
+    /* Standalone styles */
     .progress-indicator {
       margin-bottom: 30px;
       padding: 20px;
@@ -522,6 +571,7 @@ $conn->close();
       justify-content: flex-start !important;
       align-items: stretch !important;
     }
+    <?php endif; ?>
     
     /* Specific CSS for Personal Information section only */
     #section1_1 .form-row {

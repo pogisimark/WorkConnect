@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
 }
 
 // Generate unique session token for iframe security
-$session_token = hash('sha256', session_id() . $_SESSION['user_id'] . time());
+$session_token = hash('sha256', session_id() . $_SESSION['user_id'] . 'workconnect');
 $_SESSION['iframe_token'] = $session_token;
 
 // Get user applications
@@ -49,7 +49,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - WorkConnect</title>
-    <link rel="stylesheet" href="../assets/css/Employee-dashboard.css">
+    <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         /* Spinner Animation */
@@ -585,9 +585,10 @@ $conn->close();
         }
         
         .mobile-nav-item[data-section="dashboard"]:before { content: '📊'; }
-        .mobile-nav-item[data-section="apply"]:before { content: '📝'; }
+        .mobile-nav-item[data-section="jobs"]:before { content: '🎯'; }
+        .mobile-nav-item[data-section="resume"]:before { content: '📄'; }
+        .mobile-nav-item[data-section="analytics"]:before { content: '📈'; }
         .mobile-nav-item[data-section="profile"]:before { content: '👤'; }
-        .mobile-nav-item[data-section="logout"]:before { content: '🚪'; }
         
         .mobile-nav-item.active {
             background: #1a3876;
@@ -677,6 +678,78 @@ $conn->close();
         .profile-item p {
             font-size: 1rem;
             margin: 0;
+        }
+        
+        /* New Features Section Styles */
+        .new-features-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #233a8b;
+        }
+        
+        .feature-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        
+        .feature-card p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .feature-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ffc107;
+            color: #333;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 5px;
         }
         
         .section-title {
@@ -1294,6 +1367,109 @@ $conn->close();
         height: auto; /* Allow iframe to expand to its content */
     }
     
+    /* Recommended Jobs Container Styling */
+    #recommended-jobs-container {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    #recommended-jobs-iframe {
+        border: none;
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-height: 200vh; /* Ensure iframe has enough height for content */
+        height: auto; /* Fixed height to prevent scrollbar issues */
+        
+        border-radius: 8px;
+    }
+    
+    /* Resume Builder Container Styling */
+    #resume-container {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    #resume-iframe {
+        border: none;
+        display: block;
+        width: 150%;
+        max-width: 100%;
+        min-height: 150vh; /* Ensure iframe has enough height for content */
+        height: auto; /* Allow iframe to expand to its content */
+        border-radius: 8px;
+    }
+    
+    /* Announcements Container Styling */
+    #announcements-container {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    #announcements-iframe {
+        border: none;
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh; /* Ensure iframe has enough height for content */
+        height: auto; /* Allow iframe to expand to its content */
+        border-radius: 8px;
+    }
+    
+    /* Mobile responsive adjustments for recommended jobs */
+    @media (max-width: 768px) {
+        #recommended-jobs-container {
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        #recommended-jobs-iframe {
+            min-height: 100vh;
+            height: auto;
+            border-radius: 0;
+        }
+        
+        #resume-container {
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        #resume-iframe {
+            min-height: 100vh;
+            height: auto;
+            border-radius: 0;
+        }
+        
+        #announcements-container {
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        #announcements-iframe {
+            min-height: 100vh;
+            height: auto;
+            border-radius: 0;
+        }
+    }
+    
     </style>
 </head>
 <body>
@@ -1344,7 +1520,10 @@ $conn->close();
         <div class="sidebar desktop-nav">
             <ul class="sidebar-nav">
                 <li><a href="#dashboard" class="active" onclick="showSection('dashboard')">Dashboard</a></li>
-                <li><a href="#apply" onclick="showSection('apply')">Apply for Job</a></li>
+                <li><a href="#recommended_jobs" onclick="showSection('recommended_jobs')">Recommended Jobs <span class="badge" id="jobBadge" style="display:none;">New</span></a></li>
+                <li><a href="#resume" onclick="showSection('resume')">Resume Builder</a></li>
+                <li><a href="#apply" onclick="showSection('apply')">NSRP Registration</a></li>
+                <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
                 <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showLogoutModal()">Logout</a></li>
             </ul>
@@ -1399,6 +1578,9 @@ $conn->close();
                     </div>
                 </div>
 
+                <!-- New Features Summary -->
+                
+
                 <div class="profile-summary-section">
                     <h2 class="section-title">Profile Summary</h2>
                     <div class="profile-summary">
@@ -1416,11 +1598,49 @@ $conn->close();
                         </div>
                     </div>
                 </div>
+
+                <!-- Latest Announcements Section -->
+                <div class="announcements-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 class="section-title">Latest Announcements</h2>
+                        <a href="#" onclick="showSection('announcements')" style="color: #233a8b; text-decoration: none; font-weight: 600;">View All →</a>
+                    </div>
+                    <div id="latestAnnouncements" style="display: grid; gap: 16px;">
+                        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; color: #666;">
+                            <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                            Loading announcements...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommended Jobs Section -->
+            <div id="recommended_jobs-section" class="content-section" style="display: none;"> 
+                <h2 class="section-title">Recommended Jobs</h2>
+                <div id="recommended-jobs-container">
+                    <div id="loading-indicator-jobs" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin: 10px 0 0 0; color: #666;">Loading recommended jobs...</p>
+                    </div>
+                    <iframe id="recommended-jobs-iframe" src="recommended_jobs.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes"></iframe>
+                </div>
+            </div>
+
+            <!-- Resume Builder Section -->
+            <div id="resume-section" class="content-section" style="display: none;"> 
+                <h2 class="section-title">Resume Builder</h2>
+                <div id="resume-container">
+                    <div id="loading-indicator-resume" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin: 10px 0 0 0; color: #666;">Loading resume builder...</p>
+                    </div>
+                    <iframe id="resume-iframe" src="resume_builder.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes"></iframe>
+                </div>
             </div>
 
             <!-- Apply Section -->
             <div id="apply-section" class="content-section" style="display: none;"> 
-                <h2 class="section-title">Job Application Form</h2>
+                <h2 class="section-title">Jobseeker Registration Form</h2>
                 <div id="apply-container">
                     <div id="loading-indicator" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
                         <div class="loading-spinner"></div>
@@ -1479,15 +1699,28 @@ $conn->close();
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- Announcements Section -->
+            <div id="announcements-section" class="content-section" style="display: none;">
+                <h2 class="section-title">Announcements</h2>
+                <div id="announcements-container">
+                    <div id="loading-indicator-announcements" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin: 10px 0 0 0; color: #666;">Loading announcements...</p>
+                    </div>
+                    <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto; min-height: 100vh;"></iframe>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Mobile Bottom Navigation - Outside dashboard container -->
     <div class="mobile-bottom-nav">
         <div class="mobile-nav-item active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard</div>
-        <div class="mobile-nav-item" data-section="apply" onclick="showSection('apply')">Apply</div>
+        <div class="mobile-nav-item" data-section="recommended_jobs" onclick="showSection('recommended_jobs')">Jobs</div>
+        <div class="mobile-nav-item" data-section="resume" onclick="showSection('resume')">Resume</div>
+        <div class="mobile-nav-item" data-section="announcements" onclick="showSection('announcements')">📢</div>
         <div class="mobile-nav-item" data-section="profile" onclick="showSection('profile')">Profile</div>
-        <div class="mobile-nav-item" data-section="logout" onclick="showLogoutModal()">Logout</div>
     </div>
 
     <script>
@@ -1495,7 +1728,7 @@ $conn->close();
         // Handle URL hash changes (for direct links)
         function handleHashChange() {
             const hash = window.location.hash.substring(1); // Remove the #
-            if (hash && ['dashboard', 'apply', 'profile'].includes(hash)) {
+            if (hash && ['dashboard', 'recommended_jobs', 'resume', 'apply', 'announcements', 'profile'].includes(hash)) {
                 showSection(hash);
             }
         }
@@ -1519,6 +1752,79 @@ $conn->close();
             }
         }
         
+        // Function to hide recommended jobs loading indicator with timer
+        function hideRecommendedJobsLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loading-indicator-jobs');
+            if (loadingIndicator) {
+                // Hide after 2 seconds to ensure iframe content is loaded
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+        
+        // Function to hide resume loading indicator with timer
+        function hideResumeLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loading-indicator-resume');
+            if (loadingIndicator) {
+                // Hide after 2 seconds to ensure iframe content is loaded
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+        
+        // Function to hide announcements loading indicator with timer
+        function hideAnnouncementsLoadingIndicator() {
+            const loadingIndicator = document.getElementById('loading-indicator-announcements');
+            if (loadingIndicator) {
+                // Hide after 2 seconds to ensure iframe content is loaded
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+        
+        // Function to handle recommended jobs iframe loading
+        function handleRecommendedJobsIframeLoad() {
+            const iframe = document.getElementById('recommended-jobs-iframe');
+            const loadingIndicator = document.getElementById('loading-indicator-jobs');
+            
+            if (iframe && loadingIndicator) {
+                iframe.onload = function() {
+                    // Hide loading indicator when iframe loads
+                    setTimeout(() => {
+                        loadingIndicator.style.display = 'none';
+                    }, 500);
+                };
+                
+                // Handle iframe load error
+                iframe.onerror = function() {
+                    loadingIndicator.innerHTML = '<p style="color: #f44336;">Error loading recommended jobs. Please try again.</p>';
+                };
+            }
+        }
+        
+        // Function to handle resume builder iframe loading
+        function handleResumeIframeLoad() {
+            const iframe = document.getElementById('resume-iframe');
+            const loadingIndicator = document.getElementById('loading-indicator-resume');
+            
+            if (iframe && loadingIndicator) {
+                iframe.onload = function() {
+                    // Hide loading indicator when iframe loads
+                    setTimeout(() => {
+                        loadingIndicator.style.display = 'none';
+                    }, 500);
+                };
+                
+                // Handle iframe load error
+                iframe.onerror = function() {
+                    loadingIndicator.innerHTML = '<p style="color: #f44336;">Error loading resume builder. Please try again.</p>';
+                };
+            }
+        }
+        
         // Auto-hide loading indicator when apply section is shown
         function showSection(section) {
             // Update URL hash
@@ -1537,6 +1843,21 @@ $conn->close();
                 // If showing apply section, hide loading indicator after delay
                 if (section === 'apply') {
                     hideLoadingIndicator();
+                }
+                
+                // If showing recommended jobs section, hide loading indicator after delay
+                if (section === 'recommended_jobs') {
+                    hideRecommendedJobsLoadingIndicator();
+                }
+                
+                // If showing resume section, hide loading indicator after delay
+                if (section === 'resume') {
+                    hideResumeLoadingIndicator();
+                }
+                
+                // If showing announcements section, hide loading indicator after delay
+                if (section === 'announcements') {
+                    hideAnnouncementsLoadingIndicator();
                 }
             }
             
@@ -1720,6 +2041,12 @@ $conn->close();
             
             // Enhance mobile iframe when page loads
             enhanceMobileIframe();
+            
+            // Initialize recommended jobs iframe handling
+            handleRecommendedJobsIframeLoad();
+            
+            // Initialize resume builder iframe handling
+            handleResumeIframeLoad();
         });
         
         // Close dropdowns when clicking outside
@@ -2255,6 +2582,79 @@ $conn->close();
                 }
             };
         }
+
+        // Load latest announcements
+        function loadLatestAnnouncements() {
+            fetch('announcement_api.php?action=read&status=published&limit=3')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const announcements = data.announcements.filter(announcement => {
+                            // Filter out expired announcements
+                            if (announcement.expiration_date) {
+                                const expirationDate = new Date(announcement.expiration_date);
+                                const today = new Date();
+                                if (expirationDate < today) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }).slice(0, 3); // Show only 3 latest
+
+                        const container = document.getElementById('latestAnnouncements');
+                        
+                        if (announcements.length === 0) {
+                            container.innerHTML = `
+                                <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; color: #666;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">📢</div>
+                                    <p style="margin: 0;">No announcements available</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        container.innerHTML = announcements.map(announcement => `
+                            <div style="background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 16px; border-left: 4px solid #233a8b;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                    <h4 style="margin: 0; color: #233a8b; font-size: 1rem;">${announcement.title}</h4>
+                                    <span style="background: #e3eaff; color: #233a8b; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: 600;">
+                                        ${announcement.category}
+                                    </span>
+                                </div>
+                                <p style="margin: 0 0 8px 0; color: #666; font-size: 0.9rem; line-height: 1.4;">
+                                    ${announcement.description.length > 100 ? 
+                                        announcement.description.substring(0, 100) + '...' : 
+                                        announcement.description
+                                    }
+                                </p>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <small style="color: #999;">${new Date(announcement.date_posted).toLocaleDateString()}</small>
+                                    <a href="#" onclick="showSection('announcements')" style="color: #233a8b; text-decoration: none; font-size: 0.8rem; font-weight: 600;">Read More →</a>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('latestAnnouncements').innerHTML = `
+                            <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; color: #666;">
+                                <p style="margin: 0;">Unable to load announcements</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading announcements:', error);
+                    document.getElementById('latestAnnouncements').innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; color: #666;">
+                            <p style="margin: 0;">Unable to load announcements</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Load announcements when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLatestAnnouncements();
+        });
     </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkConnect Job Applicants</title>
+    <title>WorkConnect Jobseekers</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
     body {
@@ -930,18 +930,20 @@
     <div class="layout">
         <div class="sidebar">
             <a href="Dashboard.php">📊 DASHBOARD</a>
-            <a href="#" class="active">👥 JOB APPLICANTS</a>
+            <a href="job_postings.php">💼 JOB POSTINGS</a>
+            <a href="#" class="active">👥 JOBSEEKERS</a>
             <a href="skill.php">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
             <a href="analytics.php">📊 Analytics</a>
+            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
             <a href="logout.php" class="logout">🚪 Logout</a>
         </div>
         <div class="main-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e3f2fd;">
                 <div style="display: flex; align-items: center; gap: 20px;">
                     <div>
-                        <h2 id="pageTitle" style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">Pending Job Applicants</h2>
+                        <h2 id="pageTitle" style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">Pending Jobseekers</h2>
                         <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Review and manage jobseeker applications</p>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px;" class="filter-container" id="filterContainer">
@@ -1418,13 +1420,13 @@
             const title = document.getElementById('pageTitle');
             switch(tab) {
                 case 'all':
-                    title.textContent = 'Pending Job Applicants';
+                    title.textContent = 'Pending Jobseekers';
                     break;
                 case 'accepted':
-                    title.textContent = 'Accepted Job Applicants';
+                    title.textContent = 'Accepted Jobseekers';
                     break;
                 case 'rejected':
-                    title.textContent = 'Rejected Job Applicants';
+                    title.textContent = 'Rejected Jobseekers';
                     break;
             }
             
@@ -1478,32 +1480,57 @@
             // Get all unique skills from all jobseekers with case-insensitive handling
             const skills = new Map(); // Use Map to store original case and check for duplicates
             
+            console.log('Populating skills filter with', allJobseekers.length, 'jobseekers');
+            
+            // Debug: Log the first jobseeker's data structure to see what skill fields exist
+            if (allJobseekers.length > 0) {
+                console.log('First jobseeker data:', allJobseekers[0]);
+                console.log('Skill fields in first jobseeker:', Object.keys(allJobseekers[0]).filter(key => key.startsWith('skill_')));
+            }
+            
             allJobseekers.forEach(jobseeker => {
                 // Add predefined skills if they exist
                 const predefinedSkills = [
-                    'Auto mechanic', 'Electrician', 'Photography', 'Beautician', 'Embroidery',
-                    'Plumbing', 'Carpentry work', 'Gardening', 'Sewing dresses', 'Computer literature',
-                    'Masonry', 'Stenography', 'Domestic chores', 'Painter/Artist', 'Tailoring',
-                    'Driver', 'Painting job'
+                    { name: 'Auto mechanic', field: 'skill_auto_mechanic' },
+                    { name: 'Electrician', field: 'skill_electrician' },
+                    { name: 'Photography', field: 'skill_photography' },
+                    { name: 'Beautician', field: 'skill_beautician' },
+                    { name: 'Embroidery', field: 'skill_embroidery' },
+                    { name: 'Plumbing', field: 'skill_plumbing' },
+                    { name: 'Carpentry work', field: 'skill_carpentry' },
+                    { name: 'Gardening', field: 'skill_gardening' },
+                    { name: 'Sewing dresses', field: 'skill_sewing' },
+                    { name: 'Computer literature', field: 'skill_computer' },
+                    { name: 'Masonry', field: 'skill_masonry' },
+                    { name: 'Stenography', field: 'skill_stenography' },
+                    { name: 'Domestic chores', field: 'skill_domestic' },
+                    { name: 'Painter/Artist', field: 'skill_painter' },
+                    { name: 'Tailoring', field: 'skill_tailoring' },
+                    { name: 'Driver', field: 'skill_driver' },
+                    { name: 'Painting job', field: 'skill_painting' }
                 ];
                 
                 predefinedSkills.forEach(skill => {
-                    if (jobseeker['skill_' + skill.toLowerCase().replace(/[^a-z0-9]/g, '_')] && 
-                        jobseeker['skill_' + skill.toLowerCase().replace(/[^a-z0-9]/g, '_')] === 1) {
-                        const lowerSkill = skill.toLowerCase();
+                    console.log(`Checking skill "${skill.name}" with field "${skill.field}" for jobseeker ${jobseeker.id}:`, jobseeker[skill.field]);
+                    if (jobseeker[skill.field] && (jobseeker[skill.field] === 1 || jobseeker[skill.field] === '1')) {
+                        const lowerSkill = skill.name.toLowerCase();
                         if (!skills.has(lowerSkill)) {
-                            skills.set(lowerSkill, skill); // Store original case
+                            skills.set(lowerSkill, skill.name); // Store original case
+                            console.log('Found predefined skill:', skill.name, 'for jobseeker', jobseeker.id);
                         }
                     }
                 });
                 
                 // Add skills from the "others" field
                 if (jobseeker.skill_others && jobseeker.skill_others !== 'n/a' && jobseeker.skill_others.trim() !== '') {
+                    console.log('Processing skill_others for jobseeker', jobseeker.id, ':', jobseeker.skill_others);
                     const othersSkills = parseOthersSkills(jobseeker.skill_others);
+                    console.log('Parsed others skills:', othersSkills);
                     othersSkills.forEach(skill => {
                         const lowerSkill = skill.toLowerCase();
                         if (!skills.has(lowerSkill)) {
                             skills.set(lowerSkill, skill); // Store original case
+                            console.log('Found other skill:', skill, 'for jobseeker', jobseeker.id);
                         }
                     });
                 }
@@ -1514,6 +1541,8 @@
             
             // Add unique skills to dropdown (sorted by original case)
             const sortedSkills = Array.from(skills.values()).sort();
+            console.log('Found skills:', sortedSkills);
+            
             sortedSkills.forEach(skill => {
                 const option = document.createElement('option');
                 option.value = skill;
@@ -1584,17 +1613,33 @@
             // Apply skills filter
             if (currentSkillsFilter !== 'all') {
                 filteredData = filteredData.filter(j => {
-                    // Check predefined skills
+                    // Check predefined skills using correct field names
                     const predefinedSkills = [
-                        'Auto mechanic', 'Electrician', 'Photography', 'Beautician', 'Embroidery',
-                        'Plumbing', 'Carpentry work', 'Gardening', 'Sewing dresses', 'Computer literature',
-                        'Masonry', 'Stenography', 'Domestic chores', 'Painter/Artist', 'Tailoring',
-                        'Driver', 'Painting job'
+                        { name: 'Auto mechanic', field: 'skill_auto_mechanic' },
+                        { name: 'Electrician', field: 'skill_electrician' },
+                        { name: 'Photography', field: 'skill_photography' },
+                        { name: 'Beautician', field: 'skill_beautician' },
+                        { name: 'Embroidery', field: 'skill_embroidery' },
+                        { name: 'Plumbing', field: 'skill_plumbing' },
+                        { name: 'Carpentry work', field: 'skill_carpentry' },
+                        { name: 'Gardening', field: 'skill_gardening' },
+                        { name: 'Sewing dresses', field: 'skill_sewing' },
+                        { name: 'Computer literature', field: 'skill_computer' },
+                        { name: 'Masonry', field: 'skill_masonry' },
+                        { name: 'Stenography', field: 'skill_stenography' },
+                        { name: 'Domestic chores', field: 'skill_domestic' },
+                        { name: 'Painter/Artist', field: 'skill_painter' },
+                        { name: 'Tailoring', field: 'skill_tailoring' },
+                        { name: 'Driver', field: 'skill_driver' },
+                        { name: 'Painting job', field: 'skill_painting' }
                     ];
                     
                     // Check if the selected skill is a predefined skill (case-insensitive)
-                    const skillKey = currentSkillsFilter.toLowerCase().replace(/[^a-z0-9]/g, '_');
-                    if (j['skill_' + skillKey] && j['skill_' + skillKey] === 1) {
+                    const matchingSkill = predefinedSkills.find(skill => 
+                        skill.name.toLowerCase() === currentSkillsFilter.toLowerCase()
+                    );
+                    
+                    if (matchingSkill && j[matchingSkill.field] && (j[matchingSkill.field] === 1 || j[matchingSkill.field] === '1')) {
                         return true;
                     }
                     
@@ -1615,7 +1660,7 @@
                     container.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f8fafc, #ffffff); border-radius: 16px; border: 2px dashed #e0e0e0;">
                             <div style="font-size: 4rem; margin-bottom: 16px;">📋</div>
-                            <h3 style="color: #666; margin: 0 0 8px 0; font-size: 1.2rem;">No Job Applicants found</h3>
+                            <h3 style="color: #666; margin: 0 0 8px 0; font-size: 1.2rem;">No Jobseekers found</h3>
                             <p style="color: #999; margin: 0; font-size: 0.95rem;">There are no applicants matching the current filter.</p>
                         </div>
                     `;
@@ -1728,7 +1773,7 @@
                             <img src="${url}" alt="Resume Image" style="width:100%;max-width:300px;height:auto;border-radius:8px;border:1px solid #e0e0e0;box-shadow:0 2px 8px rgba(35,58,139,0.1);margin-bottom:12px;">
                             <div style="display:flex;gap:8px;justify-content:center;">
                                 <a href="${url}" download style="background:linear-gradient(135deg, #4caf50, #45a049);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(76,175,80,0.3);transition:all 0.2s ease;">📥 Download</a>
-                                <a href="${url}" target="_blank" style="background:linear-gradient(135deg, #1976d2, #1565c0);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(25,118,210,0.3);transition:all 0.2s ease;">👁️ View</a>
+                                <a href="${url}" style="background:linear-gradient(135deg, #1976d2, #1565c0);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(25,118,210,0.3);transition:all 0.2s ease;">👁️ View</a>
                             </div>
                         </div>
                     `;
@@ -1743,7 +1788,7 @@
                             <iframe src="${url}" width="100%" height="250px" style="border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 8px rgba(35,58,139,0.1);margin-bottom:12px;"></iframe>
                             <div style="display:flex;gap:8px;justify-content:center;">
                                 <a href="${url}" download style="background:linear-gradient(135deg, #4caf50, #45a049);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(76,175,80,0.3);transition:all 0.2s ease;">📥 Download</a>
-                                <a href="${url}" target="_blank" style="background:linear-gradient(135deg, #1976d2, #1565c0);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(25,118,210,0.3);transition:all 0.2s ease;">🔗 Open</a>
+                                <a href="${url}" style="background:linear-gradient(135deg, #1976d2, #1565c0);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;box-shadow:0 2px 6px rgba(25,118,210,0.3);transition:all 0.2s ease;">🔗 Open</a>
                             </div>
                         </div>
                     `;

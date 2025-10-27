@@ -447,6 +447,67 @@
         cursor: not-allowed;
     }
     
+    /* Hide placeholder text for date inputs to make table cleaner */
+    .barangay-table-form input[type="date"]::-webkit-input-placeholder {
+        color: transparent;
+    }
+    .barangay-table-form input[type="date"]::-moz-placeholder {
+        color: transparent;
+    }
+    .barangay-table-form input[type="date"]:-ms-input-placeholder {
+        color: transparent;
+    }
+    .barangay-table-form input[type="date"]::placeholder {
+        color: transparent;
+    }
+    
+    /* Additional styling to make empty date inputs look cleaner */
+    .barangay-table-form input[type="date"]:invalid {
+        color: transparent;
+    }
+    .barangay-table-form input[type="date"]:invalid::-webkit-datetime-edit {
+        color: transparent;
+    }
+    .barangay-table-form input[type="date"]:invalid::-webkit-datetime-edit-fields-wrapper {
+        color: transparent;
+    }
+    
+    /* Clean date input styling - hide all placeholder text */
+    .barangay-table-form .clean-date-input::-webkit-datetime-edit-text {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input::-webkit-datetime-edit-month-field {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input::-webkit-datetime-edit-day-field {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input::-webkit-datetime-edit-year-field {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input:invalid::-webkit-datetime-edit-text {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input:invalid::-webkit-datetime-edit-month-field {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input:invalid::-webkit-datetime-edit-day-field {
+        color: transparent;
+    }
+    .barangay-table-form .clean-date-input:invalid::-webkit-datetime-edit-year-field {
+        color: transparent;
+    }
+    
+    /* For Firefox */
+    .barangay-table-form .clean-date-input:invalid {
+        color: transparent;
+    }
+    
+    /* For Edge/IE */
+    .barangay-table-form .clean-date-input::-ms-input-placeholder {
+        color: transparent;
+    }
+    
     /* Specific column width adjustments */
     .barangay-table-form th:nth-child(1), .barangay-table-form td:nth-child(1) { min-width: 60px; } /* No. */
     .barangay-table-form th:nth-child(2), .barangay-table-form td:nth-child(2) { min-width: 120px; } /* Date of Survey */
@@ -1240,11 +1301,13 @@
     <div class="layout">
         <div class="sidebar">
             <a href="Dashboard.php">📊 DASHBOARD</a>
-            <a href="job.php">👥 JOB APPLICANTS</a>
+            <a href="job_postings.php">💼 JOB POSTINGS</a>
+            <a href="job.php">👥 JOBSEEKERS</a>
             <a href="#"class="active">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
             <a href="analytics.php">📊 Analytics</a>
+            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
             <a href="logout.php" class="logout">🚪 Logout</a>
         </div>
         <!-- ...existing code... -->
@@ -2170,7 +2233,7 @@ if (table) {
     for (let i = 1; i <= 15; i++) {
         rows += `<tr>
             <td>${i}</td>
-            <td><input type="date" name="survey_date${i}"></td>
+            <td><input type="date" name="survey_date${i}" class="clean-date-input"></td>
             <td><input type="text" name="printed_name${i}"></td>
             <td><input type="checkbox" name="ftjs_yes${i}"></td>
             <td><input type="checkbox" name="ftjs_no${i}"></td>
@@ -2268,7 +2331,7 @@ function fetchBarangayTable(barangay) {
                     let surveyDateVal = (row.survey_date && row.survey_date !== '0000-00-00') ? row.survey_date : '';
                     html += `<tr data-id="${row.id}">
                         <td>${idx+1}</td>
-                        <td><input type="date" value="${surveyDateVal}" readonly /></td>
+                        <td><input type="date" value="${surveyDateVal}" readonly class="clean-date-input" /></td>
                         <td><input type="text" value="${row.printed_name||''}" readonly /></td>
                         <td><input type="checkbox" ${row.ftjs==='yes'?'checked':''} disabled /></td>
                         <td><input type="checkbox" ${row.ftjs==='no'?'checked':''} disabled /></td>
@@ -2293,7 +2356,7 @@ function fetchBarangayTable(barangay) {
             }
             for (let i = count + 1; i <= 15; i++) {
                 html += `<tr><td>${i}</td>
-                    <td><input type="date" readonly /></td>
+                    <td><input type="date" readonly class="clean-date-input" /></td>
                     <td><input type="text" readonly /></td>
                     <td><input type="checkbox" disabled /></td>
                     <td><input type="checkbox" disabled /></td>

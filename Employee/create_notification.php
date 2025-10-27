@@ -17,8 +17,37 @@ function createNotification($user_id, $title, $message, $type = 'info') {
     }
 }
 
-// API endpoint for creating notifications
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+function createAnnouncementNotification($announcement_title, $announcement_description) {
+    global $conn;
+    
+    // Get all user IDs
+    $stmt = $conn->prepare("SELECT user_id FROM jobseeker");
+    $stmt->execute();
+    $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    
+    $success_count = 0;
+    $total_count = count($users);
+    
+    foreach ($users as $user) {
+        $title = "New Announcement: " . $announcement_title;
+        $message = strlen($announcement_description) > 100 ? 
+            substr($announcement_description, 0, 100) . "..." : 
+            $announcement_description;
+        
+        if (createNotification($user['user_id'], $title, $message, 'announcement')) {
+            $success_count++;
+        }
+    }
+    
+    return [
+        'success' => $success_count > 0,
+        'sent' => $success_count,
+        'total' => $total_count
+    ];
+}
+
+// API endpoint for creating notifications - only execute if this file is accessed directly
+if (basename($_SERVER['PHP_SELF']) === 'create_notification.php' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     
     $input = json_decode(file_get_contents('php://input'), true);
