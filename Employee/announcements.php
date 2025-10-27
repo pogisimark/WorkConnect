@@ -648,13 +648,37 @@ if ($isIframe) {
             })
             .then(response => {
                 console.log('Track view response status:', response.status);
-                return response.json();
+                console.log('Track view response headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return response.text().then(text => {
+                    console.log('Raw response text:', text);
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        console.error('Response text:', text);
+                        throw new Error('Invalid JSON response: ' + text);
+                    }
+                });
             })
             .then(data => {
                 console.log('Track view response:', data);
+                if (data.success) {
+                    console.log('View tracked successfully!');
+                } else {
+                    console.error('Track view failed:', data.error);
+                }
             })
             .catch(error => {
                 console.error('Error tracking view:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
             });
         }
         
