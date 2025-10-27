@@ -633,6 +633,28 @@
                         <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="totalUsers">0</div>
                         <div style="font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Total Users</div>
                     </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="exportToExcel()" style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            📊 Export Excel
+                        </button>
+                        <button onclick="printReport()" style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                            🖨️ Print Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Insights Widget -->
+            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">💡</div>
+                    <div>
+                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Key Insights</h3>
+                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Auto-generated insights from your data</p>
+                    </div>
+                </div>
+                <div id="insightsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                    <!-- Insights will be populated by JavaScript -->
                 </div>
             </div>
 
@@ -702,6 +724,18 @@
                         <div style="font-size: 3rem; font-weight: 700; color: #ff9800;" id="thisMonthRegistrations">0</div>
                         <div style="font-size: 0.9rem; color: #666; margin-top: 8px;">New registrations this month</div>
                     </div>
+                    
+                    <!-- Month-over-Month Comparison -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;">
+                        <div style="background: rgba(255,152,0,0.1); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ff9800;" id="lastMonthRegistrations">0</div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Last Month</div>
+                        </div>
+                        <div style="background: rgba(255,152,0,0.1); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ff9800;" id="monthOverMonthChange">0%</div>
+                            <div style="font-size: 0.8rem; color: #666; margin-top: 4px;">Change</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -757,7 +791,66 @@
                 </div>
             </div>
 
-            <!-- Performance Metrics -->
+            <!-- Demographic Analytics Section -->
+            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">👥</div>
+                    <div>
+                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Demographic Analytics</h3>
+                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Age, gender, education, and employment distribution</p>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                    <!-- Age Distribution Chart -->
+                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                        <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Age Distribution</h4>
+                        <canvas id="ageChart" width="300" height="200"></canvas>
+                    </div>
+                    
+                    <!-- Gender Distribution Chart -->
+                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                        <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Gender Distribution</h4>
+                        <canvas id="genderChart" width="300" height="200"></canvas>
+                    </div>
+                    
+                    <!-- Education Distribution Chart -->
+                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                        <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Education Level</h4>
+                        <canvas id="educationChart" width="300" height="200"></canvas>
+                    </div>
+                    
+                    <!-- Employment Status Chart -->
+                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                        <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Employment Status</h4>
+                        <canvas id="employmentChart" width="300" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barangay Comparison Section -->
+            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">🏘️</div>
+                    <div>
+                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Barangay Comparison</h3>
+                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Compare registration patterns across barangays</p>
+                    </div>
+                </div>
+                
+                <!-- Barangay Leaderboard -->
+                <div style="background: rgba(76,175,80,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(76,175,80,0.1); margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 16px 0; color: #45a049; font-size: 1.1rem; font-weight: 600;">Registration Leaderboard</h4>
+                    <div id="barangayLeaderboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <!-- Leaderboard will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Barangay Comparison Chart -->
+                <div style="background: rgba(76,175,80,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(76,175,80,0.1);">
+                    <h4 style="margin: 0 0 16px 0; color: #45a049; font-size: 1.1rem; font-weight: 600;">Registrations by Barangay</h4>
+                    <canvas id="barangayChart" width="400" height="300"></canvas>
+                </div>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
                 
                 <!-- Success Rate -->
@@ -1130,8 +1223,11 @@
         totalSkills: 0,
         barangayCount: 13,
         thisMonthRegistrations: 0,
+        lastMonthRegistrations: 0,
         monthlyTrends: [],
-        skillsDistribution: []
+        skillsDistribution: [],
+        demographicData: null,
+        barangayData: null
     };
     
      let chartsCreated = false;
@@ -1231,14 +1327,23 @@
                 rejected: analyticsData.rejectedApplications
             });
             
-            // Calculate this month's registrations from real data
+            // Calculate this month's and last month's registrations from real data
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth();
             const currentYear = currentDate.getFullYear();
+            const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
             
             analyticsData.thisMonthRegistrations = jobseekers.filter(j => {
                 if (j.submission_month && j.submission_year) {
                     return parseInt(j.submission_month) === (currentMonth + 1) && parseInt(j.submission_year) === currentYear;
+                }
+                return false;
+            }).length;
+            
+            analyticsData.lastMonthRegistrations = jobseekers.filter(j => {
+                if (j.submission_month && j.submission_year) {
+                    return parseInt(j.submission_month) === (lastMonth + 1) && parseInt(j.submission_year) === lastMonthYear;
                 }
                 return false;
             }).length;
@@ -1248,13 +1353,18 @@
             
             console.log('Monthly trends data:', analyticsData.monthlyTrends);
             
-            // Fetch real skills data from skill registry
-            await fetchSkillsData();
+            // Fetch additional data
+            await Promise.all([
+                fetchSkillsData(),
+                fetchDemographicData(),
+                fetchBarangayData()
+            ]);
             
             console.log('Analytics data:', analyticsData);
             
             // Update UI
             updateAnalyticsUI();
+            generateInsights();
             
              // Wait a bit for DOM to be ready, then create charts
              if (!chartsCreated) {
@@ -1276,6 +1386,7 @@
             analyticsData.acceptedApplications = 0;
             analyticsData.rejectedApplications = 0;
             analyticsData.thisMonthRegistrations = 0;
+            analyticsData.lastMonthRegistrations = 0;
             analyticsData.monthlyTrends = [
                 { month: 'Jul', count: 0 },
                 { month: 'Aug', count: 0 },
@@ -1349,6 +1460,316 @@
         }
     }
 
+    // Fetch demographic data
+    async function fetchDemographicData() {
+        try {
+            const response = await fetch('skill_demographics.php');
+            const result = await response.json();
+            if (result.success) {
+                analyticsData.demographicData = result.data;
+                createDemographicCharts();
+            }
+        } catch (error) {
+            console.error('Error fetching demographic data:', error);
+        }
+    }
+
+    // Fetch barangay data
+    async function fetchBarangayData() {
+        try {
+            const response = await fetch('barangay_analytics.php');
+            const result = await response.json();
+            if (result.success) {
+                analyticsData.barangayData = result.data;
+                createBarangayCharts();
+                updateBarangayLeaderboard();
+            }
+        } catch (error) {
+            console.error('Error fetching barangay data:', error);
+        }
+    }
+
+    // Generate insights
+    function generateInsights() {
+        const insights = [];
+        
+        // Registration trend insight
+        if (analyticsData.lastMonthRegistrations > 0) {
+            const change = ((analyticsData.thisMonthRegistrations - analyticsData.lastMonthRegistrations) / analyticsData.lastMonthRegistrations) * 100;
+            const changeText = change > 0 ? `up ${Math.round(change)}%` : `down ${Math.round(Math.abs(change))}%`;
+            insights.push({
+                icon: change > 0 ? '📈' : '📉',
+                text: `Registrations ${changeText} compared to last month`,
+                color: change > 0 ? '#4caf50' : '#f44336'
+            });
+        }
+        
+        // Top skill insight
+        if (analyticsData.skillsDistribution.length > 0) {
+            const topSkill = analyticsData.skillsDistribution[0];
+            insights.push({
+                icon: '🛠️',
+                text: `${topSkill.skill} is the most in-demand skill with ${topSkill.count} registrations`,
+                color: '#1976d2'
+            });
+        }
+        
+        // Most active barangay insight
+        if (analyticsData.barangayData && analyticsData.barangayData.overall_stats.most_active) {
+            const mostActive = analyticsData.barangayData.overall_stats.most_active;
+            insights.push({
+                icon: '🏆',
+                text: `${mostActive.barangay} leads with ${mostActive.total_registrations} registrations`,
+                color: '#ff9800'
+            });
+        }
+        
+        // Success rate insight
+        const totalProcessed = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
+        if (totalProcessed > 0) {
+            const successRate = Math.round((analyticsData.acceptedApplications / totalProcessed) * 100);
+            insights.push({
+                icon: '🎯',
+                text: `${successRate}% success rate in job referrals`,
+                color: '#4caf50'
+            });
+        }
+        
+        // Update insights container
+        const container = document.getElementById('insightsContainer');
+        container.innerHTML = '';
+        
+        insights.forEach(insight => {
+            const insightElement = document.createElement('div');
+            insightElement.style.cssText = `
+                background: linear-gradient(135deg, ${insight.color}15, ${insight.color}25);
+                border-radius: 12px;
+                padding: 16px;
+                border-left: 4px solid ${insight.color};
+                transition: transform 0.2s ease;
+            `;
+            insightElement.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 1.5rem;">${insight.icon}</div>
+                    <div style="color: #333; font-size: 0.95rem; font-weight: 500;">${insight.text}</div>
+                </div>
+            `;
+            insightElement.addEventListener('mouseenter', () => {
+                insightElement.style.transform = 'translateY(-2px)';
+            });
+            insightElement.addEventListener('mouseleave', () => {
+                insightElement.style.transform = 'translateY(0)';
+            });
+            container.appendChild(insightElement);
+        });
+    }
+
+    // Create demographic charts
+    function createDemographicCharts() {
+        if (!analyticsData.demographicData) return;
+        
+        const data = analyticsData.demographicData;
+        
+        // Age Distribution Chart
+        const ageCtx = document.getElementById('ageChart');
+        if (ageCtx) {
+            new Chart(ageCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['15-25', '26-35', '36-45', '46+'],
+                    datasets: [{
+                        data: [data.age_15_25, data.age_26_35, data.age_36_45, data.age_46_plus],
+                        backgroundColor: ['#ff9800', '#4caf50', '#2196f3', '#9c27b0'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, usePointStyle: true }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Gender Distribution Chart
+        const genderCtx = document.getElementById('genderChart');
+        if (genderCtx) {
+            new Chart(genderCtx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        data: [data.male, data.female],
+                        backgroundColor: ['#2196f3', '#e91e63'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, usePointStyle: true }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Education Chart
+        const educationCtx = document.getElementById('educationChart');
+        if (educationCtx) {
+            new Chart(educationCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Elementary', 'High School', 'College', 'Vocational'],
+                    datasets: [{
+                        data: [data.elementary, data.high_school, data.college, data.vocational],
+                        backgroundColor: ['#ff5722', '#ff9800', '#4caf50', '#2196f3'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+        
+        // Employment Chart
+        const employmentCtx = document.getElementById('employmentChart');
+        if (employmentCtx) {
+            new Chart(employmentCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Unemployed', 'Wage Employed', 'Self-Employed'],
+                    datasets: [{
+                        data: [data.unemployed, data.wage_employed, data.self_employed],
+                        backgroundColor: ['#f44336', '#4caf50', '#ff9800'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, usePointStyle: true }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Create barangay charts
+    function createBarangayCharts() {
+        if (!analyticsData.barangayData) return;
+        
+        const barangays = analyticsData.barangayData.barangays.slice(0, 10); // Top 10
+        
+        const barangayCtx = document.getElementById('barangayChart');
+        if (barangayCtx) {
+            new Chart(barangayCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: barangays.map(b => b.barangay),
+                    datasets: [{
+                        label: 'Registrations',
+                        data: barangays.map(b => b.total_registrations),
+                        backgroundColor: 'rgba(76,175,80,0.8)',
+                        borderColor: '#4caf50',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { ticks: { maxRotation: 45 } }
+                    }
+                }
+            });
+        }
+    }
+
+    // Update barangay leaderboard
+    function updateBarangayLeaderboard() {
+        if (!analyticsData.barangayData) return;
+        
+        const container = document.getElementById('barangayLeaderboard');
+        const barangays = analyticsData.barangayData.barangays.slice(0, 6); // Top 6
+        
+        container.innerHTML = '';
+        
+        barangays.forEach((barangay, index) => {
+            const element = document.createElement('div');
+            element.style.cssText = `
+                background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+                border-radius: 8px;
+                padding: 12px;
+                text-align: center;
+                border: 1px solid #c8e6c9;
+            `;
+            
+            const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+            
+            element.innerHTML = `
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">${rankIcon}</div>
+                <div style="font-weight: 600; color: #2e7d32; font-size: 0.9rem;">${barangay.barangay}</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #4caf50;">${barangay.total_registrations}</div>
+                <div style="font-size: 0.7rem; color: #666;">registrations</div>
+            `;
+            
+            container.appendChild(element);
+        });
+    }
+
+    // Export functions
+    function exportToExcel() {
+        // Simple CSV export for now
+        const csvData = [
+            ['Metric', 'Value'],
+            ['Total Jobseekers', analyticsData.totalJobseekers],
+            ['Pending Applications', analyticsData.pendingApplications],
+            ['Accepted Applications', analyticsData.acceptedApplications],
+            ['Rejected Applications', analyticsData.rejectedApplications],
+            ['This Month Registrations', analyticsData.thisMonthRegistrations],
+            ['Last Month Registrations', analyticsData.lastMonthRegistrations]
+        ];
+        
+        const csvContent = csvData.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'analytics_report.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function printReport() {
+        window.print();
+    }
+
     // Update analytics UI
     function updateAnalyticsUI() {
         document.getElementById('totalUsers').textContent = analyticsData.totalJobseekers;
@@ -1359,6 +1780,14 @@
         document.getElementById('totalSkills').textContent = analyticsData.totalSkills;
         document.getElementById('barangayCount').textContent = analyticsData.barangayCount;
         document.getElementById('thisMonthRegistrations').textContent = analyticsData.thisMonthRegistrations;
+        document.getElementById('lastMonthRegistrations').textContent = analyticsData.lastMonthRegistrations;
+        
+        // Calculate month-over-month change
+        const change = analyticsData.lastMonthRegistrations > 0 ? 
+            Math.round(((analyticsData.thisMonthRegistrations - analyticsData.lastMonthRegistrations) / analyticsData.lastMonthRegistrations) * 100) : 0;
+        const changeElement = document.getElementById('monthOverMonthChange');
+        changeElement.textContent = (change > 0 ? '+' : '') + change + '%';
+        changeElement.style.color = change > 0 ? '#4caf50' : change < 0 ? '#f44336' : '#666';
         
         // Calculate success rate
         const totalProcessed = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
