@@ -62,31 +62,34 @@ $userId = $_SESSION['user_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     error_log("Processing POST request");
     
-    // Get JSON input with error handling
-    $rawInput = file_get_contents('php://input');
-    error_log("Raw input received: " . $rawInput);
-    
-    $input = json_decode($rawInput, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log("JSON decode error: " . json_last_error_msg());
-        http_response_code(400);
-        exit('Invalid JSON input: ' . json_last_error_msg());
+    // Check if it's form data or JSON
+    if (isset($_POST['resume_id'])) {
+        // Form submission
+        error_log("Processing POST form request");
+        $resumeId = (int)($_POST['resume_id'] ?? 0);
+        error_log("Resume ID extracted from POST form: " . $resumeId);
+    } else {
+        // JSON submission
+        error_log("Processing POST JSON request");
+        $rawInput = file_get_contents('php://input');
+        error_log("Raw input received: " . $rawInput);
+        
+        $input = json_decode($rawInput, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("JSON decode error: " . json_last_error_msg());
+            http_response_code(400);
+            exit('Invalid JSON input: ' . json_last_error_msg());
+        }
+        
+        $resumeId = (int)($input['resume_id'] ?? 0);
+        error_log("Resume ID extracted from POST JSON: " . $resumeId);
     }
-    
-    $resumeId = (int)($input['resume_id'] ?? 0);
-    error_log("Resume ID extracted from POST: " . $resumeId);
     
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     error_log("Processing GET request");
     
     $resumeId = (int)($_GET['resume_id'] ?? 0);
     error_log("Resume ID extracted from GET: " . $resumeId);
-    
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resume_id'])) {
-    error_log("Processing POST form request");
-    
-    $resumeId = (int)($_POST['resume_id'] ?? 0);
-    error_log("Resume ID extracted from POST form: " . $resumeId);
     
 } else {
     error_log("Invalid request method: " . $_SERVER['REQUEST_METHOD']);
