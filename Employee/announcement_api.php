@@ -41,6 +41,9 @@ function readAnnouncements() {
     $category = $_GET['category'] ?? '';
     $search = $_GET['search'] ?? '';
     
+    // Debug: Log the request
+    error_log("Employee API: Reading announcements with status=$status, limit=$limit");
+    
     // Build query
     $query = "SELECT a.*, 
                      GROUP_CONCAT(DISTINCT at.tag_name) as tags,

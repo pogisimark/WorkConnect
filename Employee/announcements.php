@@ -487,9 +487,15 @@ if ($isIframe) {
                 ...currentFilters
             });
             
+            console.log('Loading announcements with params:', params.toString());
+            
             fetch(`announcement_api.php?action=read&${params}`)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('API Response status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('API Response data:', data);
                     if (data.success) {
                         announcements = data.announcements.filter(announcement => {
                             // Filter out expired announcements
@@ -502,6 +508,7 @@ if ($isIframe) {
                             }
                             return true;
                         });
+                        console.log('Filtered announcements:', announcements);
                         renderAnnouncements();
                     } else {
                         showError('Error loading announcements: ' + data.error);
