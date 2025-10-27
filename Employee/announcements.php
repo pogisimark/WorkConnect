@@ -398,7 +398,7 @@ if ($isIframe) {
                 <span></span>
                 <span></span>
             </button>
-            <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo">
+            <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="header-title">WorkConnect</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">

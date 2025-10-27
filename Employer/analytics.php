@@ -599,7 +599,7 @@
                 <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
                 <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
             </button>
-            <img src="../assets/image/PESO Logo circle.png" alt="Logo" style="height: 32px; margin-right: 8px; border-radius: 50%; background: none; border: none; flex-shrink: 0;">
+            <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="header-title" id="headerTitle" style="font-size: 1rem; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; max-width: 150px;">WorkConnect</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; margin-left: 8px; flex-shrink: 0;" id="adminSection">
