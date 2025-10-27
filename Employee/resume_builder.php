@@ -3211,8 +3211,21 @@ $conn->close();
                 }
             });
             
-            // Generate PDF using direct download approach
-            window.open('generate_resume_pdf.php?resume_id=' + resumeId, '_blank');
+            // Generate PDF using form submission approach
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'generate_resume_pdf.php';
+            form.target = '_blank';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'resume_id';
+            input.value = resumeId;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
             
             // Close the loading indicator
             Swal.close();

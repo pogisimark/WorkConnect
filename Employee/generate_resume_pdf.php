@@ -82,6 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $resumeId = (int)($_GET['resume_id'] ?? 0);
     error_log("Resume ID extracted from GET: " . $resumeId);
     
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resume_id'])) {
+    error_log("Processing POST form request");
+    
+    $resumeId = (int)($_POST['resume_id'] ?? 0);
+    error_log("Resume ID extracted from POST form: " . $resumeId);
+    
 } else {
     error_log("Invalid request method: " . $_SERVER['REQUEST_METHOD']);
     http_response_code(405);
