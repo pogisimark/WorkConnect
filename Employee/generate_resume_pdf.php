@@ -4,6 +4,17 @@ require_once 'session_check.php';
 require_once 'db.php';
 require_once '../vendor/autoload.php';
 
+// Define TCPDF constants if not already defined
+if (!defined('PDF_PAGE_ORIENTATION')) {
+    define('PDF_PAGE_ORIENTATION', 'P');
+}
+if (!defined('PDF_UNIT')) {
+    define('PDF_UNIT', 'mm');
+}
+if (!defined('PDF_PAGE_FORMAT')) {
+    define('PDF_PAGE_FORMAT', 'A4');
+}
+
 // Ensure user is authenticated
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -81,9 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Generate HTML
         $html = generateResumeHTML($resume);
+        
+        // Debug: Log HTML generation
+        error_log("PDF Generation Debug - HTML Length: " . strlen($html));
+        error_log("PDF Generation Debug - HTML Preview: " . substr($html, 0, 200) . "...");
 
-// Create PDF
-$pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        // Create PDF with error handling
+        try {
+            $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+            error_log("PDF Generation Debug - TCPDF object created successfully");
+        } catch (Exception $e) {
+            error_log("PDF Generation Error - TCPDF creation failed: " . $e->getMessage());
+            throw new Exception("Failed to create PDF object: " . $e->getMessage());
+        }
 
 // Set document information
 $pdf->SetCreator('WorkConnect Resume Builder');
@@ -120,8 +141,15 @@ $pdf->writeHTML($html, true, false, true, false, '');
         
         error_log("PDF Filename Debug - Final filename: " . $filename);
         
-        // Generate PDF content first
-        $pdfContent = $pdf->Output($filename, 'S'); // 'S' for string output
+        // Generate PDF content first with error handling
+        try {
+            error_log("PDF Generation Debug - Starting PDF output generation");
+            $pdfContent = $pdf->Output($filename, 'S'); // 'S' for string output
+            error_log("PDF Generation Debug - PDF content generated successfully, size: " . strlen($pdfContent));
+        } catch (Exception $e) {
+            error_log("PDF Generation Error - PDF output failed: " . $e->getMessage());
+            throw new Exception("Failed to generate PDF content: " . $e->getMessage());
+        }
         
         // Set proper headers for download
         // Set headers to prevent caching
