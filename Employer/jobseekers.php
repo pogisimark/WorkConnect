@@ -11,7 +11,12 @@ if ($conn->connect_error) {
     echo json_encode(["error" => "DB connection failed"]);
     exit;
 }
-$sql = "SELECT *, YEAR(CURDATE())-YEAR(dob) - (DATE_FORMAT(CURDATE(),'%m%d') < DATE_FORMAT(dob,'%m%d')) AS age FROM jobseeker ORDER BY id DESC";
+$sql = "SELECT *, 
+    YEAR(CURDATE())-YEAR(dob) - (DATE_FORMAT(CURDATE(),'%m%d') < DATE_FORMAT(dob,'%m%d')) AS age,
+    DAY(submission_date) AS submission_day,
+    MONTH(submission_date) AS submission_month,
+    YEAR(submission_date) AS submission_year
+FROM jobseeker ORDER BY id DESC";
 $res = $conn->query($sql);
 $data = [];
 while ($row = $res->fetch_assoc()) {

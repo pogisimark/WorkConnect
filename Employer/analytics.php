@@ -1201,36 +1201,9 @@
              
              console.log('Found daily trends data:', trendsData);
              
-             // If no daily data found, check if we have monthly data and distribute it
-             const totalMonthlyCount = trendsData.reduce((sum, day) => sum + day.count, 0);
-             console.log('Total monthly count from daily data:', totalMonthlyCount);
-             
-             if (totalMonthlyCount === 0) {
-                 // Try to get monthly count from the original data
-                 const monthlyCount = jobseekers.filter(j => {
-                     if (j.submission_month && j.submission_year) {
-                         const jobseekerMonth = parseInt(j.submission_month);
-                         const jobseekerYear = parseInt(j.submission_year);
-                         
-                         return jobseekerMonth === selectedMonthInt && 
-                                jobseekerYear === selectedYearInt;
-                     }
-                     return false;
-                 }).length;
-                 
-                 console.log('Monthly count from monthly data:', monthlyCount);
-                 
-                 if (monthlyCount > 0) {
-                     // Distribute the monthly count across days (put it all on day 15 for visualization)
-                     const newTrendsData = [];
-                     for (let day = 1; day <= daysInMonth; day++) {
-                         const count = day === 15 ? monthlyCount : 0; // Put all registrations on day 15
-                         newTrendsData.push({ month: `Day ${day}`, count: count });
-                     }
-                     console.log('Redistributed monthly data:', newTrendsData);
-                     return newTrendsData;
-                 }
-             }
+            // Log the daily data for debugging
+            const totalDailyCount = trendsData.reduce((sum, day) => sum + day.count, 0);
+            console.log('Total daily count from daily data:', totalDailyCount);
          }
          
          return trendsData;
