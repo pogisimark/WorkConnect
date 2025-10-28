@@ -1950,6 +1950,12 @@
             updateJobCounts();
             initializeBulkActions();
             initializeFormValidation();
+            
+            // Ensure table is properly rendered on page load
+            setTimeout(() => {
+                renderJobsTable();
+                updateJobCounts();
+            }, 100);
         });
         
         // Initialize character counters and form validation
@@ -2094,7 +2100,7 @@
             if (filteredJobs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                        <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
                             <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             No jobs found matching your criteria
                         </td>
@@ -2106,21 +2112,38 @@
             tbody.innerHTML = filteredJobs.map(job => `
                 <tr data-job-id="${job.id}">
                     <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
+                        <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
+                    </td>
+                    <td>
+                        <div class="job-title-cell">
                             <strong>${escapeHtml(job.title)}</strong>
+                            <small class="job-industry">${escapeHtml(job.industry)}</small>
                         </div>
                     </td>
                     <td>${escapeHtml(job.company)}</td>
-                    <td>${escapeHtml(job.location)}</td>
-                    <td>${escapeHtml(job.job_type)}</td>
+                    <td>
+                        <div class="location-cell">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${escapeHtml(job.location)}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="job-type-badge job-type-${job.job_type.toLowerCase().replace('-', '')}">
+                            ${escapeHtml(job.job_type)}
+                        </span>
+                    </td>
                     <td>${escapeHtml(job.salary_range)}</td>
                     <td>
                         <span class="status-badge status-${job.status.toLowerCase()}">
                             ${job.status}
                         </span>
                     </td>
-                    <td>${formatDate(job.created_at)}</td>
+                    <td>
+                        <div class="date-cell">
+                            ${formatDate(job.created_at)}
+                            <small>${formatTime(job.created_at)}</small>
+                        </div>
+                    </td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn btn-view" onclick="viewJob(${job.id})" title="View Details">
@@ -2152,6 +2175,38 @@
             if (totalElement) totalElement.textContent = filteredJobs.length;
             if (activeElement) activeElement.textContent = filteredJobs.filter(job => job.status === 'Active').length;
             if (closedElement) closedElement.textContent = filteredJobs.filter(job => job.status === 'Closed').length;
+        }
+        
+        function refreshJobData() {
+            // Refresh the job data from the server
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the HTML to extract job data
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const scriptTags = doc.querySelectorAll('script');
+                    
+                    scriptTags.forEach(script => {
+                        if (script.textContent.includes('let allJobs =')) {
+                            // Extract the job data from the script
+                            const match = script.textContent.match(/let allJobs = (\[.*?\]);/);
+                            if (match) {
+                                try {
+                                    allJobs = JSON.parse(match[1]);
+                                    filteredJobs = [...allJobs];
+                                    renderJobsTable();
+                                    updateJobCounts();
+                                } catch (e) {
+                                    console.error('Error parsing job data:', e);
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error refreshing job data:', error);
+                });
         }
         
         // Bulk Operations
@@ -2583,6 +2638,15 @@
             });
         }
         
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+        
         // Export Functions
         function exportJobs(format) {
             if (filteredJobs.length === 0) {
@@ -2695,6 +2759,26 @@
                     dismissAlert(alert);
                 }, 3000);
             });
+            
+            // Ensure main content is visible after page load
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.style.visibility = 'visible';
+            }
+            
+            // Ensure table is visible
+            const contentCard = document.querySelector('.content-card');
+            if (contentCard) {
+                contentCard.style.display = 'block';
+                contentCard.style.visibility = 'visible';
+            }
+            
+            // Force table rendering
+            setTimeout(() => {
+                renderJobsTable();
+                updateJobCounts();
+            }, 200);
         });
 
         function dismissAlert(element) {
@@ -2771,6 +2855,31 @@
                 document.getElementById('logoutModal').style.display = 'none';
             }
         };
+        
+        // Ensure everything is properly initialized on window load
+        window.addEventListener('load', function() {
+            // Force visibility of main content
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.style.visibility = 'visible';
+                mainContent.style.opacity = '1';
+            }
+            
+            // Force visibility of content card
+            const contentCard = document.querySelector('.content-card');
+            if (contentCard) {
+                contentCard.style.display = 'block';
+                contentCard.style.visibility = 'visible';
+                contentCard.style.opacity = '1';
+            }
+            
+            // Ensure table is rendered
+            setTimeout(() => {
+                renderJobsTable();
+                updateJobCounts();
+            }, 100);
+        });
     </script>
 </body>
 </html>
