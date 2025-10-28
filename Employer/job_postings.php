@@ -653,33 +653,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            position: relative;
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-        }
-
-        .alert.fade-out {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        .alert-close {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            opacity: 0.6;
-            transition: opacity 0.3s;
-            color: inherit;
-            padding: 4px;
-            line-height: 1;
-        }
-
-        .alert-close:hover {
-            opacity: 1;
         }
         
         .alert-success {
@@ -707,137 +680,68 @@
         }
         
         .modal-content {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            margin: 3% auto;
+            background-color: white;
+            margin: 5% auto;
             padding: 0;
-            border-radius: 20px;
-            width: 95%;
-            max-width: 900px;
-            max-height: 95vh;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 25px rgba(0,0,0,0.1);
-            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-        }
-        
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-80px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #233a8b 0%, #1e2f7a 100%);
+            background: #233a8b;
             color: white;
-            padding: 25px 30px;
-            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .modal-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
-            pointer-events: none;
         }
         
         .modal-header h2 {
             margin: 0;
-            font-size: 1.8rem;
-            font-weight: 600;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .modal-header h2::before {
-            content: '💼';
             font-size: 1.5rem;
         }
         
         .close {
             color: white;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            transition: color 0.3s;
         }
         
         .close:hover {
             color: #ffcb05;
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.1);
         }
         
         .modal-body {
-            padding: 35px 40px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 24px;
         }
         
         .form-group {
-            margin-bottom: 25px;
-            position: relative;
+            margin-bottom: 20px;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95rem;
-            position: relative;
-        }
-        
-        .form-group label::after {
-            content: '';
-            position: absolute;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 4px;
-            background: #233a8b;
-            border-radius: 50%;
-            opacity: 0.7;
+            font-weight: bold;
+            color: #333;
         }
         
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
         }
         
         .form-group input:focus,
@@ -845,278 +749,55 @@
         .form-group textarea:focus {
             outline: none;
             border-color: #233a8b;
-            box-shadow: 0 0 0 3px rgba(35, 58, 139, 0.1);
-            transform: translateY(-1px);
         }
         
-        .form-group input:hover,
-        .form-group select:hover,
-        .form-group textarea:hover {
-            border-color: #cbd5e0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        }
-        
-        .form-group label[for*="title"],
-        .form-group label[for*="company"],
-        .form-group label[for*="description"],
-        .form-group label[for*="requirements"],
-        .form-group label[for*="location"],
-        .form-group label[for*="job_type"] {
-            position: relative;
-        }
-        
-        .form-group label[for*="title"]::before,
-        .form-group label[for*="company"]::before,
-        .form-group label[for*="description"]::before,
-        .form-group label[for*="requirements"]::before,
-        .form-group label[for*="location"]::before,
-        .form-group label[for*="job_type"]::before {
-            content: '*';
-            color: #e74c3c;
-            font-weight: bold;
-            margin-right: 4px;
-        }
-        
-        .form-group label[for*="title"]::after,
-        .form-group label[for*="company"]::after,
-        .form-group label[for*="description"]::after,
-        .form-group label[for*="requirements"]::after,
-        .form-group label[for*="location"]::after,
-        .form-group label[for*="job_type"]::after {
-            content: '';
-            position: absolute;
-            left: -20px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 6px;
-            height: 6px;
-            background: #e74c3c;
-            border-radius: 50%;
-            opacity: 0.8;
-        }
-        
-        /* Special styling for textarea fields */
         .form-group textarea {
-            min-height: 120px;
+            height: 100px;
             resize: vertical;
-            font-family: inherit;
-            line-height: 1.5;
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border: 2px solid #e1e8ed;
-            position: relative;
-        }
-        
-        .form-group textarea:focus {
-            background: #ffffff;
-            border-color: #233a8b;
-            box-shadow: 0 0 0 3px rgba(35, 58, 139, 0.1);
-        }
-        
-        /* Enhanced select styling */
-        .form-group select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 12px center;
-            background-repeat: no-repeat;
-            background-size: 16px;
-            padding-right: 40px;
-            appearance: none;
         }
         
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
+            gap: 20px;
         }
         
         .modal-footer {
-            padding: 25px 40px;
-            border-top: 1px solid rgba(0,0,0,0.05);
+            padding: 20px 24px;
+            border-top: 1px solid #e9ecef;
             display: flex;
             justify-content: flex-end;
-            gap: 15px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            border-radius: 0 0 20px 20px;
+            gap: 12px;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #233a8b 0%, #1e2f7a 100%);
+            background: #233a8b;
             color: white;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(35, 58, 139, 0.3);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        .btn-primary:hover::before {
-            left: 100%;
+            font-weight: bold;
+            transition: all 0.3s;
         }
         
         .btn-primary:hover {
-            background: linear-gradient(135deg, #1e2f7a 0%, #16255c 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(35, 58, 139, 0.4);
-        }
-        
-        .btn-primary:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 10px rgba(35, 58, 139, 0.3);
+            background: #1a2d6b;
         }
         
         .btn-secondary {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            background: #6c757d;
             color: white;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: bold;
+            transition: all 0.3s;
         }
         
         .btn-secondary:hover {
-            background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
-        }
-        
-        .btn-secondary:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3);
-        }
-        
-        .btn-primary:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-primary:disabled:hover {
-            background-color: #6c757d;
-            transform: none;
-        }
-        
-        .fa-spinner {
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Additional visual enhancements */
-        .modal {
-            backdrop-filter: blur(5px);
-        }
-        
-        /* Form field icons */
-        .form-group input[type="text"]:focus,
-        .form-group textarea:focus {
-            background-image: linear-gradient(45deg, transparent 49%, rgba(35, 58, 139, 0.03) 50%, transparent 51%);
-        }
-        
-        /* Loading state improvements */
-        .btn-primary:disabled {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2);
-        }
-        
-        .btn-primary:disabled:hover {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-            transform: none;
-            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2);
-        }
-        
-        /* Enhanced modal backdrop */
-        .modal {
-            background-color: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
-        }
-        
-        /* Smooth scrollbar for modal content */
-        .modal-content::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .modal-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        .modal-content::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-        
-        /* Form validation styles */
-        .form-group.error input,
-        .form-group.error select,
-        .form-group.error textarea {
-            border-color: #e74c3c;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
-        }
-        
-        .form-group.error label {
-            color: #e74c3c;
-        }
-        
-        .error-message {
-            color: #e74c3c;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .char-counter {
-            font-size: 0.8rem;
-            color: #6c757d;
-            text-align: right;
-            margin-top: 5px;
-        }
-        
-        .char-counter.warning {
-            color: #ffc107;
-        }
-        
-        .char-counter.danger {
-            color: #dc3545;
+            background: #5a6268;
         }
         
         /* Analytics Modal Styles */
@@ -1360,10 +1041,8 @@
             <?php
             // Handle form submissions
             require_once 'db.php';
-            
-            // Read messages from URL parameters (PRG pattern)
-            $success_message = isset($_GET['success']) ? $_GET['success'] : '';
-            $error_message = isset($_GET['error']) ? $_GET['error'] : '';
+            $success_message = '';
+            $error_message = '';
 
             if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (isset($_POST['action'])) {
@@ -1382,16 +1061,11 @@
                             $stmt->bind_param("ssssssss", $title, $company, $description, $requirements, $salary_range, $location, $job_type, $industry);
                             
                             if ($stmt->execute()) {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode("Job posting created successfully!"));
-                                exit();
+                                $success_message = "Job posting created successfully!";
                             } else {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("Error creating job posting: " . $conn->error));
-                                exit();
+                                $error_message = "Error creating job posting: " . $conn->error;
                             }
+                            $stmt->close();
                             break;
                             
                         case 'update_job':
@@ -1410,16 +1084,11 @@
                             $stmt->bind_param("sssssssssi", $title, $company, $description, $requirements, $salary_range, $location, $job_type, $industry, $status, $id);
                             
                             if ($stmt->execute()) {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode("Job posting updated successfully!"));
-                                exit();
+                                $success_message = "Job posting updated successfully!";
                             } else {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("Error updating job posting: " . $conn->error));
-                                exit();
+                                $error_message = "Error updating job posting: " . $conn->error;
                             }
+                            $stmt->close();
                             break;
                             
                         case 'delete_job':
@@ -1428,16 +1097,11 @@
                             $stmt->bind_param("i", $id);
                             
                             if ($stmt->execute()) {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode("Job posting deleted successfully!"));
-                                exit();
+                                $success_message = "Job posting deleted successfully!";
                             } else {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("Error deleting job posting: " . $conn->error));
-                                exit();
+                                $error_message = "Error deleting job posting: " . $conn->error;
                             }
+                            $stmt->close();
                             break;
                             
                         case 'bulk_update_status':
@@ -1451,16 +1115,11 @@
                             $stmt->bind_param(str_repeat('s', count($params)), ...$params);
                             
                             if ($stmt->execute()) {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode(count($job_ids) . " job(s) updated to $status successfully!"));
-                                exit();
+                                $success_message = count($job_ids) . " job(s) updated to $status successfully!";
                             } else {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("Error updating job status: " . $conn->error));
-                                exit();
+                                $error_message = "Error updating job status: " . $conn->error;
                             }
+                            $stmt->close();
                             break;
                             
                         case 'bulk_delete':
@@ -1472,16 +1131,11 @@
                             $stmt->bind_param(str_repeat('i', count($job_ids)), ...$job_ids);
                             
                             if ($stmt->execute()) {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode(count($job_ids) . " job(s) deleted successfully!"));
-                                exit();
+                                $success_message = count($job_ids) . " job(s) deleted successfully!";
                             } else {
-                                $stmt->close();
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("Error deleting jobs: " . $conn->error));
-                                exit();
+                                $error_message = "Error deleting jobs: " . $conn->error;
                             }
+                            $stmt->close();
                             break;
                             
                         case 'bulk_duplicate':
@@ -1512,13 +1166,9 @@
                             }
                             
                             if ($duplicated_count > 0) {
-                                $conn->close();
-                                header("Location: job_postings.php?success=" . urlencode("$duplicated_count job(s) duplicated successfully!"));
-                                exit();
+                                $success_message = "$duplicated_count job(s) duplicated successfully!";
                             } else {
-                                $conn->close();
-                                header("Location: job_postings.php?error=" . urlencode("No jobs were duplicated."));
-                                exit();
+                                $error_message = "No jobs were duplicated.";
                             }
                             break;
                     }
@@ -1571,17 +1221,13 @@
 
             <?php if ($success_message): ?>
                 <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> 
-                    <span><?php echo htmlspecialchars($success_message); ?></span>
-                    <button class="alert-close" onclick="dismissAlert(this)" title="Close">&times;</button>
+                    <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
                 </div>
             <?php endif; ?>
             
             <?php if ($error_message): ?>
                 <div class="alert alert-error">
-                    <i class="fas fa-exclamation-circle"></i> 
-                    <span><?php echo htmlspecialchars($error_message); ?></span>
-                    <button class="alert-close" onclick="dismissAlert(this)" title="Close">&times;</button>
+                    <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                 </div>
             <?php endif; ?>
 
@@ -1782,23 +1428,22 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="title">Job Title *</label>
-                            <input type="text" id="title" name="title" required placeholder="e.g., Senior Software Developer">
+                            <input type="text" id="title" name="title" required>
                         </div>
                         <div class="form-group">
                             <label for="company">Company *</label>
-                            <input type="text" id="company" name="company" required placeholder="e.g., Tech Solutions Inc.">
+                            <input type="text" id="company" name="company" required>
                         </div>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
                             <label for="location">Location *</label>
-                            <input type="text" id="location" name="location" required placeholder="e.g., Manila, Philippines">
+                            <input type="text" id="location" name="location" required>
                         </div>
                         <div class="form-group">
                             <label for="job_type">Job Type *</label>
                             <select id="job_type" name="job_type" required>
-                                <option value="">Select job type...</option>
                                 <option value="Full-time">Full-time</option>
                                 <option value="Part-time">Part-time</option>
                                 <option value="Contract">Contract</option>
@@ -1810,24 +1455,22 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="salary_range">Salary Range</label>
-                            <input type="text" id="salary_range" name="salary_range" placeholder="e.g., ₱25,000 - ₱35,000">
+                            <input type="text" id="salary_range" name="salary_range" placeholder="e.g., 25000-35000">
                         </div>
                         <div class="form-group">
                             <label for="industry">Industry</label>
-                            <input type="text" id="industry" name="industry" placeholder="e.g., Technology, Healthcare, Finance">
+                            <input type="text" id="industry" name="industry" placeholder="e.g., Technology, Healthcare">
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="description">Job Description *</label>
                         <textarea id="description" name="description" required placeholder="Describe the role, responsibilities, and what makes this opportunity special..."></textarea>
-                        <div class="char-counter" id="descriptionCounter">0 / 2000 characters</div>
                     </div>
                     
                     <div class="form-group">
                         <label for="requirements">Requirements *</label>
                         <textarea id="requirements" name="requirements" required placeholder="List the required qualifications, skills, and experience..."></textarea>
-                        <div class="char-counter" id="requirementsCounter">0 / 1500 characters</div>
                     </div>
                     
                     <div class="form-group" id="statusGroup" style="display: none;">
@@ -1925,19 +1568,6 @@
         </div>
     </div>
 
-    <!-- Logout Modal -->
-    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
-        <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
-            <div style="font-size:3rem;margin-bottom:16px;">🚪</div>
-            <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>
-            <p style="color:#666;margin-bottom:24px;font-size:1rem;">Are you sure you want to logout from your account?</p>
-            <div style="display:flex;gap:12px;justify-content:center;">
-                <button id="confirmLogoutBtn" style="background:#f44336;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Yes, Logout</button>
-                <button id="cancelLogoutBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Cancel</button>
-            </div>
-        </div>
-    </div>
-    
     <script>
         // Global variables
         let allJobs = <?php echo json_encode($job_postings); ?>;
@@ -1949,104 +1579,7 @@
             initializeFilters();
             updateJobCounts();
             initializeBulkActions();
-            initializeFormValidation();
-            
-            // Ensure table is properly rendered on page load
-            setTimeout(() => {
-                renderJobsTable();
-                updateJobCounts();
-            }, 100);
         });
-        
-        // Initialize character counters and form validation
-        function initializeFormValidation() {
-            const descriptionTextarea = document.getElementById('description');
-            const requirementsTextarea = document.getElementById('requirements');
-            
-            if (descriptionTextarea) {
-                descriptionTextarea.addEventListener('input', function() {
-                    updateCharCounter('descriptionCounter', this.value.length, 2000);
-                });
-            }
-            
-            if (requirementsTextarea) {
-                requirementsTextarea.addEventListener('input', function() {
-                    updateCharCounter('requirementsCounter', this.value.length, 1500);
-                });
-            }
-        }
-        
-        function updateCharCounter(counterId, currentLength, maxLength) {
-            const counter = document.getElementById(counterId);
-            if (!counter) return;
-            
-            counter.textContent = `${currentLength} / ${maxLength} characters`;
-            
-            // Update counter color based on length
-            counter.classList.remove('warning', 'danger');
-            if (currentLength > maxLength * 0.9) {
-                counter.classList.add('warning');
-            }
-            if (currentLength > maxLength) {
-                counter.classList.add('danger');
-            }
-        }
-        
-        function validateForm() {
-            let isValid = true;
-            const requiredFields = ['title', 'company', 'description', 'requirements', 'location', 'job_type'];
-            
-            // Clear previous error states
-            document.querySelectorAll('.form-group').forEach(group => {
-                group.classList.remove('error');
-                const errorMsg = group.querySelector('.error-message');
-                if (errorMsg) errorMsg.remove();
-            });
-            
-            // Validate required fields
-            requiredFields.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                const formGroup = field.closest('.form-group');
-                
-                if (!field.value.trim()) {
-                    isValid = false;
-                    formGroup.classList.add('error');
-                    
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'error-message';
-                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> This field is required';
-                    formGroup.appendChild(errorMsg);
-                }
-            });
-            
-            // Validate character limits
-            const description = document.getElementById('description');
-            const requirements = document.getElementById('requirements');
-            
-            if (description && description.value.length > 2000) {
-                isValid = false;
-                const formGroup = description.closest('.form-group');
-                formGroup.classList.add('error');
-                
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'error-message';
-                errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Description must be 2000 characters or less';
-                formGroup.appendChild(errorMsg);
-            }
-            
-            if (requirements && requirements.value.length > 1500) {
-                isValid = false;
-                const formGroup = requirements.closest('.form-group');
-                formGroup.classList.add('error');
-                
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'error-message';
-                errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Requirements must be 1500 characters or less';
-                formGroup.appendChild(errorMsg);
-            }
-            
-            return isValid;
-        }
         
         // Search and Filter Functions
         function initializeFilters() {
@@ -2100,7 +1633,7 @@
             if (filteredJobs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
                             <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             No jobs found matching your criteria
                         </td>
@@ -2112,38 +1645,21 @@
             tbody.innerHTML = filteredJobs.map(job => `
                 <tr data-job-id="${job.id}">
                     <td>
-                        <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
-                    </td>
-                    <td>
-                        <div class="job-title-cell">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
                             <strong>${escapeHtml(job.title)}</strong>
-                            <small class="job-industry">${escapeHtml(job.industry)}</small>
                         </div>
                     </td>
                     <td>${escapeHtml(job.company)}</td>
-                    <td>
-                        <div class="location-cell">
-                            <i class="fas fa-map-marker-alt"></i>
-                            ${escapeHtml(job.location)}
-                        </div>
-                    </td>
-                    <td>
-                        <span class="job-type-badge job-type-${job.job_type.toLowerCase().replace('-', '')}">
-                            ${escapeHtml(job.job_type)}
-                        </span>
-                    </td>
+                    <td>${escapeHtml(job.location)}</td>
+                    <td>${escapeHtml(job.job_type)}</td>
                     <td>${escapeHtml(job.salary_range)}</td>
                     <td>
                         <span class="status-badge status-${job.status.toLowerCase()}">
                             ${job.status}
                         </span>
                     </td>
-                    <td>
-                        <div class="date-cell">
-                            ${formatDate(job.created_at)}
-                            <small>${formatTime(job.created_at)}</small>
-                        </div>
-                    </td>
+                    <td>${formatDate(job.created_at)}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn btn-view" onclick="viewJob(${job.id})" title="View Details">
@@ -2175,38 +1691,6 @@
             if (totalElement) totalElement.textContent = filteredJobs.length;
             if (activeElement) activeElement.textContent = filteredJobs.filter(job => job.status === 'Active').length;
             if (closedElement) closedElement.textContent = filteredJobs.filter(job => job.status === 'Closed').length;
-        }
-        
-        function refreshJobData() {
-            // Refresh the job data from the server
-            fetch(window.location.href)
-                .then(response => response.text())
-                .then(html => {
-                    // Parse the HTML to extract job data
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const scriptTags = doc.querySelectorAll('script');
-                    
-                    scriptTags.forEach(script => {
-                        if (script.textContent.includes('let allJobs =')) {
-                            // Extract the job data from the script
-                            const match = script.textContent.match(/let allJobs = (\[.*?\]);/);
-                            if (match) {
-                                try {
-                                    allJobs = JSON.parse(match[1]);
-                                    filteredJobs = [...allJobs];
-                                    renderJobsTable();
-                                    updateJobCounts();
-                                } catch (e) {
-                                    console.error('Error parsing job data:', e);
-                                }
-                            }
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error refreshing job data:', error);
-                });
         }
         
         // Bulk Operations
@@ -2395,12 +1879,6 @@
             document.getElementById('jobId').value = '';
             document.getElementById('statusGroup').style.display = 'none';
             document.getElementById('jobForm').reset();
-            
-            // Reset submit button state
-            const submitBtn = document.querySelector('.modal-footer .btn-primary');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Save Job Posting';
-            
             document.getElementById('jobModal').style.display = 'block';
         }
         
@@ -2423,11 +1901,6 @@
             document.getElementById('job_type').value = job.job_type;
             document.getElementById('industry').value = job.industry;
             document.getElementById('status').value = job.status;
-            
-            // Reset submit button state
-            const submitBtn = document.querySelector('.modal-footer .btn-primary');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Update Job Posting';
             
             document.getElementById('jobModal').style.display = 'block';
         }
@@ -2574,51 +2047,23 @@
             document.getElementById('analyticsModal').style.display = 'none';
         }
         
-        // Close modal when clicking outside of it
-        window.onclick = function(event) {
-            const modal = document.getElementById('jobModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-        
-        // Close modal with ESC key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                const modal = document.getElementById('jobModal');
-                if (modal.style.display === 'block') {
-                    closeModal();
-                }
-            }
-        });
-        
         function submitForm() {
-            // Validate form first
-            if (!validateForm()) {
-                Swal.fire({
-                    title: 'Validation Error',
-                    text: 'Please fix the errors in the form before submitting.',
-                    icon: 'error',
-                    confirmButtonColor: '#233a8b'
-                });
-                return;
-            }
-            
             const form = document.getElementById('jobForm');
             const title = document.getElementById('title').value.trim();
             const company = document.getElementById('company').value.trim();
             const description = document.getElementById('description').value.trim();
             const requirements = document.getElementById('requirements').value.trim();
-            const location = document.getElementById('location').value.trim();
-            const jobType = document.getElementById('job_type').value;
             
-            // Show loading state
-            const submitBtn = document.querySelector('.modal-footer .btn-primary');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            if (!title || !company || !description || !requirements) {
+                Swal.fire({
+                    title: 'Missing Information',
+                    text: 'Please fill in all required fields.',
+                    icon: 'warning',
+                    confirmButtonColor: '#233a8b'
+                });
+                return;
+            }
             
-            // Submit form
             form.submit();
         }
         
@@ -2635,15 +2080,6 @@
                 year: 'numeric', 
                 month: 'short', 
                 day: 'numeric' 
-            });
-        }
-        
-        function formatTime(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
             });
         }
         
@@ -2751,46 +2187,6 @@
             }
         });
         
-        // Auto-dismiss alerts after 3 seconds
-        document.addEventListener('DOMContentLoaded', function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                setTimeout(() => {
-                    dismissAlert(alert);
-                }, 3000);
-            });
-            
-            // Ensure main content is visible after page load
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.style.display = 'block';
-                mainContent.style.visibility = 'visible';
-            }
-            
-            // Ensure table is visible
-            const contentCard = document.querySelector('.content-card');
-            if (contentCard) {
-                contentCard.style.display = 'block';
-                contentCard.style.visibility = 'visible';
-            }
-            
-            // Force table rendering
-            setTimeout(() => {
-                renderJobsTable();
-                updateJobCounts();
-            }, 200);
-        });
-
-        function dismissAlert(element) {
-            const alert = element.classList ? element : element.closest('.alert');
-            if (alert) {
-                alert.classList.add('fade-out');
-                setTimeout(() => {
-                    alert.remove();
-                }, 500);
-            }
-        }
-
         // Check admin session and update UI
         fetch('session_check.php')
             .then(r => r.json())
@@ -2808,78 +2204,6 @@
             .catch(() => {
                 console.error('Session check failed');
             });
-
-        // Logout functionality
-        document.querySelectorAll('.logout').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.getElementById('logoutModal').style.display = 'flex';
-            });
-        });
-
-        // Logout modal functionality
-        document.getElementById('confirmLogoutBtn').onclick = function() {
-            // Show loading state
-            const confirmBtn = document.getElementById('confirmLogoutBtn');
-            const cancelBtn = document.getElementById('cancelLogoutBtn');
-            const originalText = confirmBtn.textContent;
-            
-            // Disable buttons and show loading
-            confirmBtn.disabled = true;
-            cancelBtn.disabled = true;
-            confirmBtn.innerHTML = '<div style="display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></div>Logging out...';
-            
-            // Add spinner animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Small delay to show loading state, then redirect
-            setTimeout(() => {
-                window.location.href = 'logout.php';
-            }, 1000);
-        };
-
-        document.getElementById('cancelLogoutBtn').onclick = function() {
-            document.getElementById('logoutModal').style.display = 'none';
-        };
-
-        // Close modal on outside click
-        window.onclick = function(e) {
-            if (e.target === document.getElementById('logoutModal')) {
-                document.getElementById('logoutModal').style.display = 'none';
-            }
-        };
-        
-        // Ensure everything is properly initialized on window load
-        window.addEventListener('load', function() {
-            // Force visibility of main content
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.style.display = 'block';
-                mainContent.style.visibility = 'visible';
-                mainContent.style.opacity = '1';
-            }
-            
-            // Force visibility of content card
-            const contentCard = document.querySelector('.content-card');
-            if (contentCard) {
-                contentCard.style.display = 'block';
-                contentCard.style.visibility = 'visible';
-                contentCard.style.opacity = '1';
-            }
-            
-            // Ensure table is rendered
-            setTimeout(() => {
-                renderJobsTable();
-                updateJobCounts();
-            }, 100);
-        });
     </script>
 </body>
 </html>
