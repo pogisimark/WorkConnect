@@ -83,7 +83,7 @@ if (!$token_valid) {
 }
 
 // Database connection and backend processing
-$host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
+$host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
 $pass = "Pogisimark";
 $db   = "WorkConnect";

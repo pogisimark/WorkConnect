@@ -1,6 +1,6 @@
 <?php
 // Simple PHP script to add database columns safely
-$host = "workconnect.cz2woayyket3.ap-southeast-2.rds.amazonaws.com";
+$host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
 $pass = "Pogisimark";
 $db   = "WorkConnect";

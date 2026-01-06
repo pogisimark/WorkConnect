@@ -1441,8 +1441,6 @@
             // Get all unique occupations from all jobseekers
             const occupations = new Set();
             
-            // Debug: Log all occupations found
-            console.log('Populating occupation filter with', allJobseekers.length, 'jobseekers');
             
             allJobseekers.forEach(jobseeker => {
                 // Add occupation1, occupation2, occupation3 if they exist and are not empty/n/a
@@ -1462,7 +1460,6 @@
             
             // Add unique occupations to dropdown
             const sortedOccupations = Array.from(occupations).sort();
-            console.log('Found occupations:', sortedOccupations);
             sortedOccupations.forEach(occupation => {
                 const option = document.createElement('option');
                 option.value = occupation;
@@ -1607,23 +1604,10 @@
             
             // Apply occupation filter
             if (currentOccupationFilter !== 'all') {
-                console.log('Filtering by occupation:', currentOccupationFilter);
                 filteredData = filteredData.filter(j => {
-                    const match1 = j.occupation1 && j.occupation1.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase();
-                    const match2 = j.occupation2 && j.occupation2.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase();
-                    const match3 = j.occupation3 && j.occupation3.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase();
-                    const matches = match1 || match2 || match3;
-                    
-                    if (currentOccupationFilter.toLowerCase() === 'any') {
-                        console.log(`Jobseeker ${j.id} (${j.firstname} ${j.surname}):`, {
-                            occupation1: j.occupation1,
-                            occupation2: j.occupation2,
-                            occupation3: j.occupation3,
-                            match1, match2, match3, matches
-                        });
-                    }
-                    
-                    return matches;
+                    return (j.occupation1 && j.occupation1.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase()) ||
+                           (j.occupation2 && j.occupation2.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase()) ||
+                           (j.occupation3 && j.occupation3.trim().toLowerCase() === currentOccupationFilter.trim().toLowerCase());
                 });
             }
             
