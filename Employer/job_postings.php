@@ -386,7 +386,7 @@
         }
         
         .search-bar input {
-            width: 100%;
+            width: 95.5%;
             padding: 12px 40px 12px 40px;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -523,15 +523,6 @@
             background: #e0a800;
         }
         
-        .bulk-duplicate {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        .bulk-duplicate:hover {
-            background: #138496;
-        }
-        
         .bulk-delete {
             background: #dc3545;
             color: white;
@@ -653,6 +644,15 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            opacity: 1;
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            transform: translateY(0);
+        }
+        
+        .alert.fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
         }
         
         .alert-success {
@@ -671,24 +671,35 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 10000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
         }
         
         .modal-content {
             background-color: white;
-            margin: 5% auto;
+            margin: 50px auto;
             padding: 0;
             border-radius: 12px;
             width: 90%;
             max-width: 600px;
-            max-height: 80vh;
+            max-height: calc(100vh - 100px);
             overflow-y: auto;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 10001;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-content {
+                margin: 20px auto;
+                max-height: calc(100vh - 40px);
+                width: 95%;
+            }
         }
         
         .modal-header {
@@ -736,7 +747,7 @@
         .form-group input,
         .form-group select,
         .form-group textarea {
-            width: 100%;
+            width: 90%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
@@ -1105,11 +1116,42 @@
                             break;
                             
                         case 'bulk_update_status':
-                            $data = json_decode($_POST['data'], true);
-                            $job_ids = $data['job_ids'];
-                            $status = $data['status'];
+                            $raw_data = $_POST['data'] ?? '{}';
+                            $data = json_decode($raw_data, true);
                             
-                            $placeholders = str_repeat('?,', count($job_ids) - 1) . '?';
+                            // Validate data structure
+                            if (json_last_error() !== JSON_ERROR_NONE) {
+                                $error_message = "Invalid JSON data: " . json_last_error_msg();
+                                break;
+                            }
+                            
+                            if (!is_array($data) || !isset($data['job_ids']) || !isset($data['status'])) {
+                                $error_message = "Invalid data structure provided for bulk update.";
+                                break;
+                            }
+                            
+                            // Ensure job_ids is an array and convert to integers
+                            $job_ids = is_array($data['job_ids']) ? $data['job_ids'] : [$data['job_ids']];
+                            $job_ids = array_filter(array_map('intval', $job_ids));
+                            
+                            if (empty($job_ids)) {
+                                $error_message = "No valid job IDs provided for bulk update.";
+                                break;
+                            }
+                            
+                            $status = trim($data['status']);
+                            if (empty($status)) {
+                                $error_message = "Status is required for bulk update.";
+                                break;
+                            }
+                            
+                            // Handle single job ID case
+                            if (count($job_ids) === 1) {
+                                $placeholders = '?';
+                            } else {
+                                $placeholders = str_repeat('?,', count($job_ids) - 1) . '?';
+                            }
+                            
                             $stmt = $conn->prepare("UPDATE job_postings SET status=? WHERE id IN ($placeholders)");
                             $params = array_merge([$status], $job_ids);
                             $stmt->bind_param(str_repeat('s', count($params)), ...$params);
@@ -1123,10 +1165,36 @@
                             break;
                             
                         case 'bulk_delete':
-                            $data = json_decode($_POST['data'], true);
-                            $job_ids = $data['job_ids'];
+                            $raw_data = $_POST['data'] ?? '{}';
+                            $data = json_decode($raw_data, true);
                             
-                            $placeholders = str_repeat('?,', count($job_ids) - 1) . '?';
+                            // Validate data structure
+                            if (json_last_error() !== JSON_ERROR_NONE) {
+                                $error_message = "Invalid JSON data: " . json_last_error_msg();
+                                break;
+                            }
+                            
+                            if (!is_array($data) || !isset($data['job_ids'])) {
+                                $error_message = "Invalid data structure provided for bulk delete.";
+                                break;
+                            }
+                            
+                            // Ensure job_ids is an array and convert to integers
+                            $job_ids = is_array($data['job_ids']) ? $data['job_ids'] : [$data['job_ids']];
+                            $job_ids = array_filter(array_map('intval', $job_ids));
+                            
+                            if (empty($job_ids)) {
+                                $error_message = "No valid job IDs provided for bulk delete.";
+                                break;
+                            }
+                            
+                            // Handle single job ID case
+                            if (count($job_ids) === 1) {
+                                $placeholders = '?';
+                            } else {
+                                $placeholders = str_repeat('?,', count($job_ids) - 1) . '?';
+                            }
+                            
                             $stmt = $conn->prepare("DELETE FROM job_postings WHERE id IN ($placeholders)");
                             $stmt->bind_param(str_repeat('i', count($job_ids)), ...$job_ids);
                             
@@ -1136,40 +1204,6 @@
                                 $error_message = "Error deleting jobs: " . $conn->error;
                             }
                             $stmt->close();
-                            break;
-                            
-                        case 'bulk_duplicate':
-                            $data = json_decode($_POST['data'], true);
-                            $job_ids = $data['job_ids'];
-                            
-                            $duplicated_count = 0;
-                            foreach ($job_ids as $job_id) {
-                                // Get original job data
-                                $stmt = $conn->prepare("SELECT * FROM job_postings WHERE id=?");
-                                $stmt->bind_param("i", $job_id);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                                $job = $result->fetch_assoc();
-                                $stmt->close();
-                                
-                                if ($job) {
-                                    // Insert duplicate with "Copy of" prefix
-                                    $new_title = "Copy of " . $job['title'];
-                                    $stmt = $conn->prepare("INSERT INTO job_postings (title, company, description, requirements, salary_range, location, job_type, industry, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                                    $stmt->bind_param("sssssssss", $new_title, $job['company'], $job['description'], $job['requirements'], $job['salary_range'], $job['location'], $job['job_type'], $job['industry'], 'Draft');
-                                    
-                                    if ($stmt->execute()) {
-                                        $duplicated_count++;
-                                    }
-                                    $stmt->close();
-                                }
-                            }
-                            
-                            if ($duplicated_count > 0) {
-                                $success_message = "$duplicated_count job(s) duplicated successfully!";
-                            } else {
-                                $error_message = "No jobs were duplicated.";
-                            }
                             break;
                     }
                 }
@@ -1220,13 +1254,13 @@
             </div>
 
             <?php if ($success_message): ?>
-                <div class="alert alert-success">
+                <div class="alert alert-success" id="successAlert">
                     <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
                 </div>
             <?php endif; ?>
             
             <?php if ($error_message): ?>
-                <div class="alert alert-error">
+                <div class="alert alert-error" id="errorAlert">
                     <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                 </div>
             <?php endif; ?>
@@ -1280,9 +1314,6 @@
                     </button>
                     <button class="bulk-btn bulk-close" onclick="bulkAction('close')">
                         <i class="fas fa-times"></i> Close
-                    </button>
-                    <button class="bulk-btn bulk-duplicate" onclick="bulkAction('duplicate')">
-                        <i class="fas fa-copy"></i> Duplicate
                     </button>
                     <button class="bulk-btn bulk-delete" onclick="bulkAction('delete')">
                         <i class="fas fa-trash"></i> Delete
@@ -1579,7 +1610,32 @@
             initializeFilters();
             updateJobCounts();
             initializeBulkActions();
+            autoHideAlerts();
         });
+        
+        // Auto-hide success and error alerts after 5 seconds
+        function autoHideAlerts() {
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            
+            if (successAlert) {
+                setTimeout(function() {
+                    successAlert.classList.add('fade-out');
+                    setTimeout(function() {
+                        successAlert.style.display = 'none';
+                    }, 500); // Wait for fade animation to complete
+                }, 5000); // Hide after 5 seconds
+            }
+            
+            if (errorAlert) {
+                setTimeout(function() {
+                    errorAlert.classList.add('fade-out');
+                    setTimeout(function() {
+                        errorAlert.style.display = 'none';
+                    }, 500); // Wait for fade animation to complete
+                }, 5000); // Hide after 5 seconds
+            }
+        }
         
         // Search and Filter Functions
         function initializeFilters() {
@@ -1633,7 +1689,7 @@
             if (filteredJobs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: #666;">
+                        <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
                             <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             No jobs found matching your criteria
                         </td>
@@ -1645,21 +1701,38 @@
             tbody.innerHTML = filteredJobs.map(job => `
                 <tr data-job-id="${job.id}">
                     <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
+                        <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
+                    </td>
+                    <td>
+                        <div class="job-title-cell">
                             <strong>${escapeHtml(job.title)}</strong>
+                            <small class="job-industry">${escapeHtml(job.industry || '')}</small>
                         </div>
                     </td>
                     <td>${escapeHtml(job.company)}</td>
-                    <td>${escapeHtml(job.location)}</td>
-                    <td>${escapeHtml(job.job_type)}</td>
-                    <td>${escapeHtml(job.salary_range)}</td>
                     <td>
-                        <span class="status-badge status-${job.status.toLowerCase()}">
-                            ${job.status}
+                        <div class="location-cell">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${escapeHtml(job.location)}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="job-type-badge job-type-${job.job_type.toLowerCase().replace('-', '')}">
+                            ${escapeHtml(job.job_type)}
                         </span>
                     </td>
-                    <td>${formatDate(job.created_at)}</td>
+                    <td>${escapeHtml(job.salary_range || '')}</td>
+                    <td>
+                        <span class="status-badge status-${job.status.toLowerCase()}">
+                            ${escapeHtml(job.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="date-cell">
+                            ${formatDate(job.created_at)}
+                            <small>${formatTime(job.created_at)}</small>
+                        </div>
+                    </td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn btn-view" onclick="viewJob(${job.id})" title="View Details">
@@ -1807,9 +1880,6 @@
                 case 'delete':
                     bulkDelete(jobIds);
                     break;
-                case 'duplicate':
-                    bulkDuplicate(jobIds);
-                    break;
             }
         }
         
@@ -1845,29 +1915,24 @@
             });
         }
         
-        function bulkDuplicate(jobIds) {
-            Swal.fire({
-                title: `Duplicate ${jobIds.length} job(s)?`,
-                text: "This will create copies of the selected jobs.",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, duplicate them!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    submitBulkAction('bulk_duplicate', { job_ids: jobIds });
-                }
-            });
-        }
-        
         function submitBulkAction(action, data) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.innerHTML = `
-                <input type="hidden" name="action" value="${action}">
-                <input type="hidden" name="data" value="${JSON.stringify(data)}">
-            `;
+            
+            // Create action input
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            form.appendChild(actionInput);
+            
+            // Create data input with properly encoded JSON
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = JSON.stringify(data);
+            form.appendChild(dataInput);
+            
             document.body.appendChild(form);
             form.submit();
         }
@@ -2080,6 +2145,15 @@
                 year: 'numeric', 
                 month: 'short', 
                 day: 'numeric' 
+            });
+        }
+        
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true
             });
         }
         

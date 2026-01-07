@@ -493,6 +493,10 @@
                     <i class="fas fa-user-tie"></i>
                     I'm Looking for a Job
                 </a>
+                <a href="Company/login.php" class="action-btn" id="companyBtn">
+                    <i class="fas fa-briefcase"></i>
+                    I'm an Employer
+                </a>
                 <a href="Employer/login.html" class="action-btn" id="employerBtn">
                     <i class="fas fa-building"></i>
                     I'm an Admin

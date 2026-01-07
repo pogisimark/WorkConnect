@@ -82,6 +82,14 @@ if (!$token_valid) {
     $current_user_id = $_GET['user_id'];
 }
 
+// Check if PHPMailer is available
+$phpmailer_available = false;
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    require_once __DIR__ . '/../Employer/email_config.php';
+    $phpmailer_available = true;
+}
+
 // Database connection and backend processing
 $host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
@@ -136,6 +144,288 @@ function sendJsonResponse($success, $message, $data = null) {
     
     echo json_encode($response);
     exit;
+}
+
+function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
+    global $phpmailer_available;
+    
+    $subject = "WorkConnect - Job Application Form Submission Successful";
+    
+    // Email body with professional HTML formatting
+    $message = "
+    <!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                line-height: 1.7; 
+                color: #2c3e50; 
+                background-color: #f4f6f8;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            .email-wrapper {
+                max-width: 600px;
+                margin: 40px auto;
+                background-color: #ffffff;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
+                color: #ffffff;
+                padding: 40px 30px;
+                text-align: center;
+            }
+            .header h1 {
+                font-size: 28px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+            .header .tagline {
+                font-size: 14px;
+                opacity: 0.9;
+                margin-top: 8px;
+                font-weight: 300;
+            }
+            .content {
+                padding: 50px 40px;
+                background-color: #ffffff;
+            }
+            .success-badge {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .success-icon {
+                display: inline-block;
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                border-radius: 50%;
+                line-height: 80px;
+                font-size: 40px;
+                color: #ffffff;
+                font-weight: bold;
+                box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            }
+            .success-title {
+                font-size: 24px;
+                font-weight: 600;
+                color: #1a3876;
+                text-align: center;
+                margin-bottom: 25px;
+                letter-spacing: -0.5px;
+            }
+            .greeting {
+                font-size: 16px;
+                color: #2c3e50;
+                margin-bottom: 20px;
+                font-weight: 500;
+            }
+            .message-text {
+                font-size: 15px;
+                color: #555555;
+                margin-bottom: 18px;
+                line-height: 1.8;
+            }
+            .highlight-box {
+                background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+                border-left: 4px solid #4caf50;
+                padding: 20px 25px;
+                margin: 25px 0;
+                border-radius: 4px;
+            }
+            .highlight-box p {
+                margin: 0;
+                font-size: 15px;
+                color: #2c3e50;
+                font-weight: 500;
+            }
+            .info-section {
+                background-color: #f8f9fa;
+                border-radius: 6px;
+                padding: 20px;
+                margin: 25px 0;
+                border: 1px solid #e9ecef;
+            }
+            .info-section p {
+                margin: 0;
+                font-size: 14px;
+                color: #6c757d;
+                line-height: 1.7;
+            }
+            .closing {
+                margin-top: 35px;
+                padding-top: 25px;
+                border-top: 1px solid #e9ecef;
+            }
+            .closing p {
+                font-size: 15px;
+                color: #2c3e50;
+                margin-bottom: 8px;
+            }
+            .signature {
+                font-weight: 600;
+                color: #1a3876;
+                font-size: 16px;
+            }
+            .footer {
+                background-color: #1a3876;
+                color: #ffffff;
+                padding: 30px;
+                text-align: center;
+                font-size: 12px;
+                line-height: 1.6;
+            }
+            .footer p {
+                margin: 8px 0;
+                opacity: 0.9;
+            }
+            .footer .copyright {
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                opacity: 0.8;
+            }
+            .divider {
+                height: 1px;
+                background: linear-gradient(to right, transparent, #e9ecef, transparent);
+                margin: 30px 0;
+            }
+            @media only screen and (max-width: 600px) {
+                .email-wrapper {
+                    margin: 0;
+                    border-radius: 0;
+                }
+                .content {
+                    padding: 35px 25px;
+                }
+                .header {
+                    padding: 30px 20px;
+                }
+                .header h1 {
+                    font-size: 24px;
+                }
+                .success-title {
+                    font-size: 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class='email-wrapper'>
+            <div class='header'>
+                <h1>WorkConnect</h1>
+                <div class='tagline'>Connecting Talent with Opportunity</div>
+            </div>
+            
+            <div class='content'>
+                <div class='success-badge'>
+                    <div class='success-icon'>✓</div>
+                </div>
+                
+                <h2 class='success-title'>Application Received Successfully</h2>
+                
+                <p class='greeting'>Dear " . htmlspecialchars($firstname . ' ' . $surname) . ",</p>
+                
+                <p class='message-text'>
+                    Thank you for submitting your job application form to WorkConnect. We have successfully received and processed your registration.
+                </p>
+                
+                <div class='highlight-box'>
+                    <p>✓ Your application is now under review by our team.</p>
+                </div>
+                
+                <p class='message-text'>
+                    Our recruitment team will carefully review your application and qualifications. We appreciate the time and effort you've invested in completing the registration process.
+                </p>
+                
+                <div class='info-section'>
+                    <p><strong>What's Next?</strong></p>
+                    <p style='margin-top: 10px;'>We will contact you through the email address you provided if there are any updates regarding your application. Please ensure your contact information remains up to date.</p>
+                </div>
+                
+                <p class='message-text'>
+                    Thank you for your interest in joining the WorkConnect platform. We look forward to the possibility of working with you.
+                </p>
+                
+                <div class='divider'></div>
+                
+                <div class='closing'>
+                    <p>Best regards,</p>
+                    <p class='signature'>The WorkConnect Team</p>
+                </div>
+            </div>
+            
+            <div class='footer'>
+                <p><strong>WorkConnect</strong></p>
+                <p>Department of Labor and Employment</p>
+                <p>National Skills Registration Program</p>
+                <div class='copyright'>
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                    <p>&copy; " . date('Y') . " WorkConnect. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+    
+    // Send email using available method
+    if ($phpmailer_available) {
+        // Use PHPMailer to send email
+        try {
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = SMTP_HOST;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = SMTP_USERNAME;
+            $mail->Password   = SMTP_PASSWORD;
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = SMTP_PORT;
+            
+            // Recipients
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->addAddress($to_email);
+            
+            // Content
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = $subject;
+            $mail->Body    = $message;
+            
+            $mail->send();
+            error_log("Confirmation email sent successfully to: " . $to_email);
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Failed to send confirmation email using PHPMailer to: " . $to_email . " Error: " . $mail->ErrorInfo);
+            return false;
+        }
+    } else {
+        // Fallback to basic PHP mail() function
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+        $headers .= "Reply-To: noreply@workconnect.com" . "\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion();
+        
+        $mail_sent = @mail($to_email, $subject, $message, $headers);
+        
+        if (!$mail_sent) {
+            error_log("Failed to send confirmation email to: " . $to_email);
+        }
+        
+        return $mail_sent;
+    }
 }
 
 // Handle POST requests (form submission)
@@ -509,6 +799,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Commit the transaction
             $conn->commit();
             $conn->autocommit(TRUE);
+            
+            // Send confirmation email to the user
+            $user_email = $email; // Email from form submission
+            $user_firstname = $firstname;
+            $user_surname = $surname;
+            
+            // Send email notification (non-blocking - don't fail if email fails)
+            try {
+                sendSubmissionConfirmationEmail($user_email, $user_firstname, $user_surname);
+            } catch (Exception $email_error) {
+                // Log email error but don't fail the submission
+                error_log("Email sending error: " . $email_error->getMessage());
+            }
+            
             sendJsonResponse(true, 'Registration saved successfully!');
         } else {
             // Rollback on error
@@ -1642,11 +1946,11 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label for="surname">SURNAME<span class="required-asterisk">*</span></label>
-                <input type="text" id="surname" name="surname" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
+                <input type="text" id="surname" name="surname" value="<?php echo htmlspecialchars($_SESSION['lastname'] ?? ''); ?>" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required readonly style="background-color: #f5f5f5; cursor: not-allowed;">
               </div>
               <div class="form-group">
                 <label for="firstname">FIRST NAME<span class="required-asterisk">*</span></label>
-                <input type="text" id="firstname" name="firstname" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
+                <input type="text" id="firstname" name="firstname" value="<?php echo htmlspecialchars($_SESSION['firstname'] ?? ''); ?>" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required readonly style="background-color: #f5f5f5; cursor: not-allowed;">
               </div>
               <div class="form-group">
                 <label for="middlename">MIDDLE NAME</label>
@@ -1726,7 +2030,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label for="email">E-MAIL<span class="required-asterisk">*</span></label>
-                <input type="email" id="email" name="email" maxlength="40" required>
+                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($_SESSION['email'] ?? ''); ?>" maxlength="40" required readonly style="background-color: #f5f5f5; cursor: not-allowed;">
               </div>
             </div>
             <div class="form-row">
