@@ -5,14 +5,51 @@ date_default_timezone_set('Asia/Manila');
 require_once 'session_check.php';
 require_once 'db.php';
 
-// Get company information
+// Get company information with profile data
 $company_id = $_SESSION['company_id'];
 $company_name = $_SESSION['company_name'];
 $email = $_SESSION['email'];
 
-// Get job postings count (if job_postings table exists)
+// Check which profile columns exist
+$columns_check = $conn->query("SHOW COLUMNS FROM company_users");
+$existing_columns = [];
+if ($columns_check) {
+    while ($row = $columns_check->fetch_assoc()) {
+        $existing_columns[] = $row['Field'];
+    }
+}
+
+// Build SELECT query based on available columns
+$select_fields = ['id'];
+$profile_fields = ['logo', 'description', 'website', 'address', 'phone'];
+foreach ($profile_fields as $field) {
+    if (in_array($field, $existing_columns)) {
+        $select_fields[] = $field;
+    }
+}
+
+$select_query = "SELECT " . implode(', ', $select_fields) . " FROM company_users WHERE id = ?";
+$stmt = $conn->prepare($select_query);
+$stmt->bind_param("i", $company_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$company_profile = $result->fetch_assoc();
+$stmt->close();
+
+$company_logo = (in_array('logo', $existing_columns) && isset($company_profile['logo'])) ? $company_profile['logo'] : null;
+$company_description = (in_array('description', $existing_columns) && isset($company_profile['description'])) ? $company_profile['description'] : null;
+$company_website = (in_array('website', $existing_columns) && isset($company_profile['website'])) ? $company_profile['website'] : null;
+$company_address = (in_array('address', $existing_columns) && isset($company_profile['address'])) ? $company_profile['address'] : null;
+$company_phone = (in_array('phone', $existing_columns) && isset($company_profile['phone'])) ? $company_profile['phone'] : null;
+
+// Get job postings count and analytics
 $job_count = 0;
+$active_jobs = 0;
+$closed_jobs = 0;
 $recent_jobs = [];
+$total_applications = 0;
+$applications_by_status = ['Applied' => 0, 'Viewed' => 0, 'Interview' => 0, 'Accepted' => 0, 'Rejected' => 0];
+$recent_applications = [];
 
 // Check if job_postings table exists and get company's jobs
 $table_check = $conn->query("SHOW TABLES LIKE 'job_postings'");
@@ -20,12 +57,23 @@ if ($table_check && $table_check->num_rows > 0) {
     // Check if job_postings has company_id column
     $columns = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
     if ($columns && $columns->num_rows > 0) {
-        // Only count jobs that belong to this company
+        // Count total jobs
         $stmt = $conn->prepare("SELECT COUNT(*) as count FROM job_postings WHERE company_id = ?");
         $stmt->bind_param("i", $company_id);
         $stmt->execute();
         $result = $stmt->get_result();
         $job_count = $result->fetch_assoc()['count'] ?? 0;
+        $stmt->close();
+        
+        // Count active and closed jobs
+        $stmt = $conn->prepare("SELECT status, COUNT(*) as count FROM job_postings WHERE company_id = ? GROUP BY status");
+        $stmt->bind_param("i", $company_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            if ($row['status'] == 'Active') $active_jobs = $row['count'];
+            if ($row['status'] == 'Closed') $closed_jobs = $row['count'];
+        }
         $stmt->close();
         
         // Get recent jobs for this company only
@@ -36,9 +84,54 @@ if ($table_check && $table_check->num_rows > 0) {
             $recent_jobs = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
         }
+        
+        // Get applications analytics if job_applications_extended table exists
+        $app_table_check = $conn->query("SHOW TABLES LIKE 'job_applications_extended'");
+        if ($app_table_check && $app_table_check->num_rows > 0) {
+            // Get total applications for company's jobs
+            $stmt = $conn->prepare("
+                SELECT COUNT(*) as count 
+                FROM job_applications_extended jae
+                INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jp.company_id = ?
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $total_applications = $result->fetch_assoc()['count'] ?? 0;
+            $stmt->close();
+            
+            // Get applications by status
+            $stmt = $conn->prepare("
+                SELECT jae.status, COUNT(*) as count 
+                FROM job_applications_extended jae
+                INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jp.company_id = ?
+                GROUP BY jae.status
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $applications_by_status[$row['status']] = $row['count'];
+            }
+            $stmt->close();
+            
+            // Get recent applications (last 7 days)
+            $stmt = $conn->prepare("
+                SELECT jae.id, jae.status, jae.applied_date, jp.title as job_title
+                FROM job_applications_extended jae
+                INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jp.company_id = ? AND jae.applied_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                ORDER BY jae.applied_date DESC
+                LIMIT 5
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $recent_applications = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+        }
     }
-    // If no company_id column exists, don't count any jobs
-    // Company can only see jobs they posted, which requires company_id column
 }
 
 $conn->close();
@@ -284,8 +377,8 @@ $conn->close();
         
         /* Profile Dropdown Styles */
         .profile-dropdown {
-            position: absolute;
-            top: 70px;
+            position: fixed;
+            top: 80px;
             right: 20px;
             width: 200px;
             background: white;
@@ -421,9 +514,13 @@ $conn->close();
             <span class="brand">WorkConnect</span>
         </div>
         <div class="user-info">
-            <div class="user-profile">
+                <div class="user-profile">
                 <div class="profile-icon" onclick="toggleProfileMenu()">
-                    <i class="fas fa-building"></i>
+                    <?php if ($company_logo): ?>
+                        <img src="<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    <?php else: ?>
+                        <i class="fas fa-building"></i>
+                    <?php endif; ?>
                 </div>
                 <span class="welcome-text">Welcome, <?php echo htmlspecialchars($company_name); ?></span>
             </div>
@@ -443,6 +540,7 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
+                <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
             </ul>
         </div>
 
@@ -465,17 +563,71 @@ $conn->close();
                         <div class="stat-icon">
                             <i class="fas fa-file-alt"></i>
                         </div>
-                        <div class="stat-value">0</div>
+                        <div class="stat-value"><?php echo $total_applications; ?></div>
                         <div class="stat-label">Total Applications</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <div class="stat-value">0</div>
+                        <div class="stat-value"><?php echo $active_jobs; ?></div>
                         <div class="stat-label">Active Jobs</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-value"><?php echo $closed_jobs; ?></div>
+                        <div class="stat-label">Closed Jobs</div>
+                    </div>
                 </div>
+                
+                <?php if ($total_applications > 0): ?>
+                <div class="recent-jobs" style="margin-bottom: 30px;">
+                    <h2 class="section-title">Application Status Breakdown</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #1976d2;"><?php echo $applications_by_status['Applied']; ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Applied</div>
+                        </div>
+                        <div style="padding: 15px; background: #fff3e0; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #f57c00;"><?php echo $applications_by_status['Viewed']; ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Viewed</div>
+                        </div>
+                        <div style="padding: 15px; background: #f3e5f5; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #7b1fa2;"><?php echo $applications_by_status['Interview']; ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Interview</div>
+                        </div>
+                        <div style="padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #388e3c;"><?php echo $applications_by_status['Accepted']; ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Accepted</div>
+                        </div>
+                        <div style="padding: 15px; background: #ffebee; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #c62828;"><?php echo $applications_by_status['Rejected']; ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Rejected</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php if (count($recent_applications) > 0): ?>
+                <div class="recent-jobs" style="margin-bottom: 30px;">
+                    <h2 class="section-title">Recent Applications (Last 7 Days)</h2>
+                    <?php foreach ($recent_applications as $app): ?>
+                        <div class="job-item">
+                            <div>
+                                <div class="job-title"><?php echo htmlspecialchars($app['job_title']); ?></div>
+                                <div class="job-meta">
+                                    Applied on <?php echo date('M d, Y g:i A', strtotime($app['applied_date'])); ?>
+                                </div>
+                            </div>
+                            <span class="status-badge status-<?php echo strtolower($app['status'] ?? 'applied'); ?>">
+                                <?php echo htmlspecialchars($app['status'] ?? 'Applied'); ?>
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                <?php endif; ?>
 
                 <div class="recent-jobs">
                     <h2 class="section-title">Recent Job Postings</h2>
@@ -510,10 +662,6 @@ $conn->close();
                     <div class="profile-item">
                         <h4>Email Address</h4>
                         <p><?php echo htmlspecialchars($email); ?></p>
-                    </div>
-                    <div class="profile-item">
-                        <h4>Account ID</h4>
-                        <p>#<?php echo htmlspecialchars($company_id); ?></p>
                     </div>
                 </div>
             </div>

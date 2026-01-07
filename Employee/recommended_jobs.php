@@ -46,9 +46,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         $stmt->close();
         
         if (!$existing) {
-            // Insert new application
-            $stmt = $conn->prepare("INSERT INTO job_applications_extended (jobseeker_id, job_posting_id, status) VALUES (?, ?, 'Applied')");
-            $stmt->bind_param("ii", $jobseekerId, $jobId);
+            // Calculate compatibility score before creating application
+            $compatibility_score = $matching->calculateCompatibilityScore($userId, $jobId);
+            
+            // Insert new application with compatibility score
+            // This is the ONLY place where applications should be created
+            $stmt = $conn->prepare("INSERT INTO job_applications_extended (jobseeker_id, job_posting_id, status, compatibility_score) VALUES (?, ?, 'Applied', ?)");
+            $stmt->bind_param("iid", $jobseekerId, $jobId, $compatibility_score);
             
             if ($stmt->execute()) {
                 $success_message = "Application submitted successfully!";
@@ -490,8 +494,8 @@ $conn->close();
                                         </div>
                                         <?php if ($job['salary_range']): ?>
                                         <div class="job-meta-item">
-                                            <i class="fas fa-dollar-sign"></i>
-                                            <?php echo htmlspecialchars($job['salary_range']); ?>
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            ₱ <?php echo htmlspecialchars($job['salary_range']); ?>
                                         </div>
                                         <?php endif; ?>
                                     </div>

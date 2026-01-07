@@ -1063,7 +1063,9 @@
                             $company = trim($_POST['company']);
                             $description = trim($_POST['description']);
                             $requirements = trim($_POST['requirements']);
-                            $salary_range = trim($_POST['salary_range']);
+                            $salary_min = preg_replace('/[^0-9]/', '', $_POST['salary_min'] ?? '');
+                            $salary_max = preg_replace('/[^0-9]/', '', $_POST['salary_max'] ?? '');
+                            $salary_range = $salary_min && $salary_max ? $salary_min . '-' . $salary_max : trim($_POST['salary_range'] ?? '');
                             $location = trim($_POST['location']);
                             $job_type = $_POST['job_type'];
                             $industry = trim($_POST['industry']);
@@ -1085,7 +1087,9 @@
                             $company = trim($_POST['company']);
                             $description = trim($_POST['description']);
                             $requirements = trim($_POST['requirements']);
-                            $salary_range = trim($_POST['salary_range']);
+                            $salary_min = preg_replace('/[^0-9]/', '', $_POST['salary_min'] ?? '');
+                            $salary_max = preg_replace('/[^0-9]/', '', $_POST['salary_max'] ?? '');
+                            $salary_range = $salary_min && $salary_max ? $salary_min . '-' . $salary_max : trim($_POST['salary_range'] ?? '');
                             $location = trim($_POST['location']);
                             $job_type = $_POST['job_type'];
                             $industry = trim($_POST['industry']);
@@ -1404,7 +1408,7 @@
                                             <?php echo htmlspecialchars($job['job_type']); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo htmlspecialchars($job['salary_range']); ?></td>
+                                    <td><?php echo $job['salary_range'] ? '₱ ' . htmlspecialchars($job['salary_range']) : ''; ?></td>
                                     <td>
                                         <span class="status-badge status-<?php echo strtolower($job['status']); ?>">
                                             <?php echo htmlspecialchars($job['status']); ?>
@@ -1484,15 +1488,22 @@
                     </div>
                     
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="salary_range">Salary Range</label>
-                            <input type="text" id="salary_range" name="salary_range" placeholder="e.g., 25000-35000">
+                        <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <label for="salary_min">Minimum Salary (PHP) *</label>
+                                <input type="text" id="salary_min" name="salary_min" placeholder="e.g., 25000" required>
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="salary_max">Maximum Salary (PHP) *</label>
+                                <input type="text" id="salary_max" name="salary_max" placeholder="e.g., 35000" required>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="industry">Industry</label>
                             <input type="text" id="industry" name="industry" placeholder="e.g., Technology, Healthcare">
                         </div>
                     </div>
+                    <input type="hidden" id="salary_range" name="salary_range">
                     
                     <div class="form-group">
                         <label for="description">Job Description *</label>
@@ -1721,7 +1732,7 @@
                             ${escapeHtml(job.job_type)}
                         </span>
                     </td>
-                    <td>${escapeHtml(job.salary_range || '')}</td>
+                    <td>${job.salary_range ? '₱ ' + escapeHtml(job.salary_range) : ''}</td>
                     <td>
                         <span class="status-badge status-${job.status.toLowerCase()}">
                             ${escapeHtml(job.status)}
@@ -1944,7 +1955,12 @@
             document.getElementById('jobId').value = '';
             document.getElementById('statusGroup').style.display = 'none';
             document.getElementById('jobForm').reset();
+            // Clear salary fields
+            document.getElementById('salary_min').value = '';
+            document.getElementById('salary_max').value = '';
             document.getElementById('jobModal').style.display = 'block';
+            // Initialize formatting
+            setTimeout(initializeSalaryFormatting, 100);
         }
         
         function editJob(jobId) {
@@ -1961,13 +1977,28 @@
             document.getElementById('company').value = job.company;
             document.getElementById('description').value = job.description;
             document.getElementById('requirements').value = job.requirements;
-            document.getElementById('salary_range').value = job.salary_range;
+            // Parse salary range and populate min/max fields
+            if (job.salary_range) {
+                const salaryParts = job.salary_range.split('-');
+                if (salaryParts.length === 2) {
+                    document.getElementById('salary_min').value = formatNumberWithCommas(salaryParts[0].trim());
+                    document.getElementById('salary_max').value = formatNumberWithCommas(salaryParts[1].trim());
+                } else {
+                    document.getElementById('salary_min').value = '';
+                    document.getElementById('salary_max').value = '';
+                }
+            } else {
+                document.getElementById('salary_min').value = '';
+                document.getElementById('salary_max').value = '';
+            }
             document.getElementById('location').value = job.location;
             document.getElementById('job_type').value = job.job_type;
             document.getElementById('industry').value = job.industry;
             document.getElementById('status').value = job.status;
             
             document.getElementById('jobModal').style.display = 'block';
+            // Initialize formatting
+            setTimeout(initializeSalaryFormatting, 100);
         }
         
         function viewJob(jobId) {
@@ -1981,7 +2012,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                         <div><strong>Location:</strong> ${escapeHtml(job.location)}</div>
                         <div><strong>Type:</strong> ${escapeHtml(job.job_type)}</div>
-                        <div><strong>Salary:</strong> ${escapeHtml(job.salary_range)}</div>
+                        <div><strong>Salary:</strong> ₱ ${escapeHtml(job.salary_range)}</div>
                         <div><strong>Industry:</strong> ${escapeHtml(job.industry)}</div>
                         <div><strong>Status:</strong> <span class="status-badge status-${job.status.toLowerCase()}">${job.status}</span></div>
                         <div><strong>Posted:</strong> ${formatDate(job.created_at)}</div>
@@ -2118,6 +2149,8 @@
             const company = document.getElementById('company').value.trim();
             const description = document.getElementById('description').value.trim();
             const requirements = document.getElementById('requirements').value.trim();
+            const salaryMin = document.getElementById('salary_min').value.trim();
+            const salaryMax = document.getElementById('salary_max').value.trim();
             
             if (!title || !company || !description || !requirements) {
                 Swal.fire({
@@ -2129,7 +2162,111 @@
                 return;
             }
             
+            // Validate salary fields
+            if (!salaryMin || !salaryMax) {
+                Swal.fire({
+                    title: 'Missing Salary Information',
+                    text: 'Please fill in both minimum and maximum salary.',
+                    icon: 'warning',
+                    confirmButtonColor: '#233a8b'
+                });
+                return;
+            }
+            
+            const minValue = removeCommas(salaryMin);
+            const maxValue = removeCommas(salaryMax);
+            
+            if (parseInt(minValue) > parseInt(maxValue)) {
+                Swal.fire({
+                    title: 'Invalid Salary Range',
+                    text: 'Minimum salary cannot be greater than maximum salary.',
+                    icon: 'warning',
+                    confirmButtonColor: '#233a8b'
+                });
+                return;
+            }
+            
+            // Combine salary min and max into salary_range
+            if (salaryMin && salaryMax) {
+                const minValue = removeCommas(salaryMin);
+                const maxValue = removeCommas(salaryMax);
+                document.getElementById('salary_range').value = minValue + '-' + maxValue;
+            }
+            
             form.submit();
+        }
+        
+        // Format number with commas (e.g., 1000 -> 1,000)
+        function formatNumberWithCommas(value) {
+            if (!value) return '';
+            // Remove all non-numeric characters
+            const numbers = value.replace(/[^0-9]/g, '');
+            if (!numbers) return '';
+            // Add commas every 3 digits
+            return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        // Remove commas from number string
+        function removeCommas(value) {
+            return value.replace(/,/g, '');
+        }
+        
+        // Initialize salary input formatting when modal opens
+        function initializeSalaryFormatting() {
+            const salaryMinInput = document.getElementById('salary_min');
+            const salaryMaxInput = document.getElementById('salary_max');
+            
+            if (salaryMinInput && !salaryMinInput.hasAttribute('data-initialized')) {
+                salaryMinInput.setAttribute('data-initialized', 'true');
+                
+                // Format on input
+                salaryMinInput.addEventListener('input', function(e) {
+                    const cursorPos = this.selectionStart;
+                    const oldValue = this.value;
+                    const newValue = formatNumberWithCommas(this.value);
+                    
+                    if (oldValue !== newValue) {
+                        this.value = newValue;
+                        // Adjust cursor position after formatting
+                        const diff = newValue.length - oldValue.length;
+                        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+                    }
+                });
+                
+                // Prevent non-numeric characters on paste
+                salaryMinInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^0-9]/g, '');
+                    this.value = formatNumberWithCommas(numbers);
+                });
+            }
+            
+            if (salaryMaxInput && !salaryMaxInput.hasAttribute('data-initialized')) {
+                salaryMaxInput.setAttribute('data-initialized', 'true');
+                
+                // Format on input
+                salaryMaxInput.addEventListener('input', function(e) {
+                    const cursorPos = this.selectionStart;
+                    const oldValue = this.value;
+                    const newValue = formatNumberWithCommas(this.value);
+                    
+                    if (oldValue !== newValue) {
+                        this.value = newValue;
+                        // Adjust cursor position after formatting
+                        const diff = newValue.length - oldValue.length;
+                        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+                    }
+                });
+                
+                // Prevent non-numeric characters on paste
+                salaryMaxInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^0-9]/g, '');
+                    this.value = formatNumberWithCommas(numbers);
+                });
+            }
         }
         
         // Utility Functions

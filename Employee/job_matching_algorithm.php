@@ -241,7 +241,7 @@ class JobMatchingAlgorithm {
                    CASE WHEN jae.id IS NOT NULL THEN 1 ELSE 0 END as already_applied
             FROM job_postings jp
             LEFT JOIN job_applications_extended jae ON jp.id = jae.job_posting_id AND jae.jobseeker_id = (
-                SELECT id FROM jobseeker WHERE user_id = ?
+                SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1
             )
             WHERE jp.status = 'Active'
             ORDER BY compatibility_score DESC, jp.created_at DESC
@@ -255,12 +255,13 @@ class JobMatchingAlgorithm {
         $stmt->close();
         
         // Calculate compatibility scores for jobs without scores
+        // NOTE: We do NOT store these scores in job_applications_extended to avoid creating false applications
+        // Applications should only be created when user explicitly clicks "Apply"
         foreach ($jobs as &$job) {
-            if ($job['compatibility_score'] == 0) {
+            if ($job['compatibility_score'] == 0 || $job['already_applied'] == 0) {
+                // Only calculate score if user hasn't applied yet
+                // If already applied, use the stored score from the application record
                 $job['compatibility_score'] = $this->calculateCompatibilityScore($userId, $job['id']);
-                
-                // Store the calculated score
-                $this->storeCompatibilityScore($userId, $job['id'], $job['compatibility_score']);
             }
         }
         
@@ -274,18 +275,14 @@ class JobMatchingAlgorithm {
     
     /**
      * Update compatibility scores for all active jobs for a user
+     * NOTE: This function is deprecated - we don't store scores to avoid creating false applications
+     * Applications should only be created when user explicitly applies
      */
     public function updateAllCompatibilityScores($userId) {
-        $stmt = $this->conn->prepare("SELECT id FROM job_postings WHERE status = 'Active'");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $jobPostings = $result->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-        
-        foreach ($jobPostings as $job) {
-            $score = $this->calculateCompatibilityScore($userId, $job['id']);
-            $this->storeCompatibilityScore($userId, $job['id'], $score);
-        }
+        // This function is kept for backward compatibility but does nothing
+        // to prevent auto-creating application records
+        // Scores are calculated on-the-fly when needed
+        return;
     }
     
     // Helper methods
@@ -349,28 +346,20 @@ class JobMatchingAlgorithm {
         return null;
     }
     
+    /**
+     * Store compatibility score when user applies
+     * This should ONLY be called when user explicitly applies for a job
+     * DO NOT call this during recommendation calculation to avoid creating false applications
+     */
     private function storeCompatibilityScore($userId, $jobPostingId, $score) {
-        // Get jobseeker ID
-        $stmt = $this->conn->prepare("SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $jobseeker = $result->fetch_assoc();
-        $stmt->close();
+        // DEPRECATED: This function should not be used for storing scores during recommendations
+        // Applications should only be created when user explicitly clicks "Apply"
+        // This function is kept for backward compatibility but should not be called
+        // during recommendation calculation
         
-        if (!$jobseeker) return;
-        
-        $jobseekerId = $jobseeker['id'];
-        
-        // Insert or update compatibility score
-        $stmt = $this->conn->prepare("
-            INSERT INTO job_applications_extended (jobseeker_id, job_posting_id, compatibility_score) 
-            VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE compatibility_score = VALUES(compatibility_score)
-        ");
-        $stmt->bind_param("iid", $jobseekerId, $jobPostingId, $score);
-        $stmt->execute();
-        $stmt->close();
+        // If you need to store compatibility scores, do it only when creating the application
+        // in recommended_jobs.php when user clicks "Apply"
+        return;
     }
 }
 

@@ -10,6 +10,19 @@ $company_id = $_SESSION['company_id'];
 $company_name = $_SESSION['company_name'];
 $email = $_SESSION['email'];
 
+// Check if logo column exists and fetch company logo
+$company_logo = null;
+$columns_check = $conn->query("SHOW COLUMNS FROM company_users LIKE 'logo'");
+if ($columns_check && $columns_check->num_rows > 0) {
+    $stmt = $conn->prepare("SELECT logo FROM company_users WHERE id = ?");
+    $stmt->bind_param("i", $company_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $company_profile = $result->fetch_assoc();
+    $company_logo = $company_profile['logo'] ?? null;
+    $stmt->close();
+}
+
 $success_message = '';
 $error_message = '';
 
@@ -21,7 +34,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $title = trim($_POST['title'] ?? '');
                 $description = trim($_POST['description'] ?? '');
                 $requirements = trim($_POST['requirements'] ?? '');
-                $salary_range = trim($_POST['salary_range'] ?? '');
+                $salary_min = preg_replace('/[^0-9]/', '', $_POST['salary_min'] ?? '');
+                $salary_max = preg_replace('/[^0-9]/', '', $_POST['salary_max'] ?? '');
+                $salary_range = $salary_min && $salary_max ? $salary_min . '-' . $salary_max : trim($_POST['salary_range'] ?? '');
                 $location = trim($_POST['location'] ?? '');
                 $job_type = $_POST['job_type'] ?? 'Full-time';
                 $industry = trim($_POST['industry'] ?? '');
@@ -55,7 +70,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $title = trim($_POST['title'] ?? '');
                 $description = trim($_POST['description'] ?? '');
                 $requirements = trim($_POST['requirements'] ?? '');
-                $salary_range = trim($_POST['salary_range'] ?? '');
+                $salary_min = preg_replace('/[^0-9]/', '', $_POST['salary_min'] ?? '');
+                $salary_max = preg_replace('/[^0-9]/', '', $_POST['salary_max'] ?? '');
+                $salary_range = $salary_min && $salary_max ? $salary_min . '-' . $salary_max : trim($_POST['salary_range'] ?? '');
                 $location = trim($_POST['location'] ?? '');
                 $job_type = $_POST['job_type'] ?? 'Full-time';
                 $industry = trim($_POST['industry'] ?? '');
@@ -112,7 +129,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
     $success_message = "Operation completed successfully!";
 }
 
-// Get company's job postings
+// Get company's job postings with analytics
 $check_column = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
 if ($check_column && $check_column->num_rows > 0) {
     $stmt = $conn->prepare("SELECT * FROM job_postings WHERE company_id = ? ORDER BY created_at DESC");
@@ -125,6 +142,38 @@ if ($check_column && $check_column->num_rows > 0) {
 $stmt->execute();
 $job_postings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Get analytics for each job (applications count)
+$job_analytics = [];
+$app_table_check = $conn->query("SHOW TABLES LIKE 'job_applications_extended'");
+if ($app_table_check && $app_table_check->num_rows > 0) {
+    foreach ($job_postings as $job) {
+        $job_id = $job['id'];
+        // Count total applications
+        $stmt = $conn->prepare("SELECT COUNT(*) as total FROM job_applications_extended WHERE job_posting_id = ?");
+        $stmt->bind_param("i", $job_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $total_apps = $result->fetch_assoc()['total'] ?? 0;
+        $stmt->close();
+        
+        // Count by status
+        $stmt = $conn->prepare("SELECT status, COUNT(*) as count FROM job_applications_extended WHERE job_posting_id = ? GROUP BY status");
+        $stmt->bind_param("i", $job_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $status_counts = [];
+        while ($row = $result->fetch_assoc()) {
+            $status_counts[$row['status']] = $row['count'];
+        }
+        $stmt->close();
+        
+        $job_analytics[$job_id] = [
+            'total_applications' => $total_apps,
+            'status_counts' => $status_counts
+        ];
+    }
+}
 
 $conn->close();
 ?>
@@ -212,6 +261,15 @@ $conn->close();
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .alert.fade-out {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
         }
         
         .alert-success {
@@ -507,8 +565,8 @@ $conn->close();
         
         /* Profile Dropdown Styles */
         .profile-dropdown {
-            position: absolute;
-            top: 70px;
+            position: fixed;
+            top: 80px;
             right: 20px;
             width: 200px;
             background: white;
@@ -665,7 +723,11 @@ $conn->close();
         <div class="user-info">
             <div class="user-profile">
                 <div class="profile-icon" onclick="toggleProfileMenu()">
-                    <i class="fas fa-building"></i>
+                    <?php if ($company_logo): ?>
+                        <img src="<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    <?php else: ?>
+                        <i class="fas fa-building"></i>
+                    <?php endif; ?>
                 </div>
                 <span class="welcome-text">Welcome, <?php echo htmlspecialchars($company_name); ?></span>
             </div>
@@ -685,6 +747,7 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php" class="active"><i class="fas fa-briefcase"></i> Job Posting</a></li>
+                <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
             </ul>
         </div>
 
@@ -695,13 +758,13 @@ $conn->close();
                 </div>
 
                 <?php if ($success_message): ?>
-                    <div class="alert alert-success">
+                    <div id="successAlert" class="alert alert-success">
                         <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
                     </div>
                 <?php endif; ?>
                 
                 <?php if ($error_message): ?>
-                    <div class="alert alert-error">
+                    <div id="errorAlert" class="alert alert-error">
                         <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                     </div>
                 <?php endif; ?>
@@ -740,15 +803,22 @@ $conn->close();
                         </div>
                         
                         <div class="form-row">
-                            <div class="form-group">
-                                <label for="salary_range">Salary Range</label>
-                                <input type="text" id="salary_range" name="salary_range" placeholder="e.g., 25000-35000">
+                            <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+                                <div style="flex: 1;">
+                                    <label for="salary_min">Minimum Salary (PHP) *</label>
+                                    <input type="text" id="salary_min" name="salary_min" placeholder="e.g., 25000" required>
+                                </div>
+                                <div style="flex: 1;">
+                                    <label for="salary_max">Maximum Salary (PHP) *</label>
+                                    <input type="text" id="salary_max" name="salary_max" placeholder="e.g., 35000" required>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="industry">Industry</label>
                                 <input type="text" id="industry" name="industry" placeholder="e.g., Technology, Healthcare">
                             </div>
                         </div>
+                        <input type="hidden" id="salary_range" name="salary_range">
                         
                         <div class="form-group">
                             <label for="description">Job Description *</label>
@@ -822,9 +892,30 @@ $conn->close();
                                 </div>
                                 
                                 <div class="job-card-footer">
-                                    <small style="color: #666;">
-                                        <?php echo date('M d, Y', strtotime($job['created_at'])); ?>
-                                    </small>
+                                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                                        <small style="color: #666;">
+                                            <?php echo date('M d, Y', strtotime($job['created_at'])); ?>
+                                        </small>
+                                        <?php if (isset($job_analytics[$job['id']])): 
+                                            $analytics = $job_analytics[$job['id']];
+                                            if ($analytics['total_applications'] > 0): ?>
+                                                <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                                                    <span style="color: #1a3876; font-weight: 600; font-size: 0.9rem;">
+                                                        <i class="fas fa-users"></i> <?php echo $analytics['total_applications']; ?> Application<?php echo $analytics['total_applications'] > 1 ? 's' : ''; ?>
+                                                    </span>
+                                                    <?php if (isset($analytics['status_counts']['Accepted']) && $analytics['status_counts']['Accepted'] > 0): ?>
+                                                        <span style="color: #4caf50; font-size: 0.85rem;">
+                                                            <i class="fas fa-check-circle"></i> <?php echo $analytics['status_counts']['Accepted']; ?> Hired
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <small style="color: #999; font-size: 0.85rem;">
+                                                    <i class="fas fa-users"></i> No applications yet
+                                                </small>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </div>
                                     <div class="job-card-actions">
                                         <button class="btn-small btn-edit" onclick="editJob(<?php echo $job['id']; ?>)">
                                             <i class="fas fa-edit"></i> Edit
@@ -906,6 +997,11 @@ $conn->close();
             document.getElementById('jobForm').reset();
             document.getElementById('status').value = 'Active';
             document.getElementById('cancelBtn').style.display = 'none';
+            // Clear salary fields
+            document.getElementById('salary_min').value = '';
+            document.getElementById('salary_max').value = '';
+            // Re-initialize formatting
+            setTimeout(initializeSalaryFormatting, 100);
             
             // Scroll to top of form
             document.getElementById('jobFormSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -924,7 +1020,20 @@ $conn->close();
             document.getElementById('title').value = job.title;
             document.getElementById('description').value = job.description;
             document.getElementById('requirements').value = job.requirements;
-            document.getElementById('salary_range').value = job.salary_range || '';
+            // Parse salary range and populate min/max fields
+            if (job.salary_range) {
+                const salaryParts = job.salary_range.split('-');
+                if (salaryParts.length === 2) {
+                    document.getElementById('salary_min').value = formatNumberWithCommas(salaryParts[0].trim());
+                    document.getElementById('salary_max').value = formatNumberWithCommas(salaryParts[1].trim());
+                } else {
+                    document.getElementById('salary_min').value = '';
+                    document.getElementById('salary_max').value = '';
+                }
+            } else {
+                document.getElementById('salary_min').value = '';
+                document.getElementById('salary_max').value = '';
+            }
             document.getElementById('location').value = job.location;
             document.getElementById('job_type').value = job.job_type;
             document.getElementById('industry').value = job.industry || '';
@@ -937,6 +1046,8 @@ $conn->close();
             
             // Scroll to form
             document.getElementById('jobFormSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Re-initialize formatting
+            setTimeout(initializeSalaryFormatting, 100);
         }
 
         function deleteJob(jobId, jobTitle) {
@@ -962,11 +1073,116 @@ $conn->close();
             });
         }
 
+        // Format number with commas (e.g., 1000 -> 1,000)
+        function formatNumberWithCommas(value) {
+            if (!value) return '';
+            // Remove all non-numeric characters
+            const numbers = value.replace(/[^0-9]/g, '');
+            if (!numbers) return '';
+            // Add commas every 3 digits
+            return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        
+        // Remove commas from number string
+        function removeCommas(value) {
+            return value.replace(/,/g, '');
+        }
+        
+        // Initialize salary input formatting
+        function initializeSalaryFormatting() {
+            const salaryMinInput = document.getElementById('salary_min');
+            const salaryMaxInput = document.getElementById('salary_max');
+            
+            if (salaryMinInput && !salaryMinInput.hasAttribute('data-initialized')) {
+                salaryMinInput.setAttribute('data-initialized', 'true');
+                
+                // Format on input
+                salaryMinInput.addEventListener('input', function(e) {
+                    const cursorPos = this.selectionStart;
+                    const oldValue = this.value;
+                    const newValue = formatNumberWithCommas(this.value);
+                    
+                    if (oldValue !== newValue) {
+                        this.value = newValue;
+                        // Adjust cursor position after formatting
+                        const diff = newValue.length - oldValue.length;
+                        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+                    }
+                });
+                
+                // Prevent non-numeric characters on paste
+                salaryMinInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^0-9]/g, '');
+                    this.value = formatNumberWithCommas(numbers);
+                });
+            }
+            
+            if (salaryMaxInput && !salaryMaxInput.hasAttribute('data-initialized')) {
+                salaryMaxInput.setAttribute('data-initialized', 'true');
+                
+                // Format on input
+                salaryMaxInput.addEventListener('input', function(e) {
+                    const cursorPos = this.selectionStart;
+                    const oldValue = this.value;
+                    const newValue = formatNumberWithCommas(this.value);
+                    
+                    if (oldValue !== newValue) {
+                        this.value = newValue;
+                        // Adjust cursor position after formatting
+                        const diff = newValue.length - oldValue.length;
+                        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+                    }
+                });
+                
+                // Prevent non-numeric characters on paste
+                salaryMaxInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^0-9]/g, '');
+                    this.value = formatNumberWithCommas(numbers);
+                });
+            }
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        function autoHideAlerts() {
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            
+            if (successAlert) {
+                setTimeout(function() {
+                    successAlert.classList.add('fade-out');
+                    setTimeout(function() {
+                        successAlert.style.display = 'none';
+                    }, 500);
+                }, 5000);
+            }
+            
+            if (errorAlert) {
+                setTimeout(function() {
+                    errorAlert.classList.add('fade-out');
+                    setTimeout(function() {
+                        errorAlert.style.display = 'none';
+                    }, 500);
+                }, 5000);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSalaryFormatting();
+            autoHideAlerts();
+        });
+        
         // Handle form submission
         document.getElementById('jobForm').addEventListener('submit', function(e) {
             const title = document.getElementById('title').value.trim();
             const description = document.getElementById('description').value.trim();
             const requirements = document.getElementById('requirements').value.trim();
+            const salaryMin = document.getElementById('salary_min').value.trim();
+            const salaryMax = document.getElementById('salary_max').value.trim();
             const location = document.getElementById('location').value.trim();
             
             if (!title || !description || !requirements || !location) {
@@ -979,6 +1195,35 @@ $conn->close();
                 });
                 return false;
             }
+            
+            // Validate salary fields
+            if (!salaryMin || !salaryMax) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Missing Salary Information',
+                    text: 'Please fill in both minimum and maximum salary.',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a3876'
+                });
+                return false;
+            }
+            
+            const minValue = removeCommas(salaryMin);
+            const maxValue = removeCommas(salaryMax);
+            
+            if (parseInt(minValue) > parseInt(maxValue)) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Invalid Salary Range',
+                    text: 'Minimum salary cannot be greater than maximum salary.',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a3876'
+                });
+                return false;
+            }
+            
+            // Combine salary min and max into salary_range
+            document.getElementById('salary_range').value = minValue + '-' + maxValue;
         });
     </script>
 </body>
