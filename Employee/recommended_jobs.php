@@ -29,8 +29,13 @@ $stmt->execute();
 $preferences = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Get NRSP form data from jobseeker table
-$stmt = $conn->prepare("SELECT occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, training_skills_1, training_skills_2, training_skills_3, skill_others FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+// Get NRSP form data from jobseeker table (including all skill fields)
+$stmt = $conn->prepare("SELECT occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, 
+    training_skills_1, training_skills_2, training_skills_3, skill_others,
+    skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, 
+    skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, 
+    skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting 
+    FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $nrspData = $stmt->get_result()->fetch_assoc();
@@ -613,23 +618,60 @@ $conn->close();
                             <div class="nrsp-info-items">
                                 <?php 
                                 $allSkills = [];
-                                if (!empty($nrspData['training_skills_1'])) {
+                                
+                                // Add training skills from text fields
+                                if (!empty($nrspData['training_skills_1']) && strtolower(trim($nrspData['training_skills_1'])) !== 'n/a') {
                                     $skills1 = array_map('trim', explode(',', $nrspData['training_skills_1']));
                                     $allSkills = array_merge($allSkills, $skills1);
                                 }
-                                if (!empty($nrspData['training_skills_2'])) {
+                                if (!empty($nrspData['training_skills_2']) && strtolower(trim($nrspData['training_skills_2'])) !== 'n/a') {
                                     $skills2 = array_map('trim', explode(',', $nrspData['training_skills_2']));
                                     $allSkills = array_merge($allSkills, $skills2);
                                 }
-                                if (!empty($nrspData['training_skills_3'])) {
+                                if (!empty($nrspData['training_skills_3']) && strtolower(trim($nrspData['training_skills_3'])) !== 'n/a') {
                                     $skills3 = array_map('trim', explode(',', $nrspData['training_skills_3']));
                                     $allSkills = array_merge($allSkills, $skills3);
                                 }
-                                if (!empty($nrspData['skill_others']) && strtolower($nrspData['skill_others']) !== 'n/a') {
+                                
+                                // Add skill_others
+                                if (!empty($nrspData['skill_others']) && strtolower(trim($nrspData['skill_others'])) !== 'n/a') {
                                     $others = array_map('trim', explode(',', $nrspData['skill_others']));
                                     $allSkills = array_merge($allSkills, $others);
                                 }
-                                $allSkills = array_filter(array_unique($allSkills));
+                                
+                                // Add checkbox skills (boolean fields)
+                                $checkboxSkills = [
+                                    'skill_auto_mechanic' => 'Auto Mechanic',
+                                    'skill_electrician' => 'Electrician',
+                                    'skill_photography' => 'Photography',
+                                    'skill_beautician' => 'Beautician',
+                                    'skill_embroidery' => 'Embroidery',
+                                    'skill_plumbing' => 'Plumbing',
+                                    'skill_carpentry' => 'Carpentry',
+                                    'skill_gardening' => 'Gardening',
+                                    'skill_sewing' => 'Sewing',
+                                    'skill_computer' => 'Computer',
+                                    'skill_masonry' => 'Masonry',
+                                    'skill_stenography' => 'Stenography',
+                                    'skill_domestic' => 'Domestic',
+                                    'skill_painter' => 'Painter',
+                                    'skill_tailoring' => 'Tailoring',
+                                    'skill_driver' => 'Driver',
+                                    'skill_painting' => 'Painting'
+                                ];
+                                
+                                foreach ($checkboxSkills as $field => $label) {
+                                    if (!empty($nrspData[$field]) && $nrspData[$field] == 1) {
+                                        $allSkills[] = $label;
+                                    }
+                                }
+                                
+                                // Filter out empty values, "n/a", and duplicates
+                                $allSkills = array_filter($allSkills, function($skill) {
+                                    $skill = trim($skill);
+                                    return !empty($skill) && strtolower($skill) !== 'n/a';
+                                });
+                                $allSkills = array_unique(array_map('trim', $allSkills));
                                 ?>
                                 <?php if (!empty($allSkills)): ?>
                                     <?php foreach ($allSkills as $skill): ?>
@@ -908,23 +950,60 @@ $conn->close();
                                                         <strong>Your skills:</strong> 
                                                         <?php 
                                                         $allSkills = [];
-                                                        if (!empty($nrspData['training_skills_1'])) {
+                                                        
+                                                        // Add training skills from text fields
+                                                        if (!empty($nrspData['training_skills_1']) && strtolower(trim($nrspData['training_skills_1'])) !== 'n/a') {
                                                             $skills1 = array_map('trim', explode(',', $nrspData['training_skills_1']));
                                                             $allSkills = array_merge($allSkills, $skills1);
                                                         }
-                                                        if (!empty($nrspData['training_skills_2'])) {
+                                                        if (!empty($nrspData['training_skills_2']) && strtolower(trim($nrspData['training_skills_2'])) !== 'n/a') {
                                                             $skills2 = array_map('trim', explode(',', $nrspData['training_skills_2']));
                                                             $allSkills = array_merge($allSkills, $skills2);
                                                         }
-                                                        if (!empty($nrspData['training_skills_3'])) {
+                                                        if (!empty($nrspData['training_skills_3']) && strtolower(trim($nrspData['training_skills_3'])) !== 'n/a') {
                                                             $skills3 = array_map('trim', explode(',', $nrspData['training_skills_3']));
                                                             $allSkills = array_merge($allSkills, $skills3);
                                                         }
-                                                        if (!empty($nrspData['skill_others']) && strtolower($nrspData['skill_others']) !== 'n/a') {
+                                                        
+                                                        // Add skill_others
+                                                        if (!empty($nrspData['skill_others']) && strtolower(trim($nrspData['skill_others'])) !== 'n/a') {
                                                             $others = array_map('trim', explode(',', $nrspData['skill_others']));
                                                             $allSkills = array_merge($allSkills, $others);
                                                         }
-                                                        $allSkills = array_filter(array_unique($allSkills));
+                                                        
+                                                        // Add checkbox skills (boolean fields)
+                                                        $checkboxSkills = [
+                                                            'skill_auto_mechanic' => 'Auto Mechanic',
+                                                            'skill_electrician' => 'Electrician',
+                                                            'skill_photography' => 'Photography',
+                                                            'skill_beautician' => 'Beautician',
+                                                            'skill_embroidery' => 'Embroidery',
+                                                            'skill_plumbing' => 'Plumbing',
+                                                            'skill_carpentry' => 'Carpentry',
+                                                            'skill_gardening' => 'Gardening',
+                                                            'skill_sewing' => 'Sewing',
+                                                            'skill_computer' => 'Computer',
+                                                            'skill_masonry' => 'Masonry',
+                                                            'skill_stenography' => 'Stenography',
+                                                            'skill_domestic' => 'Domestic',
+                                                            'skill_painter' => 'Painter',
+                                                            'skill_tailoring' => 'Tailoring',
+                                                            'skill_driver' => 'Driver',
+                                                            'skill_painting' => 'Painting'
+                                                        ];
+                                                        
+                                                        foreach ($checkboxSkills as $field => $label) {
+                                                            if (!empty($nrspData[$field]) && $nrspData[$field] == 1) {
+                                                                $allSkills[] = $label;
+                                                            }
+                                                        }
+                                                        
+                                                        // Filter out empty values, "n/a", and duplicates
+                                                        $allSkills = array_filter($allSkills, function($skill) {
+                                                            $skill = trim($skill);
+                                                            return !empty($skill) && strtolower($skill) !== 'n/a';
+                                                        });
+                                                        $allSkills = array_unique(array_map('trim', $allSkills));
                                                         echo !empty($allSkills) ? htmlspecialchars(implode(', ', array_slice($allSkills, 0, 5))) . (count($allSkills) > 5 ? '...' : '') : 'n/a';
                                                         ?>
                                                         <br>

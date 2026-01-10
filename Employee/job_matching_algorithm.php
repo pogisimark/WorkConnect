@@ -128,27 +128,54 @@ class JobMatchingAlgorithm {
      * Returns array with score and matched skills list
      */
     private function calculateSkillMatch($jobSeeker, $jobPosting) {
-        // Get skills from NRSP form: training_skills_1, training_skills_2, training_skills_3, skill_others
+        // Get skills from NRSP form: training_skills_1, training_skills_2, training_skills_3, skill_others, and checkbox skills
         $jobSeekerSkills = [];
         
-        // Add training skills
-        if (!empty($jobSeeker['training_skills_1'])) {
+        // Add training skills from text fields
+        if (!empty($jobSeeker['training_skills_1']) && strtolower(trim($jobSeeker['training_skills_1'])) !== 'n/a') {
             $skills1 = array_map('trim', explode(',', $jobSeeker['training_skills_1']));
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills1);
         }
-        if (!empty($jobSeeker['training_skills_2'])) {
+        if (!empty($jobSeeker['training_skills_2']) && strtolower(trim($jobSeeker['training_skills_2'])) !== 'n/a') {
             $skills2 = array_map('trim', explode(',', $jobSeeker['training_skills_2']));
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills2);
         }
-        if (!empty($jobSeeker['training_skills_3'])) {
+        if (!empty($jobSeeker['training_skills_3']) && strtolower(trim($jobSeeker['training_skills_3'])) !== 'n/a') {
             $skills3 = array_map('trim', explode(',', $jobSeeker['training_skills_3']));
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills3);
         }
         
         // Add skill_others (comma-separated)
-        if (!empty($jobSeeker['skill_others']) && strtolower($jobSeeker['skill_others']) !== 'n/a') {
+        if (!empty($jobSeeker['skill_others']) && strtolower(trim($jobSeeker['skill_others'])) !== 'n/a') {
             $others = array_map('trim', explode(',', $jobSeeker['skill_others']));
             $jobSeekerSkills = array_merge($jobSeekerSkills, $others);
+        }
+        
+        // Add checkbox skills (boolean fields)
+        $checkboxSkills = [
+            'skill_auto_mechanic' => 'Auto Mechanic',
+            'skill_electrician' => 'Electrician',
+            'skill_photography' => 'Photography',
+            'skill_beautician' => 'Beautician',
+            'skill_embroidery' => 'Embroidery',
+            'skill_plumbing' => 'Plumbing',
+            'skill_carpentry' => 'Carpentry',
+            'skill_gardening' => 'Gardening',
+            'skill_sewing' => 'Sewing',
+            'skill_computer' => 'Computer',
+            'skill_masonry' => 'Masonry',
+            'skill_stenography' => 'Stenography',
+            'skill_domestic' => 'Domestic',
+            'skill_painter' => 'Painter',
+            'skill_tailoring' => 'Tailoring',
+            'skill_driver' => 'Driver',
+            'skill_painting' => 'Painting'
+        ];
+        
+        foreach ($checkboxSkills as $field => $label) {
+            if (!empty($jobSeeker[$field]) && $jobSeeker[$field] == 1) {
+                $jobSeekerSkills[] = $label;
+            }
         }
         
         // Also check skills_array if available (for backward compatibility)
@@ -160,13 +187,11 @@ class JobMatchingAlgorithm {
         }
         
         // Remove empty values and normalize
-        $jobSeekerSkills = array_filter(array_map('trim', $jobSeekerSkills));
-        $jobSeekerSkills = array_unique($jobSeekerSkills);
-        
-        // Remove "n/a" values
         $jobSeekerSkills = array_filter($jobSeekerSkills, function($skill) {
-            return strtolower(trim($skill)) !== 'n/a' && !empty(trim($skill));
+            $skill = trim($skill);
+            return !empty($skill) && strtolower($skill) !== 'n/a';
         });
+        $jobSeekerSkills = array_unique(array_map('trim', $jobSeekerSkills));
         
         $jobRequirements = strtolower($jobPosting['requirements'] . ' ' . $jobPosting['description']);
         
