@@ -2535,14 +2535,17 @@
         // Clear all existing options including the default "Select Year"
         yearSelect.innerHTML = '';
         
-        // Add years from 2025 down to 2020, with 2025 as default
-        for (let year = 2025; year >= 2020; year--) {
+        // Use current year as the default, list down to 2020
+        const currentYear = new Date().getFullYear();
+        const earliestYear = 2020;
+        
+        for (let year = currentYear; year >= earliestYear; year--) {
             const option = document.createElement('option');
             option.value = year;
             option.textContent = year;
             
-            // Set 2025 as selected by default
-            if (year === 2025) {
+            // Set current year as selected by default
+            if (year === currentYear) {
                 option.selected = true;
             }
             

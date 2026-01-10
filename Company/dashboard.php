@@ -48,8 +48,17 @@ $active_jobs = 0;
 $closed_jobs = 0;
 $recent_jobs = [];
 $total_applications = 0;
-$applications_by_status = ['Applied' => 0, 'Viewed' => 0, 'Interview' => 0, 'Accepted' => 0, 'Rejected' => 0];
+$applications_by_status = ['Applied' => 0, 'Accepted' => 0, 'Rejected' => 0];
 $recent_applications = [];
+
+// Additional statistics
+$avg_compatibility_score = 0;
+$acceptance_rate = 0;
+$rejection_rate = 0;
+$avg_applications_per_job = 0;
+$jobs_with_no_applications = 0;
+$most_popular_job = null;
+$avg_response_time_days = 0;
 
 // Check if job_postings table exists and get company's jobs
 $table_check = $conn->query("SHOW TABLES LIKE 'job_postings'");
@@ -117,14 +126,92 @@ if ($table_check && $table_check->num_rows > 0) {
             }
             $stmt->close();
             
-            // Get recent applications (last 7 days)
+            // Get average compatibility score
             $stmt = $conn->prepare("
-                SELECT jae.id, jae.status, jae.applied_date, jp.title as job_title
+                SELECT AVG(jae.compatibility_score) as avg_score
                 FROM job_applications_extended jae
                 INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
-                WHERE jp.company_id = ? AND jae.applied_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                ORDER BY jae.applied_date DESC
-                LIMIT 5
+                WHERE jp.company_id = ? AND jae.compatibility_score > 0
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $avg_row = $result->fetch_assoc();
+            $avg_compatibility_score = $avg_row['avg_score'] ?? 0;
+            $stmt->close();
+            
+            // Calculate acceptance and rejection rates
+            if ($total_applications > 0) {
+                $acceptance_rate = ($applications_by_status['Accepted'] / $total_applications) * 100;
+                $rejection_rate = ($applications_by_status['Rejected'] / $total_applications) * 100;
+            }
+            
+            // Get average applications per job
+            if ($job_count > 0) {
+                $avg_applications_per_job = $total_applications / $job_count;
+            }
+            
+            // Count jobs with no applications
+            $stmt = $conn->prepare("
+                SELECT COUNT(*) as count
+                FROM job_postings jp
+                LEFT JOIN job_applications_extended jae ON jp.id = jae.job_posting_id
+                WHERE jp.company_id = ? AND jae.id IS NULL
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $jobs_with_no_applications = $result->fetch_assoc()['count'] ?? 0;
+            $stmt->close();
+            
+            // Get most popular job (by application count)
+            $stmt = $conn->prepare("
+                SELECT jp.id, jp.title, COUNT(jae.id) as app_count
+                FROM job_postings jp
+                LEFT JOIN job_applications_extended jae ON jp.id = jae.job_posting_id
+                WHERE jp.company_id = ?
+                GROUP BY jp.id, jp.title
+                ORDER BY app_count DESC
+                LIMIT 1
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $most_popular_job = $result->fetch_assoc();
+            $stmt->close();
+            
+            // Calculate average response time (days between applied_date and viewed_date for accepted/rejected)
+            $stmt = $conn->prepare("
+                SELECT AVG(DATEDIFF(jae.viewed_date, jae.applied_date)) as avg_days
+                FROM job_applications_extended jae
+                INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jp.company_id = ? 
+                    AND jae.status IN ('Accepted', 'Rejected')
+                    AND jae.viewed_date IS NOT NULL
+                    AND jae.applied_date IS NOT NULL
+            ");
+            $stmt->bind_param("i", $company_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $avg_response = $result->fetch_assoc();
+            $avg_response_time_days = $avg_response['avg_days'] ?? 0;
+            $stmt->close();
+            
+            // Get recent applications grouped by job with counts and latest date
+            $stmt = $conn->prepare("
+                SELECT 
+                    jp.id as job_posting_id,
+                    jp.title as job_title,
+                    COUNT(jae.id) as application_count,
+                    MAX(jae.applied_date) as latest_applied_date,
+                    MIN(jae.applied_date) as first_applied_date
+                FROM job_postings jp
+                INNER JOIN job_applications_extended jae ON jae.job_posting_id = jp.id
+                WHERE jp.company_id = ? 
+                    AND jae.applied_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                GROUP BY jp.id, jp.title
+                ORDER BY latest_applied_date DESC, application_count DESC
+                LIMIT 10
             ");
             $stmt->bind_param("i", $company_id);
             $stmt->execute();
@@ -481,6 +568,36 @@ $conn->close();
             border-left-color: #ffcb05;
         }
         
+        .sidebar-nav a.logout {
+            color: #f44336;
+            margin-top: auto;
+        }
+        
+        .sidebar-nav a.logout:hover {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        
+        .sidebar-nav a.logout i {
+            color: #f44336;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .sidebar-nav li:last-child {
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+        
         .dashboard-container {
             padding-top: 80px;
         }
@@ -517,7 +634,7 @@ $conn->close();
                 <div class="user-profile">
                 <div class="profile-icon" onclick="toggleProfileMenu()">
                     <?php if ($company_logo): ?>
-                        <img src="<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <img src="../<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                     <?php else: ?>
                         <i class="fas fa-building"></i>
                     <?php endif; ?>
@@ -540,7 +657,10 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
+                <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </div>
 
@@ -590,14 +710,6 @@ $conn->close();
                             <div style="font-size: 1.5rem; font-weight: bold; color: #1976d2;"><?php echo $applications_by_status['Applied']; ?></div>
                             <div style="color: #666; font-size: 0.9rem;">Applied</div>
                         </div>
-                        <div style="padding: 15px; background: #fff3e0; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #f57c00;"><?php echo $applications_by_status['Viewed']; ?></div>
-                            <div style="color: #666; font-size: 0.9rem;">Viewed</div>
-                        </div>
-                        <div style="padding: 15px; background: #f3e5f5; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #7b1fa2;"><?php echo $applications_by_status['Interview']; ?></div>
-                            <div style="color: #666; font-size: 0.9rem;">Interview</div>
-                        </div>
                         <div style="padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
                             <div style="font-size: 1.5rem; font-weight: bold; color: #388e3c;"><?php echo $applications_by_status['Accepted']; ?></div>
                             <div style="color: #666; font-size: 0.9rem;">Accepted</div>
@@ -609,22 +721,166 @@ $conn->close();
                     </div>
                 </div>
                 
+                <!-- Additional Statistics Section -->
+                <div class="recent-jobs" style="margin-bottom: 30px;">
+                    <h2 class="section-title">Performance Metrics</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <?php if ($avg_compatibility_score > 0): ?>
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="font-size: 2rem; color: #1a3876; margin-bottom: 8px;">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #1a3876; margin-bottom: 5px;">
+                                <?php echo number_format($avg_compatibility_score, 1); ?>%
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Avg. Match Score</div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($total_applications > 0): ?>
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="font-size: 2rem; color: #388e3c; margin-bottom: 8px;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #388e3c; margin-bottom: 5px;">
+                                <?php echo number_format($acceptance_rate, 1); ?>%
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Acceptance Rate</div>
+                        </div>
+                        
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="font-size: 2rem; color: #c62828; margin-bottom: 8px;">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #c62828; margin-bottom: 5px;">
+                                <?php echo number_format($rejection_rate, 1); ?>%
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Rejection Rate</div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($job_count > 0): ?>
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="font-size: 2rem; color: #1976d2; margin-bottom: 8px;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #1976d2; margin-bottom: 5px;">
+                                <?php echo number_format($avg_applications_per_job, 1); ?>
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Avg. Applications/Job</div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($avg_response_time_days > 0): ?>
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
+                            <div style="font-size: 2rem; color: #f57c00; margin-bottom: 8px;">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #f57c00; margin-bottom: 5px;">
+                                <?php echo number_format($avg_response_time_days, 1); ?>
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Avg. Response Time (Days)</div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <!-- Job Insights Section -->
+                <div class="recent-jobs" style="margin-bottom: 30px;">
+                    <h2 class="section-title">Job Insights</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <?php if ($most_popular_job && isset($most_popular_job['app_count']) && $most_popular_job['app_count'] > 0): ?>
+                        <div style="padding: 20px; background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%); border-radius: 12px; color: white;">
+                            <div style="font-size: 1.2rem; margin-bottom: 10px; opacity: 0.9;">
+                                <i class="fas fa-trophy"></i> Most Popular Job
+                            </div>
+                            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">
+                                <?php echo htmlspecialchars($most_popular_job['title']); ?>
+                            </div>
+                            <div style="font-size: 1.1rem; opacity: 0.9;">
+                                <?php echo $most_popular_job['app_count']; ?> <?php echo $most_popular_job['app_count'] == 1 ? 'application' : 'applications'; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if ($jobs_with_no_applications > 0): ?>
+                        <div style="padding: 20px; background: #fff3e0; border-radius: 12px; border-left: 4px solid #ff9800;">
+                            <div style="font-size: 1.2rem; color: #f57c00; margin-bottom: 10px;">
+                                <i class="fas fa-exclamation-triangle"></i> Attention Needed
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #f57c00; margin-bottom: 5px;">
+                                <?php echo $jobs_with_no_applications; ?>
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">
+                                <?php echo $jobs_with_no_applications == 1 ? 'Job' : 'Jobs'; ?> with no applications
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
                 <?php if (count($recent_applications) > 0): ?>
                 <div class="recent-jobs" style="margin-bottom: 30px;">
-                    <h2 class="section-title">Recent Applications (Last 7 Days)</h2>
+                    <h2 class="section-title">Recent Applications (Last 30 Days)</h2>
                     <?php foreach ($recent_applications as $app): ?>
-                        <div class="job-item">
-                            <div>
-                                <div class="job-title"><?php echo htmlspecialchars($app['job_title']); ?></div>
-                                <div class="job-meta">
-                                    Applied on <?php echo date('M d, Y g:i A', strtotime($app['applied_date'])); ?>
+                        <div class="job-item" style="padding: 20px; border-bottom: 1px solid #e0e0e0;">
+                            <div style="flex: 1;">
+                                <div class="job-title" style="font-size: 1.1rem; margin-bottom: 10px;">
+                                    <i class="fas fa-briefcase" style="color: #1a3876; margin-right: 8px;"></i>
+                                    <?php echo htmlspecialchars($app['job_title']); ?>
+                                </div>
+                                <div class="job-meta" style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 0.9rem;">
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <i class="fas fa-users" style="color: #1976d2;"></i>
+                                        <strong style="color: #1976d2;"><?php echo $app['application_count']; ?></strong>
+                                        <span style="color: #666;"><?php echo $app['application_count'] == 1 ? 'applicant' : 'applicants'; ?></span>
+                                    </div>
+                                    <?php if ($app['latest_applied_date']): ?>
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <i class="fas fa-clock" style="color: #f57c00;"></i>
+                                            <span style="color: #666;">Latest: <?php echo date('M d, Y g:i A', strtotime($app['latest_applied_date'])); ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($app['first_applied_date'] && $app['first_applied_date'] != $app['latest_applied_date']): ?>
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <i class="fas fa-calendar-alt" style="color: #666;"></i>
+                                            <span style="color: #666;">First: <?php echo date('M d, Y', strtotime($app['first_applied_date'])); ?></span>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <span class="status-badge status-<?php echo strtolower($app['status'] ?? 'applied'); ?>">
-                                <?php echo htmlspecialchars($app['status'] ?? 'Applied'); ?>
-                            </span>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                                <span class="status-badge" style="background: #e3f2fd; color: #1976d2; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                                    <?php echo $app['application_count']; ?> <?php echo $app['application_count'] == 1 ? 'Application' : 'Applications'; ?>
+                                </span>
+                                <?php if ($app['latest_applied_date']): ?>
+                                    <span style="font-size: 0.8rem; color: #999;">
+                                        <?php 
+                                            $latest_date = strtotime($app['latest_applied_date']);
+                                            $now = time();
+                                            $diff = $now - $latest_date;
+                                            $days = floor($diff / (60 * 60 * 24));
+                                            if ($days == 0) {
+                                                echo 'Today';
+                                            } elseif ($days == 1) {
+                                                echo 'Yesterday';
+                                            } else {
+                                                echo $days . ' days ago';
+                                            }
+                                        ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
+                </div>
+                <?php else: ?>
+                <div class="recent-jobs" style="margin-bottom: 30px;">
+                    <h2 class="section-title">Recent Applications</h2>
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <p>No applications received in the last 30 days.</p>
+                    </div>
                 </div>
                 <?php endif; ?>
                 <?php endif; ?>

@@ -669,6 +669,36 @@ $conn->close();
             border-left-color: #ffcb05;
         }
         
+        .sidebar-nav a.logout {
+            color: #f44336;
+            margin-top: auto;
+        }
+        
+        .sidebar-nav a.logout:hover {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        
+        .sidebar-nav a.logout i {
+            color: #f44336;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .sidebar-nav li:last-child {
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+        
         .dashboard-container {
             padding-top: 80px;
         }
@@ -724,7 +754,7 @@ $conn->close();
             <div class="user-profile">
                 <div class="profile-icon" onclick="toggleProfileMenu()">
                     <?php if ($company_logo): ?>
-                        <img src="<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <img src="../<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                     <?php else: ?>
                         <i class="fas fa-building"></i>
                     <?php endif; ?>
@@ -747,7 +777,10 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php" class="active"><i class="fas fa-briefcase"></i> Job Posting</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
+                <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </div>
 

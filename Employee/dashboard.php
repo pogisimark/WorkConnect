@@ -29,15 +29,21 @@ $applications = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
 // Get application counts by status
-$stmt = $conn->prepare("SELECT application_status, COUNT(*) as count FROM jobseeker WHERE user_id = ? GROUP BY application_status");
+$stmt = $conn->prepare("SELECT COALESCE(application_status, 'Pending') as application_status, COUNT(*) as count FROM jobseeker WHERE user_id = ? GROUP BY application_status");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $status_counts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-$status_counts_assoc = [];
+$status_counts_assoc = [
+    'Pending' => 0,
+    'Referred' => 0,
+    'Accepted' => 0,
+    'Rejected' => 0
+];
 foreach ($status_counts as $status) {
-    $status_counts_assoc[$status['application_status']] = $status['count'];
+    $status_key = $status['application_status'] ?: 'Pending';
+    $status_counts_assoc[$status_key] = $status['count'];
 }
 
 $conn->close();
@@ -650,11 +656,39 @@ $conn->close();
         }
         
         .status-badge {
-            display: block;
-            margin-bottom: 10px;
-            padding: 8px 12px;
+            display: inline-block;
+            padding: 6px 12px;
             font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 20px;
             text-align: center;
+            white-space: nowrap;
+        }
+        
+        .status-badge.status-pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .status-badge.status-referred {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .status-badge.status-accepted {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-badge.status-rejected {
+            background: #f44336;
+            color: white;
+        }
+        
+        /* Fallback for any other status values or empty status */
+        .status-badge:not(.status-pending):not(.status-referred):not(.status-accepted):not(.status-rejected) {
+            background: #9e9e9e;
+            color: white;
         }
         
         .profile-summary {
@@ -1470,6 +1504,405 @@ $conn->close();
         }
     }
     
+    /* Facebook Link Styling */
+    .facebook-link-container {
+        margin-top: 20px;
+        padding: 16px;
+        background: linear-gradient(135deg, #1877f2 0%, #0d5fbf 100%);
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(24, 119, 242, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .facebook-link-container:hover {
+        box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .facebook-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    
+    .facebook-link:hover {
+        color: #ffffff;
+        text-decoration: none;
+        opacity: 0.9;
+    }
+    
+    .facebook-link-icon {
+        font-size: 1.2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+    }
+    
+    .facebook-link-text {
+        letter-spacing: 0.3px;
+    }
+    
+    @media (max-width: 768px) {
+        .facebook-link-container {
+            padding: 12px;
+            margin-top: 16px;
+        }
+        
+        .facebook-link {
+            font-size: 0.85rem;
+        }
+        
+        .facebook-link-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 1rem;
+        }
+    }
+    
+    /* Skills Ranking Styling */
+    .skills-ranking-section {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .skills-ranking-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    
+    .skill-card {
+        background: linear-gradient(135deg, #e3f2fd, #f0f4ff);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #bbdefb;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .skill-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+    }
+    
+    .skill-card-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .skill-card-name {
+        font-weight: 600;
+        color: #1976d2;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .skill-card-count {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1976d2;
+        margin-bottom: 4px;
+    }
+    
+    .skill-card-percentage {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .skills-ranking-loading {
+        text-align: center;
+        padding: 40px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .skills-ranking-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .skill-card {
+            padding: 16px;
+        }
+        
+        .skill-card-count {
+            font-size: 1.5rem;
+        }
+    }
+    
+    /* Application Success Rate Styling */
+    .success-rate-section {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .success-rate-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .success-rate-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .success-rate-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    
+    .success-rate-card.accepted {
+        border-top: 4px solid #4CAF50;
+    }
+    
+    .success-rate-card.rejected {
+        border-top: 4px solid #f44336;
+    }
+    
+    .success-rate-card.pending {
+        border-top: 4px solid #ff9800;
+    }
+    
+    .success-rate-number {
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    
+    .success-rate-card.accepted .success-rate-number {
+        color: #4CAF50;
+    }
+    
+    .success-rate-card.rejected .success-rate-number {
+        color: #f44336;
+    }
+    
+    .success-rate-card.pending .success-rate-number {
+        color: #ff9800;
+    }
+    
+    .success-rate-label {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
+    .success-rate-percentage {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1976d2;
+    }
+    
+    .rejection-reasons {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #e3f2fd;
+    }
+    
+    .rejection-reason-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .rejection-reason-item:last-child {
+        border-bottom: none;
+    }
+    
+    /* Skills Gap Analysis Styling */
+    .skills-gap-section {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .gap-analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .gap-analysis-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .gap-analysis-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    
+    .match-score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 2rem;
+        font-weight: 700;
+        position: relative;
+    }
+    
+    .match-score-circle.high {
+        background: linear-gradient(135deg, #4CAF50, #81C784);
+        color: white;
+    }
+    
+    .match-score-circle.medium {
+        background: linear-gradient(135deg, #ff9800, #ffb74d);
+        color: white;
+    }
+    
+    .match-score-circle.low {
+        background: linear-gradient(135deg, #f44336, #e57373);
+        color: white;
+    }
+    
+    .recommendations-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .recommendation-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #1976d2;
+    }
+    
+    .recommendation-item:hover {
+        background: #e3f2fd;
+    }
+    
+    .recommendation-percentage {
+        font-size: 0.85rem;
+        color: #666;
+        background: #e3f2fd;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+    
+    /* Most Accepted Skills Styling */
+    .most-accepted-skills-section {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .most-accepted-skills-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    
+    .accepted-skill-card {
+        background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid #4CAF50;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+    }
+    
+    .accepted-skill-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+    
+    .accepted-skill-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .accepted-skill-name {
+        font-weight: 600;
+        color: #2e7d32;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .accepted-skill-count {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2e7d32;
+        margin-bottom: 4px;
+    }
+    
+    .accepted-skill-percentage {
+        font-size: 0.8rem;
+        color: #4CAF50;
+        font-weight: 600;
+    }
+    
+    .analytics-loading {
+        text-align: center;
+        padding: 40px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .success-rate-grid,
+        .gap-analysis-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .most-accepted-skills-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .success-rate-card,
+        .gap-analysis-card {
+            padding: 20px;
+        }
+        
+        .success-rate-number {
+            font-size: 2.5rem;
+        }
+        
+        .match-score-circle {
+            width: 100px;
+            height: 100px;
+            font-size: 1.5rem;
+        }
+    }
+    
     </style>
 </head>
 <body>
@@ -1521,7 +1954,7 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="#dashboard" class="active" onclick="showSection('dashboard')">Dashboard</a></li>
                 <li><a href="#recommended_jobs" onclick="showSection('recommended_jobs')">Recommended Jobs <span class="badge" id="jobBadge" style="display:none;">New</span></a></li>
-                <li><a href="#resume" onclick="showSection('resume')">Resume Builder</a></li>
+                <!--<li><a href="#resume" onclick="showSection('resume')">Resume Builder</a></li>-->
                 <li><a href="#apply" onclick="showSection('apply')">NSRP Registration</a></li>
                 <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
                 <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
@@ -1544,6 +1977,9 @@ $conn->close();
                             <span class="status-badge status-pending">Pending: <?php echo $status_counts_assoc['Pending'] ?? 0; ?></span>
                         </div>
                         <div style="margin-bottom: 15px;">
+                            <span class="status-badge status-referred">Referred: <?php echo $status_counts_assoc['Referred'] ?? 0; ?></span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
                             <span class="status-badge status-accepted">Accepted: <?php echo $status_counts_assoc['Accepted'] ?? 0; ?></span>
                         </div>
                         <div>
@@ -1561,15 +1997,34 @@ $conn->close();
                             </div>
                         <?php else: ?>
                             <?php foreach (array_slice($applications, 0, 3) as $app): ?>
+                                <?php 
+                                    $app_status = !empty($app['application_status']) ? $app['application_status'] : 'Pending';
+                                    $status_class = strtolower($app_status);
+                                    
+                                    // Format submission date
+                                    $submission_date = '';
+                                    if (!empty($app['submission_date'])) {
+                                        $submission_date = date('M Y', strtotime($app['submission_date']));
+                                    } elseif (!empty($app['submission_month']) && !empty($app['submission_year'])) {
+                                        $submission_date = date('M Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year']));
+                                    } else {
+                                        $submission_date = 'Date not available';
+                                    }
+                                    
+                                    $full_name = trim(($app['firstname'] ?? '') . ' ' . ($app['surname'] ?? ''));
+                                    if (empty($full_name)) {
+                                        $full_name = 'Application #' . $app['id'];
+                                    }
+                                ?>
                                 <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <div>
-                                            <strong><?php echo htmlspecialchars($app['firstname'] . ' ' . $app['surname']); ?></strong>
-                                            
-                                            <small style="color: #666;">Submitted: <?php echo date('M Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year'])); ?></small>
+                                            <strong><?php echo htmlspecialchars($full_name); ?></strong>
+                                            <br>
+                                            <small style="color: #666;">Submitted: <?php echo htmlspecialchars($submission_date); ?></small>
                                         </div>
-                                        <span class="status-badge status-<?php echo strtolower($app['application_status']); ?>">
-                                            <?php echo htmlspecialchars($app['application_status']); ?>
+                                        <span class="status-badge status-<?php echo htmlspecialchars($status_class); ?>">
+                                            <?php echo htmlspecialchars($app_status); ?>
                                         </span>
                                     </div>
                                 </div>
@@ -1586,15 +2041,65 @@ $conn->close();
                     <div class="profile-summary">
                         <div class="profile-item">
                             <h4>Name</h4>
-                            <p><?php echo htmlspecialchars($_SESSION['firstname'] . ' ' . $_SESSION['lastname']); ?></p>
+                            <p><?php 
+                                $firstname = $_SESSION['firstname'] ?? '';
+                                $lastname = $_SESSION['lastname'] ?? $_SESSION['surname'] ?? '';
+                                $full_name = trim($firstname . ' ' . $lastname);
+                                echo htmlspecialchars($full_name ?: 'Not set');
+                            ?></p>
                         </div>
                         <div class="profile-item">
                             <h4>Email</h4>
-                            <p><?php echo htmlspecialchars($_SESSION['email']); ?></p>
+                            <p><?php echo htmlspecialchars($_SESSION['email'] ?? 'Not set'); ?></p>
                         </div>
                         <div class="profile-item">
                             <h4>Total Applications</h4>
                             <p><?php echo count($applications); ?></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills Ranking Section -->
+                <div class="skills-ranking-section">
+                    <h2 class="section-title">Top Skills Ranking</h2>
+                    <div id="skillsRankingContainer" class="skills-ranking-grid">
+                        <div class="skills-ranking-loading">
+                            <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                            <p>Loading skills ranking...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Success Rate Section -->
+                <div class="success-rate-section">
+                    <h2 class="section-title">Application Success Rate</h2>
+                    <div id="successRateContainer" class="success-rate-grid">
+                        <div class="analytics-loading">
+                            <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                            <p>Loading success rate data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Most Accepted Skills Section -->
+                <div class="most-accepted-skills-section">
+                    <h2 class="section-title">Most Accepted Skills</h2>
+                    <p style="color: #666; margin-bottom: 10px; font-size: 0.9rem;">Skills that accepted jobseekers have - what employers value most</p>
+                    <div id="mostAcceptedSkillsContainer" class="most-accepted-skills-grid">
+                        <div class="analytics-loading">
+                            <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                            <p>Loading most accepted skills...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills Gap Analysis Section -->
+                <div class="skills-gap-section">
+                    <h2 class="section-title">Skills Gap Analysis</h2>
+                    <div id="skillsGapContainer" class="gap-analysis-grid">
+                        <div class="analytics-loading">
+                            <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                            <p>Loading skills gap analysis...</p>
                         </div>
                     </div>
                 </div>
@@ -1610,6 +2115,13 @@ $conn->close();
                             <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
                             Loading announcements...
                         </div>
+                    </div>
+                    <!-- Facebook Link -->
+                    <div class="facebook-link-container">
+                        <a href="https://www.facebook.com/share/1GrpFP7Xqr/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="facebook-link">
+                            <span class="facebook-link-icon">📘</span>
+                            <span class="facebook-link-text">Follow Us on Facebook</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -1678,20 +2190,39 @@ $conn->close();
                         <p style="color: #666;">No applications submitted yet.</p>
                     <?php else: ?>
                         <?php foreach ($applications as $app): ?>
+                            <?php 
+                                $app_status = !empty($app['application_status']) ? $app['application_status'] : 'Pending';
+                                $status_class = strtolower($app_status);
+                                
+                                // Format submission date
+                                $submission_date = '';
+                                if (!empty($app['submission_date'])) {
+                                    $submission_date = date('M j, Y', strtotime($app['submission_date']));
+                                } elseif (!empty($app['submission_month']) && !empty($app['submission_year'])) {
+                                    $submission_date = date('M j, Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year']));
+                                } else {
+                                    $submission_date = 'Date not available';
+                                }
+                                
+                                $full_name = trim(($app['firstname'] ?? '') . ' ' . ($app['surname'] ?? ''));
+                                if (empty($full_name)) {
+                                    $full_name = 'Application #' . $app['id'];
+                                }
+                            ?>
                             <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #1a3876;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
-                                        <strong><?php echo htmlspecialchars($app['firstname'] . ' ' . $app['surname']); ?></strong>
-                                       
+                                        <strong><?php echo htmlspecialchars($full_name); ?></strong>
+                                        <br>
                                         <small style="color: #666;">
-                                            Submitted: <?php echo date('M j, Y', strtotime($app['submission_date'])); ?>
-                                            <?php if ($app['occupation1']): ?>
+                                            Submitted: <?php echo htmlspecialchars($submission_date); ?>
+                                            <?php if (!empty($app['occupation1'])): ?>
                                                 | Position: <?php echo htmlspecialchars($app['occupation1']); ?>
                                             <?php endif; ?>
                                         </small>
                                     </div>
-                                    <span class="status-badge status-<?php echo strtolower($app['application_status']); ?>">
-                                        <?php echo htmlspecialchars($app['application_status']); ?>
+                                    <span class="status-badge status-<?php echo htmlspecialchars($status_class); ?>">
+                                        <?php echo htmlspecialchars($app_status); ?>
                                     </span>
                                 </div>
                             </div>
@@ -1709,6 +2240,13 @@ $conn->close();
                         <p style="margin: 10px 0 0 0; color: #666;">Loading announcements...</p>
                     </div>
                     <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto; min-height: 100vh;"></iframe>
+                </div>
+                <!-- Facebook Link -->
+                <div class="facebook-link-container" style="margin-top: 20px;">
+                    <a href="https://www.facebook.com/share/1GrpFP7Xqr/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="facebook-link">
+                        <span class="facebook-link-icon">📘</span>
+                        <span class="facebook-link-text">Follow Us on Facebook</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -2651,9 +3189,290 @@ $conn->close();
                 });
         }
 
+        // Load Skills Ranking
+        function loadSkillsRanking() {
+            fetch('skills_ranking.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderSkillsRanking(data.skills, data.totalSkills);
+                    } else {
+                        document.getElementById('skillsRankingContainer').innerHTML = `
+                            <div class="skills-ranking-loading">
+                                <p>Unable to load skills ranking</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading skills ranking:', error);
+                    document.getElementById('skillsRankingContainer').innerHTML = `
+                        <div class="skills-ranking-loading">
+                            <p>Error loading skills ranking</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderSkillsRanking(skills, totalSkills) {
+            const container = document.getElementById('skillsRankingContainer');
+            
+            if (skills.length === 0) {
+                container.innerHTML = `
+                    <div class="skills-ranking-loading" style="grid-column: 1 / -1;">
+                        <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">🛠️</div>
+                        <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No Skills Data Available</div>
+                        <div style="color: #999; font-size: 0.9rem;">Skills will appear here once jobseekers register with their skills</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = skills.map(skill => {
+                const percentage = totalSkills > 0 ? Math.round((skill.count / totalSkills) * 100) : 0;
+                return `
+                    <div class="skill-card">
+                        <div class="skill-card-icon">🛠️</div>
+                        <div class="skill-card-name">${skill.skill}</div>
+                        <div class="skill-card-count">${skill.count}</div>
+                        <div class="skill-card-percentage">${percentage}% of total</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load Application Success Rate
+        function loadApplicationSuccessRate() {
+            fetch('application_success_rate.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderApplicationSuccessRate(data.data);
+                    } else {
+                        document.getElementById('successRateContainer').innerHTML = `
+                            <div class="analytics-loading">
+                                <p>Unable to load success rate data</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading application success rate:', error);
+                    document.getElementById('successRateContainer').innerHTML = `
+                        <div class="analytics-loading">
+                            <p>Error loading success rate data</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderApplicationSuccessRate(data) {
+            const container = document.getElementById('successRateContainer');
+            
+            if (data.total_applications === 0) {
+                container.innerHTML = `
+                    <div class="analytics-loading" style="grid-column: 1 / -1;">
+                        <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">📊</div>
+                        <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No Applications Yet</div>
+                        <div style="color: #999; font-size: 0.9rem;">Submit your first application to see your success rate</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="success-rate-card accepted">
+                    <div class="success-rate-label">Accepted Applications</div>
+                    <div class="success-rate-number">${data.accepted_count}</div>
+                    <div class="success-rate-percentage">${data.success_rate}%</div>
+                </div>
+                <div class="success-rate-card rejected">
+                    <div class="success-rate-label">Rejected Applications</div>
+                    <div class="success-rate-number">${data.rejected_count}</div>
+                    <div class="success-rate-percentage">${data.rejection_rate}%</div>
+                </div>
+                <div class="success-rate-card pending">
+                    <div class="success-rate-label">Pending Applications</div>
+                    <div class="success-rate-number">${data.pending_count}</div>
+                    <div class="success-rate-percentage">${data.pending_rate}%</div>
+                </div>
+            `;
+            
+            if (Object.keys(data.top_rejection_reasons).length > 0) {
+                html += `
+                    <div class="success-rate-card" style="grid-column: 1 / -1; text-align: left;">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Top Rejection Reasons</h3>
+                        <div class="rejection-reasons">
+                            ${Object.entries(data.top_rejection_reasons).map(([reason, count]) => `
+                                <div class="rejection-reason-item">
+                                    <span style="color: #666;">${reason}</span>
+                                    <span style="color: #f44336; font-weight: 600;">${count}x</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Load Most Accepted Skills
+        function loadMostAcceptedSkills() {
+            fetch('most_accepted_skills.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderMostAcceptedSkills(data.skills, data.total_accepted);
+                    } else {
+                        document.getElementById('mostAcceptedSkillsContainer').innerHTML = `
+                            <div class="analytics-loading">
+                                <p>Unable to load most accepted skills</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading most accepted skills:', error);
+                    document.getElementById('mostAcceptedSkillsContainer').innerHTML = `
+                        <div class="analytics-loading">
+                            <p>Error loading most accepted skills</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderMostAcceptedSkills(skills, totalAccepted) {
+            const container = document.getElementById('mostAcceptedSkillsContainer');
+            
+            if (skills.length === 0) {
+                container.innerHTML = `
+                    <div class="analytics-loading" style="grid-column: 1 / -1;">
+                        <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">✅</div>
+                        <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No Accepted Jobseekers Yet</div>
+                        <div style="color: #999; font-size: 0.9rem;">Skills will appear here once jobseekers are accepted</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = skills.map(skill => `
+                <div class="accepted-skill-card">
+                    <div class="accepted-skill-icon">✅</div>
+                    <div class="accepted-skill-name">${skill.skill}</div>
+                    <div class="accepted-skill-count">${skill.count}</div>
+                    <div class="accepted-skill-percentage">${skill.percentage}% of accepted</div>
+                </div>
+            `).join('');
+        }
+
+        // Load Skills Gap Analysis
+        function loadSkillsGapAnalysis() {
+            fetch('skills_gap_analysis.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderSkillsGapAnalysis(data.data);
+                    } else {
+                        document.getElementById('skillsGapContainer').innerHTML = `
+                            <div class="analytics-loading">
+                                <p>Unable to load skills gap analysis</p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading skills gap analysis:', error);
+                    document.getElementById('skillsGapContainer').innerHTML = `
+                        <div class="analytics-loading">
+                            <p>Error loading skills gap analysis</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderSkillsGapAnalysis(data) {
+            const container = document.getElementById('skillsGapContainer');
+            
+            // Determine match score class
+            let scoreClass = 'low';
+            let scoreLabel = 'Low Match';
+            if (data.match_score >= 70) {
+                scoreClass = 'high';
+                scoreLabel = 'Excellent Match';
+            } else if (data.match_score >= 40) {
+                scoreClass = 'medium';
+                scoreLabel = 'Good Match';
+            }
+            
+            let html = `
+                <div class="gap-analysis-card">
+                    <h3 style="margin: 0 0 20px 0; color: #233a8b; font-size: 1.1rem; text-align: center;">Your Skills Match Score</h3>
+                    <div class="match-score-circle ${scoreClass}">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2.5rem;">${data.match_score}%</div>
+                            <div style="font-size: 0.9rem; opacity: 0.9;">${scoreLabel}</div>
+                        </div>
+                    </div>
+                    <p style="text-align: center; color: #666; margin: 0; font-size: 0.9rem;">
+                        You have <strong>${data.user_skills_count}</strong> skills registered
+                    </p>
+                </div>
+            `;
+            
+            if (data.recommendations.length > 0) {
+                html += `
+                    <div class="gap-analysis-card">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Recommended Skills to Add</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 16px;">These skills are highly valued by employers and could improve your chances:</p>
+                        <ul class="recommendations-list">
+                            ${data.recommendations.map(rec => `
+                                <li class="recommendation-item">
+                                    <span style="font-weight: 500; color: #333;">${rec.skill}</span>
+                                    <span class="recommendation-percentage">${rec.percentage}% of accepted</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="gap-analysis-card">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Great Job! 🎉</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                            You already have the most valued skills! Keep up the excellent work.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            if (data.top_accepted_skills.length > 0) {
+                html += `
+                    <div class="gap-analysis-card">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Top Accepted Skills Overview</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 16px;">Skills that ${data.total_accepted_jobseekers} accepted jobseekers have:</p>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            ${data.top_accepted_skills.slice(0, 8).map(skill => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                                    <span style="color: #333;">${skill.skill}</span>
+                                    <span style="color: #4CAF50; font-weight: 600; font-size: 0.9rem;">${skill.percentage}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
         // Load announcements when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadLatestAnnouncements();
+            loadSkillsRanking();
+            loadApplicationSuccessRate();
+            loadMostAcceptedSkills();
+            loadSkillsGapAnalysis();
         });
     </script>
 </body>

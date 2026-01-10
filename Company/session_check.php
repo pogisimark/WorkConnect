@@ -1,4 +1,7 @@
 <?php
+// Set timezone to Philippines
+date_default_timezone_set('Asia/Manila');
+
 // Check if company is logged in, redirect to login if not
 if (session_status() == PHP_SESSION_NONE) {
     session_start();

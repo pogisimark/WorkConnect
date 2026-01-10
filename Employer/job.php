@@ -1,4 +1,8 @@
-<?php include 'session_protect.php'; ?>
+<?php 
+// Set timezone to Philippines
+date_default_timezone_set('Asia/Manila');
+include 'session_protect.php'; 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,6 +220,17 @@
         color: #4caf50;
         font-weight: 600;
         background: rgba(76,175,80,0.1);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-referred {
+        color: #2196f3;
+        font-weight: 600;
+        background: rgba(33,150,243,0.1);
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
@@ -508,6 +523,7 @@
         
         .status-pending,
         .status-accepted,
+        .status-referred,
         .status-rejected {
             font-size: 0.75rem;
             padding: 3px 8px;
@@ -907,6 +923,182 @@
         backdrop-filter: blur(4px);
     }
 
+    /* Company Selector Styles */
+    .company-selector-container {
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .company-search-input {
+        width: 100%;
+        padding: 14px 16px 14px 40px;
+        border: 2px solid #e3f2fd;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    .company-search-input:focus {
+        outline: none;
+        border-color: #1976d2;
+        box-shadow: 0 0 0 3px rgba(25,118,210,0.1);
+    }
+
+    .company-search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+        font-size: 1.1rem;
+        pointer-events: none;
+    }
+
+    .company-dropdown {
+        position: relative;
+        margin-top: 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #fff;
+        border: 2px solid #e3f2fd;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: block;
+    }
+
+    .company-dropdown::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .company-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .company-dropdown::-webkit-scrollbar-thumb {
+        background: #1976d2;
+        border-radius: 10px;
+    }
+
+    .company-dropdown::-webkit-scrollbar-thumb:hover {
+        background: #1565c0;
+    }
+
+    .company-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .company-item:last-child {
+        border-bottom: none;
+    }
+
+    .company-item:hover {
+        background: #e3f2fd;
+    }
+
+    .company-item.selected {
+        background: #1976d2;
+        color: #fff;
+    }
+
+    .company-item.selected:hover {
+        background: #1565c0;
+    }
+
+    .company-item-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .company-item.selected .company-item-name {
+        color: #fff;
+    }
+
+    .company-item-email {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .company-item.selected .company-item-email {
+        color: rgba(255,255,255,0.9);
+    }
+
+    .company-no-results {
+        padding: 16px;
+        text-align: center;
+        color: #999;
+        font-style: italic;
+    }
+
+    .company-count {
+        padding: 8px 12px;
+        background: #e3f2fd;
+        border-bottom: 2px solid #e3f2fd;
+        font-size: 0.85rem;
+        color: #1976d2;
+        font-weight: 600;
+        text-align: center;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .selected-company-display {
+        display: none;
+        padding: 12px 16px;
+        background: #e3f2fd;
+        border-radius: 8px;
+        margin-top: 12px;
+        border: 2px solid #1976d2;
+    }
+
+    .selected-company-display.show {
+        display: block;
+    }
+
+    .selected-company-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .selected-company-details {
+        flex: 1;
+    }
+
+    .selected-company-name {
+        font-weight: 600;
+        color: #1976d2;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+    }
+
+    .selected-company-email {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .clear-selection-btn {
+        background: #f44336;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .clear-selection-btn:hover {
+        background: #d32f2f;
+        transform: translateY(-1px);
+    }
+
     </style>
 </head>
 <body>
@@ -951,6 +1143,7 @@
                             <label for="statusFilter" style="font-weight: 600; color: #233a8b; font-size: 0.9rem;">Filter by Status:</label>
                             <select id="statusFilter" onchange="showTab(this.value)" style="padding: 8px 16px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; min-width: 140px;">
                                 <option value="all">📋 Pending</option>
+                                <option value="referred">🔗 Referred</option>
                                 <option value="accepted">✅ Accepted</option>
                                 <option value="rejected">❌ Rejected</option>
                             </select>
@@ -1034,13 +1227,27 @@
                     <div style="background:linear-gradient(135deg, #4caf50, #45a049);color:white;padding:12px 20px;border-radius:12px;display:inline-block;margin-bottom:16px;box-shadow:0 4px 12px rgba(76,175,80,0.3);">
                         <h3 style="margin:0;font-size:1.2rem;font-weight:700;letter-spacing:0.3px;">✅ Accept Jobseeker</h3>
                     </div>
-                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Enter the email address where the jobseeker details should be sent.</p>
+                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select a company to send the jobseeker details to.</p>
                 </div>
                 
-                <!-- Form -->
-                <div style="margin-bottom:24px;">
-                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Email Address:</label>
-                    <input type="email" id="employerEmail" placeholder="Enter email address..." style="width:100%;padding:14px 16px;border:2px solid #e3f2fd;border-radius:10px;font-size:1rem;transition:all 0.3s ease;box-sizing:border-box;" required>
+                <!-- Company Selector -->
+                <div class="company-selector-container">
+                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Select Company:</label>
+                    <div style="position:relative;">
+                        <span class="company-search-icon">🔍</span>
+                        <input type="text" id="companySearch" class="company-search-input" placeholder="Search for company name or email..." autocomplete="off">
+                        <div id="companyDropdown" class="company-dropdown"></div>
+                    </div>
+                    <div id="selectedCompanyDisplay" class="selected-company-display">
+                        <div class="selected-company-info">
+                            <div class="selected-company-details">
+                                <div class="selected-company-name" id="selectedCompanyName"></div>
+                                <div class="selected-company-email" id="selectedCompanyEmail"></div>
+                            </div>
+                            <button type="button" class="clear-selection-btn" onclick="clearCompanySelection()">✕ Clear</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="employerEmail" value="">
                 </div>
                 
                 <!-- Action buttons -->
@@ -1100,7 +1307,7 @@
                     <div style="background:linear-gradient(135deg, #4caf50, #45a049);color:white;padding:12px 20px;border-radius:12px;display:inline-block;margin-bottom:16px;box-shadow:0 4px 12px rgba(76,175,80,0.3);">
                         <h3 style="margin:0;font-size:1.2rem;font-weight:700;letter-spacing:0.3px;">Send & Accept All Jobseekers</h3>
                     </div>
-                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select multiple jobseekers and send their details to a single employer.</p>
+                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select multiple jobseekers and send their details to a single company.</p>
                 </div>
                 
                 <!-- Selected jobseekers list -->
@@ -1111,10 +1318,24 @@
                     </div>
                 </div>
                 
-                <!-- Email input -->
-                <div style="margin-bottom:24px;">
-                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Employer Email Address:</label>
-                    <input type="email" id="bulkEmployerEmail" placeholder="Enter employer email address..." style="width:100%;padding:14px 16px;border:2px solid #e3f2fd;border-radius:10px;font-size:1rem;transition:all 0.3s ease;box-sizing:border-box;" required>
+                <!-- Company Selector -->
+                <div class="company-selector-container">
+                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Select Company:</label>
+                    <div style="position:relative;">
+                        <span class="company-search-icon">🔍</span>
+                        <input type="text" id="bulkCompanySearch" class="company-search-input" placeholder="Search for company name or email..." autocomplete="off">
+                        <div id="bulkCompanyDropdown" class="company-dropdown"></div>
+                    </div>
+                    <div id="selectedBulkCompanyDisplay" class="selected-company-display">
+                        <div class="selected-company-info">
+                            <div class="selected-company-details">
+                                <div class="selected-company-name" id="selectedBulkCompanyName"></div>
+                                <div class="selected-company-email" id="selectedBulkCompanyEmail"></div>
+                            </div>
+                            <button type="button" class="clear-selection-btn" onclick="clearBulkCompanySelection()">✕ Clear</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="bulkEmployerEmail" value="">
                 </div>
                 
                 <!-- Action buttons -->
@@ -1596,6 +1817,8 @@
             if (currentTab === 'all') {
                 // Only show pending jobseekers in the main tab
                 filteredData = allJobseekers.filter(j => !j.application_status || j.application_status === 'Pending' || j.application_status === '');
+            } else if (currentTab === 'referred') {
+                filteredData = allJobseekers.filter(j => j.application_status === 'Referred');
             } else if (currentTab === 'accepted') {
                 filteredData = allJobseekers.filter(j => j.application_status === 'Accepted');
             } else if (currentTab === 'rejected') {
@@ -1698,7 +1921,7 @@
                 
                 // Different button layout based on status
                 let actionButtons = '';
-                if (j.application_status === 'Accepted' || j.application_status === 'Rejected') {
+                if (j.application_status === 'Accepted' || j.application_status === 'Rejected' || j.application_status === 'Referred') {
                     actionButtons = `<div class="action-buttons" style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
                         
                     </div>`;
@@ -2175,8 +2398,12 @@
         
         function showAcceptModal(jobseekerId) {
             currentJobseekerId = jobseekerId;
-            document.getElementById('employerEmail').value = '';
+            clearCompanySelection();
             document.getElementById('acceptModal').style.display = 'flex';
+            // Refresh company dropdown when modal opens
+            setTimeout(() => {
+                refreshCompanyDropdowns();
+            }, 100);
         }
         
         function rejectJobseeker(jobseekerId) {
@@ -2185,7 +2412,7 @@
             document.getElementById('rejectionReason').value = '';
         }
         
-        function updateJobseekerStatusWithCallback(jobseekerId, status, rejectionReason = null, employerEmail = null, callback = null) {
+        function updateJobseekerStatusWithCallback(jobseekerId, status, rejectionReason = null, employerEmail = null, callback = null, companyName = null, companyId = null) {
             const requestData = {
                 jobseeker_id: jobseekerId,
                 status: status
@@ -2198,6 +2425,17 @@
             if (employerEmail) {
                 requestData.employer_email = employerEmail;
             }
+            
+            // Add company_id when referring
+            if (status === 'Referred' && companyId) {
+                // Ensure companyId is a number, not a string
+                requestData.referred_to_company_id = parseInt(companyId, 10);
+                console.log('Sending referred_to_company_id:', requestData.referred_to_company_id, '(type:', typeof requestData.referred_to_company_id + ')');
+            } else if (status === 'Referred' && !companyId) {
+                console.warn('WARNING: Status is Referred but companyId is null/undefined!');
+            }
+            
+            console.log('Request Data:', requestData);
             
             fetch('update_jobseeker_status.php', {
                 method: 'POST',
@@ -2215,25 +2453,37 @@
                         jobseeker.application_status = status;
                     }
                     
-                    if (status === 'Accepted') {
-                        // Send email with jobseeker details
+                    if (status === 'Referred') {
+                        // Get company name and id - use provided parameter or fallback to selected company
+                        const finalCompanyName = companyName || (selectedCompany ? selectedCompany.company_name : (selectedBulkCompany ? selectedBulkCompany.company_name : 'the employer'));
+                        const finalCompanyId = companyId || (selectedCompany ? selectedCompany.id : (selectedBulkCompany ? selectedBulkCompany.id : null));
+                        
+                        // Send email with jobseeker details to employer
                         sendJobseekerEmail(jobseekerId, employerEmail);
                         
-                        // Create notification for the jobseeker
-                        createJobseekerNotification(jobseekerId, 'Application Accepted!', 'Congratulations! Your job application has been reffered to the employer. You will receive an email with further details.');
+                        // Send email notification to jobseeker
+                        sendJobseekerAcceptedEmail(jobseekerId, finalCompanyName);
                         
-                        // Show success SweetAlert for acceptance
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Application Accepted!',
-                            text: 'The jobseeker has been successfully accepted and email sent to employer.',
-                            confirmButtonColor: '#4caf50',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Close modal after SweetAlert is dismissed
-                            document.getElementById('acceptModal').style.display = 'none';
-                            resetAcceptModal();
-                        });
+                        // Create notification for the jobseeker
+                        createJobseekerNotification(jobseekerId, 'Application Referred!', 'Your job application has been referred to ' + finalCompanyName + '. The company will review your application and contact you if you are selected.');
+                        
+                        // Show success SweetAlert for referral (only for single accept, not bulk)
+                        // Check if acceptModal is visible to determine if this is a single accept
+                        const acceptModal = document.getElementById('acceptModal');
+                        if (acceptModal && acceptModal.style.display === 'flex' && callback) {
+                            // This is called from single accept, show alert
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Application Referred!',
+                                text: 'The jobseeker has been successfully referred to the company and emails sent to both the company and jobseeker.',
+                                confirmButtonColor: '#2196f3',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Close modal after SweetAlert is dismissed
+                                acceptModal.style.display = 'none';
+                                resetAcceptModal();
+                            });
+                        }
                     } else if (status === 'Rejected') {
                         // Create notification for the jobseeker
                         createJobseekerNotification(jobseekerId, 'Application Update', 'Your job application status has been updated. Please check your dashboard for details.');
@@ -2412,7 +2662,7 @@
                 try {
                     const jsonData = JSON.parse(data);
                     if (jsonData.success) {
-                        console.log('Email sent successfully');
+                        console.log('Email sent successfully to employer');
                     } else {
                         console.error('Email failed to send:', jsonData.message);
                     }
@@ -2426,10 +2676,275 @@
             });
         }
         
+        function sendJobseekerAcceptedEmail(jobseekerId, companyName) {
+            fetch('send_jobseeker_accepted_email.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jobseeker_id: jobseekerId,
+                    company_name: companyName
+                })
+            })
+            .then(response => {
+                console.log('Jobseeker email response status:', response.status);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Jobseeker email response data:', data);
+                try {
+                    const jsonData = JSON.parse(data);
+                    if (jsonData.success) {
+                        console.log('Email sent successfully to jobseeker');
+                    } else {
+                        console.error('Email failed to send to jobseeker:', jsonData.message);
+                    }
+                } catch (e) {
+                    console.log('Email sent successfully to jobseeker (generic response)');
+                }
+            })
+            .catch(error => {
+                console.error('Jobseeker email error:', error);
+                // Email error is logged but doesn't show SweetAlert to avoid duplication
+            });
+        }
+        
         // Email validation function
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
+        }
+        
+        // Company Selector Functionality
+        let allCompanies = [];
+        let selectedCompany = null;
+        let selectedBulkCompany = null;
+        
+        // Fetch companies on page load
+        function fetchCompanies() {
+            fetch('get_companies.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allCompanies = data.companies;
+                        console.log('Companies loaded:', allCompanies.length);
+                        // Refresh dropdowns after companies are loaded
+                        refreshCompanyDropdowns();
+                    } else {
+                        console.error('Error loading companies:', data.message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load companies. Please refresh the page.',
+                            confirmButtonColor: '#f44336'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching companies:', error);
+                });
+        }
+        
+        // Initialize company selectors
+        function initializeCompanySelectors() {
+            const companySearch = document.getElementById('companySearch');
+            const bulkCompanySearch = document.getElementById('bulkCompanySearch');
+            
+            if (companySearch) {
+                setupCompanySelector(companySearch, 'companyDropdown', 'selectedCompanyDisplay', 
+                    'selectedCompanyName', 'selectedCompanyEmail', 'employerEmail', (company) => {
+                        selectedCompany = company;
+                    });
+            }
+            
+            if (bulkCompanySearch) {
+                setupCompanySelector(bulkCompanySearch, 'bulkCompanyDropdown', 'selectedBulkCompanyDisplay',
+                    'selectedBulkCompanyName', 'selectedBulkCompanyEmail', 'bulkEmployerEmail', (company) => {
+                        selectedBulkCompany = company;
+                    });
+            }
+        }
+        
+        // Setup company selector with search functionality
+        function setupCompanySelector(searchInput, dropdownId, displayId, nameId, emailId, hiddenInputId, onSelect) {
+            const dropdown = document.getElementById(dropdownId);
+            const display = document.getElementById(displayId);
+            const nameDisplay = document.getElementById(nameId);
+            const emailDisplay = document.getElementById(emailId);
+            const hiddenInput = document.getElementById(hiddenInputId);
+            
+            // Function to filter and render companies
+            function filterAndRender() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                
+                let filteredCompanies;
+                if (searchTerm === '') {
+                    filteredCompanies = allCompanies;
+                } else {
+                    filteredCompanies = allCompanies.filter(company => 
+                        company.company_name.toLowerCase().includes(searchTerm) ||
+                        company.email.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                renderCompanyDropdown(dropdown, filteredCompanies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect);
+            }
+            
+            // Initial render with all companies if available
+            if (allCompanies.length > 0) {
+                filterAndRender();
+            }
+            
+            // Search functionality - filter as user types
+            searchInput.addEventListener('input', function(e) {
+                filterAndRender();
+            });
+        }
+        
+        // Function to refresh company dropdowns when companies are loaded
+        function refreshCompanyDropdowns() {
+            const companySearch = document.getElementById('companySearch');
+            const bulkCompanySearch = document.getElementById('bulkCompanySearch');
+            
+            if (companySearch && allCompanies.length > 0) {
+                const searchTerm = companySearch.value.toLowerCase().trim();
+                let filteredCompanies = searchTerm === '' ? allCompanies : 
+                    allCompanies.filter(company => 
+                        company.company_name.toLowerCase().includes(searchTerm) ||
+                        company.email.toLowerCase().includes(searchTerm)
+                    );
+                const dropdown = document.getElementById('companyDropdown');
+                const display = document.getElementById('selectedCompanyDisplay');
+                const nameDisplay = document.getElementById('selectedCompanyName');
+                const emailDisplay = document.getElementById('selectedCompanyEmail');
+                const hiddenInput = document.getElementById('employerEmail');
+                renderCompanyDropdown(dropdown, filteredCompanies, companySearch, display, nameDisplay, emailDisplay, hiddenInput, (company) => {
+                    selectedCompany = company;
+                });
+            }
+            
+            if (bulkCompanySearch && allCompanies.length > 0) {
+                const searchTerm = bulkCompanySearch.value.toLowerCase().trim();
+                let filteredCompanies = searchTerm === '' ? allCompanies : 
+                    allCompanies.filter(company => 
+                        company.company_name.toLowerCase().includes(searchTerm) ||
+                        company.email.toLowerCase().includes(searchTerm)
+                    );
+                const dropdown = document.getElementById('bulkCompanyDropdown');
+                const display = document.getElementById('selectedBulkCompanyDisplay');
+                const nameDisplay = document.getElementById('selectedBulkCompanyName');
+                const emailDisplay = document.getElementById('selectedBulkCompanyEmail');
+                const hiddenInput = document.getElementById('bulkEmployerEmail');
+                renderCompanyDropdown(dropdown, filteredCompanies, bulkCompanySearch, display, nameDisplay, emailDisplay, hiddenInput, (company) => {
+                    selectedBulkCompany = company;
+                });
+            }
+        }
+        
+        // Render company dropdown
+        function renderCompanyDropdown(dropdown, companies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect) {
+            if (companies.length === 0) {
+                dropdown.innerHTML = '<div class="company-no-results">No companies found</div>';
+                return;
+            }
+            
+            // Show count of companies
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const countText = searchTerm === '' 
+                ? `Showing ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}`
+                : `Found ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}`;
+            
+            dropdown.innerHTML = `<div class="company-count">${countText}</div>`;
+            
+            companies.forEach(company => {
+                const item = document.createElement('div');
+                item.className = 'company-item';
+                item.innerHTML = `
+                    <div class="company-item-name">${company.company_name}</div>
+                    <div class="company-item-email">${company.email}</div>
+                `;
+                
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent event bubbling
+                    
+                    // Remove previous selection highlight
+                    dropdown.querySelectorAll('.company-item').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Highlight selected item
+                    item.classList.add('selected');
+                    
+                    // Set selected company
+                    searchInput.value = company.company_name;
+                    hiddenInput.value = company.email;
+                    nameDisplay.textContent = company.company_name;
+                    emailDisplay.textContent = company.email;
+                    display.classList.add('show');
+                    
+                    // Call callback - ensure company object has all fields
+                    if (onSelect) {
+                        // Ensure company object has id
+                        const companyObj = {
+                            id: company.id,
+                            company_name: company.company_name,
+                            email: company.email
+                        };
+                        console.log('Selecting company:', companyObj);
+                        onSelect(companyObj);
+                    }
+                });
+                
+                dropdown.appendChild(item);
+            });
+        }
+        
+        // Clear company selection
+        function clearCompanySelection() {
+            selectedCompany = null;
+            const searchInput = document.getElementById('companySearch');
+            const dropdown = document.getElementById('companyDropdown');
+            const display = document.getElementById('selectedCompanyDisplay');
+            
+            if (searchInput) searchInput.value = '';
+            if (document.getElementById('employerEmail')) document.getElementById('employerEmail').value = '';
+            if (display) display.classList.remove('show');
+            
+            // Remove selection highlight
+            if (dropdown) {
+                dropdown.querySelectorAll('.company-item').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
+        }
+        
+        function clearBulkCompanySelection() {
+            selectedBulkCompany = null;
+            const searchInput = document.getElementById('bulkCompanySearch');
+            const dropdown = document.getElementById('bulkCompanyDropdown');
+            const display = document.getElementById('selectedBulkCompanyDisplay');
+            
+            if (searchInput) searchInput.value = '';
+            if (document.getElementById('bulkEmployerEmail')) document.getElementById('bulkEmployerEmail').value = '';
+            if (display) display.classList.remove('show');
+            
+            // Remove selection highlight
+            if (dropdown) {
+                dropdown.querySelectorAll('.company-item').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
+        }
+        
+        // Load companies when page loads
+        fetchCompanies();
+        
+        // Initialize selectors after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeCompanySelectors);
+        } else {
+            initializeCompanySelectors();
         }
         
         // Accept modal event listeners
@@ -2440,20 +2955,11 @@
             const spinner = document.getElementById('acceptSpinner');
             const cancelBtn = document.getElementById('cancelAcceptBtn');
             
-            if (!email) {
+            if (!email || !selectedCompany) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Required Field',
-                    text: 'Please enter an email address.',
-                    confirmButtonColor: '#4caf50'
-                });
-                return;
-            }
-            if (!isValidEmail(email)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Email',
-                    text: 'Please enter a valid email address.',
+                    text: 'Please select a company to send the jobseeker details to.',
                     confirmButtonColor: '#4caf50'
                 });
                 return;
@@ -2466,8 +2972,17 @@
             spinner.style.display = 'flex';
             
             if (currentJobseekerId) {
+                // Get company name and id from selected company
+                const companyName = selectedCompany ? selectedCompany.company_name : 'the employer';
+                const companyId = selectedCompany ? selectedCompany.id : null;
+                
+                // Debug logging
+                console.log('Selected Company:', selectedCompany);
+                console.log('Company ID:', companyId);
+                console.log('Company Name:', companyName);
+                
                 // Call the update function and handle the response
-                updateJobseekerStatusWithCallback(currentJobseekerId, 'Accepted', null, email, function(success) {
+                updateJobseekerStatusWithCallback(currentJobseekerId, 'Referred', null, email, function(success) {
                     // Stop spinner and reset button state
                     acceptBtn.disabled = false;
                     cancelBtn.disabled = false;
@@ -2476,7 +2991,7 @@
                     
                     // Modal will be closed by SweetAlert .then() callback
                     // No need to close it here
-                });
+                }, companyName, companyId);
             }
         };
         
@@ -2500,7 +3015,7 @@
             cancelBtn.disabled = false;
             btnText.style.display = 'inline';
             spinner.style.display = 'none';
-            document.getElementById('employerEmail').value = '';
+            clearCompanySelection();
         }
         
         // Reject modal event listeners
@@ -2731,8 +3246,12 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                 return;
             }
             
-            document.getElementById('bulkEmployerEmail').value = '';
+            clearBulkCompanySelection();
             document.getElementById('bulkAcceptModal').style.display = 'flex';
+            // Refresh company dropdown when modal opens
+            setTimeout(() => {
+                refreshCompanyDropdowns();
+            }, 100);
         }
         
         function bulkAcceptJobseekers() {
@@ -2742,21 +3261,11 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             const spinner = document.getElementById('bulkAcceptSpinner');
             const cancelBtn = document.getElementById('cancelBulkAcceptBtn');
             
-            if (!email) {
+            if (!email || !selectedBulkCompany) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Required Field',
-                    text: 'Please enter an email address.',
-                    confirmButtonColor: '#4caf50'
-                });
-                return;
-            }
-            
-            if (!isValidEmail(email)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid Email',
-                    text: 'Please enter a valid email address.',
+                    text: 'Please select a company to send the jobseeker details to.',
                     confirmButtonColor: '#4caf50'
                 });
                 return;
@@ -2774,9 +3283,13 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             let successCount = 0;
             let errorCount = 0;
             
+            // Get company name and id from selected bulk company
+            const companyName = selectedBulkCompany ? selectedBulkCompany.company_name : 'the employer';
+            const companyId = selectedBulkCompany ? selectedBulkCompany.id : null;
+            
             selectedJobseekers.forEach((jobseeker, index) => {
                 setTimeout(() => {
-                    updateJobseekerStatusWithCallback(jobseeker.id, 'Accepted', null, email, function(success) {
+                    updateJobseekerStatusWithCallback(jobseeker.id, 'Referred', null, email, function(success) {
                         completed++;
                         
                         if (success) {
@@ -2832,7 +3345,7 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                                 });
                             }
                         }
-                    });
+                    }, companyName, companyId);
                 }, index * 500); // Stagger requests by 500ms
             });
         }
@@ -2844,10 +3357,12 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
         
         document.getElementById('cancelBulkAcceptBtn').onclick = function() {
             document.getElementById('bulkAcceptModal').style.display = 'none';
+            clearBulkCompanySelection();
         };
         
         document.getElementById('bulkAcceptCloseBtn').onclick = function() {
             document.getElementById('bulkAcceptModal').style.display = 'none';
+            clearBulkCompanySelection();
         };
         
         // Close bulk accept modal on outside click

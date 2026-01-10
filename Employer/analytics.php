@@ -1408,6 +1408,36 @@
         }
     }
 
+    // Helper function to parse custom skills from skill_others field
+    function parseOthersSkills(othersText) {
+        if (!othersText || othersText === 'n/a' || othersText.trim() === '') {
+            return [];
+        }
+        
+        // Split by common separators: comma, semicolon, "and", "or", newline
+        const separators = [',', ';', ' and ', ' or ', '\n', '\r\n'];
+        let skills = [othersText.trim()];
+        
+        // Split by each separator
+        separators.forEach(separator => {
+            const newSkills = [];
+            skills.forEach(skill => {
+                if (skill.includes(separator)) {
+                    newSkills.push(...skill.split(separator).map(s => s.trim()).filter(s => s !== ''));
+                } else {
+                    newSkills.push(skill);
+                }
+            });
+            skills = newSkills;
+        });
+        
+        // Clean up and filter out empty strings
+        return skills
+            .map(skill => skill.trim())
+            .filter(skill => skill !== '' && skill !== 'n/a')
+            .filter(skill => skill.length > 1); // Filter out single characters
+    }
+
     // Fetch real skills data from skill registry
     async function fetchSkillsData() {
         try {
@@ -1425,7 +1455,7 @@
             const jobseekers = await jobseekerResponse.json();
             
             jobseekers.forEach(jobseeker => {
-                // Count individual skills
+                // Count individual predefined skills
                 if (jobseeker.skill_auto_mechanic == 1) skillCounts['Auto Mechanic'] = (skillCounts['Auto Mechanic'] || 0) + 1;
                 if (jobseeker.skill_electrician == 1) skillCounts['Electrician'] = (skillCounts['Electrician'] || 0) + 1;
                 if (jobseeker.skill_photography == 1) skillCounts['Photography'] = (skillCounts['Photography'] || 0) + 1;
@@ -1443,6 +1473,16 @@
                 if (jobseeker.skill_tailoring == 1) skillCounts['Tailoring'] = (skillCounts['Tailoring'] || 0) + 1;
                 if (jobseeker.skill_driver == 1) skillCounts['Driving'] = (skillCounts['Driving'] || 0) + 1;
                 if (jobseeker.skill_painting == 1) skillCounts['Painting Job'] = (skillCounts['Painting Job'] || 0) + 1;
+                
+                // Count custom skills from skill_others field
+                if (jobseeker.skill_others && jobseeker.skill_others !== 'n/a' && jobseeker.skill_others.trim() !== '') {
+                    const othersSkills = parseOthersSkills(jobseeker.skill_others);
+                    othersSkills.forEach(skill => {
+                        // Use original case for display, but normalize for counting
+                        const skillKey = skill; // Keep original case
+                        skillCounts[skillKey] = (skillCounts[skillKey] || 0) + 1;
+                    });
+                }
             });
             
             // Convert to array and sort by count

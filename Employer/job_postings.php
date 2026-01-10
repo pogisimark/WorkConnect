@@ -1,4 +1,8 @@
-<?php include 'session_protect.php'; ?>
+<?php 
+// Set timezone to Philippines
+date_default_timezone_set('Asia/Manila');
+include 'session_protect.php'; 
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -275,15 +279,6 @@
             background: #218838;
         }
         
-        .btn-edit {
-            background: #007bff;
-            color: white;
-        }
-        
-        .btn-edit:hover {
-            background: #0056b3;
-        }
-        
         .btn-delete {
             background: #dc3545;
             color: white;
@@ -300,15 +295,6 @@
         
         .btn-applications:hover {
             background: #138496;
-        }
-        
-        .btn-analytics {
-            background: #6f42c1;
-            color: white;
-        }
-        
-        .btn-analytics:hover {
-            background: #5a32a3;
         }
         
         /* Export Dropdown */
@@ -811,98 +797,6 @@
             background: #5a6268;
         }
         
-        /* Analytics Modal Styles */
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .analytics-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border-left: 4px solid #233a8b;
-        }
-        
-        .analytics-icon {
-            width: 50px;
-            height: 50px;
-            background: #233a8b;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-        }
-        
-        .analytics-content h3 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: bold;
-            color: #233a8b;
-        }
-        
-        .analytics-content p {
-            margin: 5px 0;
-            color: #666;
-            font-weight: bold;
-        }
-        
-        .analytics-content small {
-            color: #28a745;
-            font-size: 0.8rem;
-        }
-        
-        .analytics-charts {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .chart-container {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .chart-container h4 {
-            margin: 0 0 15px 0;
-            color: #333;
-            font-size: 1.1rem;
-        }
-        
-        .analytics-insights {
-            background: #e3f2fd;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .analytics-insights h4 {
-            margin: 0 0 15px 0;
-            color: #1976d2;
-        }
-        
-        .analytics-insights ul {
-            margin: 0;
-            padding-left: 0;
-            list-style: none;
-        }
-        
-        .analytics-insights li {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #333;
-        }
-        
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .hamburger-menu {
@@ -947,14 +841,6 @@
                 min-width: auto;
             }
             
-            .analytics-charts {
-                grid-template-columns: 1fr;
-            }
-            
-            .analytics-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
             .bulk-buttons {
                 flex-wrap: wrap;
             }
@@ -983,10 +869,6 @@
             .jobs-table th,
             .jobs-table td {
                 padding: 12px 8px;
-            }
-            
-            .analytics-grid {
-                grid-template-columns: 1fr;
             }
             
             .bulk-buttons {
@@ -1077,31 +959,6 @@
                                 $success_message = "Job posting created successfully!";
                             } else {
                                 $error_message = "Error creating job posting: " . $conn->error;
-                            }
-                            $stmt->close();
-                            break;
-                            
-                        case 'update_job':
-                            $id = $_POST['job_id'];
-                            $title = trim($_POST['title']);
-                            $company = trim($_POST['company']);
-                            $description = trim($_POST['description']);
-                            $requirements = trim($_POST['requirements']);
-                            $salary_min = preg_replace('/[^0-9]/', '', $_POST['salary_min'] ?? '');
-                            $salary_max = preg_replace('/[^0-9]/', '', $_POST['salary_max'] ?? '');
-                            $salary_range = $salary_min && $salary_max ? $salary_min . '-' . $salary_max : trim($_POST['salary_range'] ?? '');
-                            $location = trim($_POST['location']);
-                            $job_type = $_POST['job_type'];
-                            $industry = trim($_POST['industry']);
-                            $status = $_POST['status'];
-                            
-                            $stmt = $conn->prepare("UPDATE job_postings SET title=?, company=?, description=?, requirements=?, salary_range=?, location=?, job_type=?, industry=?, status=? WHERE id=?");
-                            $stmt->bind_param("sssssssssi", $title, $company, $description, $requirements, $salary_range, $location, $job_type, $industry, $status, $id);
-                            
-                            if ($stmt->execute()) {
-                                $success_message = "Job posting updated successfully!";
-                            } else {
-                                $error_message = "Error updating job posting: " . $conn->error;
                             }
                             $stmt->close();
                             break;
@@ -1251,9 +1108,6 @@
                             </a>
                         </div>
                     </div>
-                    <button class="add-job-btn" onclick="openAddJobModal()">
-                        <i class="fas fa-plus"></i> Add New Job
-                    </button>
                 </div>
             </div>
 
@@ -1349,10 +1203,7 @@
                     <div class="no-jobs">
                         <i class="fas fa-briefcase"></i>
                         <h3>No Job Postings Yet</h3>
-                        <p>Start by creating your first job posting to attract qualified candidates.</p>
-                        <button class="add-job-btn" onclick="openAddJobModal()">
-                            <i class="fas fa-plus"></i> Create First Job Posting
-                        </button>
+                        <p>Job postings are managed by companies based on their needs.</p>
                     </div>
                 <?php else: ?>
                     <div class="table-header">
@@ -1425,14 +1276,8 @@
                                             <button class="btn btn-view" onclick="viewJob(<?php echo $job['id']; ?>)" title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-edit" onclick="editJob(<?php echo $job['id']; ?>)" title="Edit Job">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
                                             <button class="btn btn-applications" onclick="viewApplications(<?php echo $job['id']; ?>)" title="View Applications">
                                                 <i class="fas fa-users"></i>
-                                            </button>
-                                            <button class="btn btn-analytics" onclick="viewJobAnalytics(<?php echo $job['id']; ?>)" title="Job Analytics">
-                                                <i class="fas fa-chart-line"></i>
                                             </button>
                                             <button class="btn btn-delete" onclick="deleteJob(<?php echo $job['id']; ?>)" title="Delete Job">
                                                 <i class="fas fa-trash"></i>
@@ -1532,83 +1377,6 @@
         </div>
     </div>
 
-    <!-- Detailed Analytics Modal -->
-    <div id="analyticsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Job Analytics Dashboard</h2>
-                <span class="close" onclick="closeAnalyticsModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="analytics-grid">
-                    <div class="analytics-card">
-                        <div class="analytics-icon">
-                            <i class="fas fa-eye"></i>
-                        </div>
-                        <div class="analytics-content">
-                            <h3>156</h3>
-                            <p>Total Views</p>
-                            <small>+12% from last week</small>
-                        </div>
-                    </div>
-                    
-                    <div class="analytics-card">
-                        <div class="analytics-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="analytics-content">
-                            <h3>12</h3>
-                            <p>Applications</p>
-                            <small>+3 this week</small>
-                        </div>
-                    </div>
-                    
-                    <div class="analytics-card">
-                        <div class="analytics-icon">
-                            <i class="fas fa-percentage"></i>
-                        </div>
-                        <div class="analytics-content">
-                            <h3>7.7%</h3>
-                            <p>Conversion Rate</p>
-                            <small>Above average</small>
-                        </div>
-                    </div>
-                    
-                    <div class="analytics-card">
-                        <div class="analytics-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="analytics-content">
-                            <h3>2.3</h3>
-                            <p>Avg. Response Time</p>
-                            <small>Days</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="analytics-charts">
-                    <div class="chart-container">
-                        <h4>Applications Over Time</h4>
-                        <canvas id="applicationsChart" width="400" height="200"></canvas>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Application Sources</h4>
-                        <canvas id="sourcesChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="analytics-insights">
-                    <h4>Key Insights</h4>
-                    <ul>
-                        <li><i class="fas fa-check-circle" style="color: #28a745;"></i> Your job posting performs 15% better than similar positions</li>
-                        <li><i class="fas fa-info-circle" style="color: #17a2b8;"></i> Most applications come from LinkedIn (45%)</li>
-                        <li><i class="fas fa-lightbulb" style="color: #ffc107;"></i> Consider adding more specific requirements to improve quality</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
         // Global variables
@@ -1749,14 +1517,8 @@
                             <button class="btn btn-view" onclick="viewJob(${job.id})" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn btn-edit" onclick="editJob(${job.id})" title="Edit Job">
-                                <i class="fas fa-edit"></i>
-                            </button>
                             <button class="btn btn-applications" onclick="viewApplications(${job.id})" title="View Applications">
                                 <i class="fas fa-users"></i>
-                            </button>
-                            <button class="btn btn-analytics" onclick="viewJobAnalytics(${job.id})" title="Job Analytics">
-                                <i class="fas fa-chart-line"></i>
                             </button>
                             <button class="btn btn-delete" onclick="deleteJob(${job.id})" title="Delete Job">
                                 <i class="fas fa-trash"></i>
@@ -1963,146 +1725,187 @@
             setTimeout(initializeSalaryFormatting, 100);
         }
         
-        function editJob(jobId) {
-            const job = allJobs.find(j => j.id == jobId);
-            if (!job) return;
-            
-            document.getElementById('modalTitle').textContent = 'Edit Job Posting';
-            document.getElementById('formAction').value = 'update_job';
-            document.getElementById('jobId').value = jobId;
-            document.getElementById('statusGroup').style.display = 'block';
-            
-            // Populate form fields
-            document.getElementById('title').value = job.title;
-            document.getElementById('company').value = job.company;
-            document.getElementById('description').value = job.description;
-            document.getElementById('requirements').value = job.requirements;
-            // Parse salary range and populate min/max fields
-            if (job.salary_range) {
-                const salaryParts = job.salary_range.split('-');
-                if (salaryParts.length === 2) {
-                    document.getElementById('salary_min').value = formatNumberWithCommas(salaryParts[0].trim());
-                    document.getElementById('salary_max').value = formatNumberWithCommas(salaryParts[1].trim());
-                } else {
-                    document.getElementById('salary_min').value = '';
-                    document.getElementById('salary_max').value = '';
-                }
-            } else {
-                document.getElementById('salary_min').value = '';
-                document.getElementById('salary_max').value = '';
-            }
-            document.getElementById('location').value = job.location;
-            document.getElementById('job_type').value = job.job_type;
-            document.getElementById('industry').value = job.industry;
-            document.getElementById('status').value = job.status;
-            
-            document.getElementById('jobModal').style.display = 'block';
-            // Initialize formatting
-            setTimeout(initializeSalaryFormatting, 100);
-        }
-        
         function viewJob(jobId) {
             const job = allJobs.find(j => j.id == jobId);
-            if (!job) return;
+            if (!job) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Job not found',
+                    icon: 'error',
+                    confirmButtonColor: '#233a8b'
+                });
+                return;
+            }
             
-            const content = `
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: #233a8b; margin-bottom: 10px;">${escapeHtml(job.title)}</h3>
-                    <p style="color: #666; margin-bottom: 15px;"><strong>Company:</strong> ${escapeHtml(job.company)}</p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                        <div><strong>Location:</strong> ${escapeHtml(job.location)}</div>
-                        <div><strong>Type:</strong> ${escapeHtml(job.job_type)}</div>
-                        <div><strong>Salary:</strong> ₱ ${escapeHtml(job.salary_range)}</div>
-                        <div><strong>Industry:</strong> ${escapeHtml(job.industry)}</div>
-                        <div><strong>Status:</strong> <span class="status-badge status-${job.status.toLowerCase()}">${job.status}</span></div>
-                        <div><strong>Posted:</strong> ${formatDate(job.created_at)}</div>
+            const statusBadgeClass = `status-${job.status.toLowerCase()}`;
+            const statusBadgeStyle = job.status.toLowerCase() === 'active' 
+                ? 'background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;'
+                : job.status.toLowerCase() === 'closed'
+                ? 'background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;'
+                : 'background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;';
+            
+            Swal.fire({
+                title: escapeHtml(job.title),
+                html: `
+                    <div style="text-align: left; max-width: 600px;">
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <p style="margin: 0 0 10px 0; color: #666;"><strong style="color: #333;">Company:</strong> ${escapeHtml(job.company)}</p>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;">
+                                <div><strong style="color: #333;">Location:</strong> <span style="color: #666;">${escapeHtml(job.location)}</span></div>
+                                <div><strong style="color: #333;">Type:</strong> <span style="color: #666;">${escapeHtml(job.job_type)}</span></div>
+                                <div><strong style="color: #333;">Salary:</strong> <span style="color: #666;">₱ ${escapeHtml(job.salary_range || 'Not specified')}</span></div>
+                                <div><strong style="color: #333;">Industry:</strong> <span style="color: #666;">${escapeHtml(job.industry || 'Not specified')}</span></div>
+                                <div><strong style="color: #333;">Status:</strong> <span style="${statusBadgeStyle}">${escapeHtml(job.status)}</span></div>
+                                <div><strong style="color: #333;">Posted:</strong> <span style="color: #666;">${formatDate(job.created_at)}</span></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #233a8b; margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #233a8b; padding-bottom: 5px;">Job Description</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap; color: #333; line-height: 1.6;">${escapeHtml(job.description || 'No description provided')}</div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="color: #233a8b; margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #233a8b; padding-bottom: 5px;">Requirements</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap; color: #333; line-height: 1.6;">${escapeHtml(job.requirements || 'No requirements specified')}</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: #233a8b; margin-bottom: 10px;">Job Description</h4>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap;">${escapeHtml(job.description)}</div>
-                </div>
-                
-                <div>
-                    <h4 style="color: #233a8b; margin-bottom: 10px;">Requirements</h4>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap;">${escapeHtml(job.requirements)}</div>
-                </div>
-            `;
-            
-            document.getElementById('viewContent').innerHTML = content;
-            document.getElementById('viewModal').style.display = 'block';
+                `,
+                width: '700px',
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#233a8b',
+                customClass: {
+                    popup: 'swal2-popup-custom'
+                }
+            });
         }
         
         function viewApplications(jobId) {
-            // This would typically fetch applications via AJAX
-            Swal.fire({
-                title: 'Job Applications',
-                html: `
-                    <div style="text-align: left;">
-                        <p><strong>Total Applications:</strong> 12</p>
-                        <p><strong>New Applications:</strong> 3</p>
-                        <p><strong>Interview Scheduled:</strong> 2</p>
-                        <p><strong>Hired:</strong> 1</p>
-                        <hr>
-                        <p style="color: #666; font-size: 0.9rem;">Click "View Details" to see individual applications and manage candidates.</p>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'View Details',
-                cancelButtonText: 'Close',
-                confirmButtonColor: '#233a8b'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Redirect to applications management page
-                    window.location.href = `job_applications.php?job_id=${jobId}`;
-                }
-            });
-        }
-        
-        function viewJobAnalytics(jobId) {
             const job = allJobs.find(j => j.id == jobId);
-            if (!job) return;
+            if (!job) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Job not found',
+                    icon: 'error',
+                    confirmButtonColor: '#233a8b'
+                });
+                return;
+            }
             
+            // Show loading
             Swal.fire({
-                title: `Analytics: ${job.title}`,
-                html: `
-                    <div style="text-align: left;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin: 0 0 10px 0; color: #1976d2;">Views</h4>
-                                <div style="font-size: 2rem; font-weight: bold; color: #1976d2;">156</div>
-                            </div>
-                            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin: 0 0 10px 0; color: #2e7d32;">Applications</h4>
-                                <div style="font-size: 2rem; font-weight: bold; color: #2e7d32;">12</div>
-                            </div>
-                        </div>
-                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
-                            <h4 style="margin: 0 0 10px 0; color: #f57c00;">Conversion Rate</h4>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #f57c00;">7.7%</div>
-                            <small style="color: #666;">Applications per view</small>
-                        </div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Detailed Report',
-                cancelButtonText: 'Close',
-                confirmButtonColor: '#233a8b'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Open detailed analytics modal or page
-                    openDetailedAnalytics(jobId);
+                title: 'Loading Applications...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
             });
-        }
-        
-        function openDetailedAnalytics(jobId) {
-            // This would open a more detailed analytics modal
-            const analyticsModal = document.getElementById('analyticsModal');
-            if (analyticsModal) {
-                analyticsModal.style.display = 'block';
-            }
+            
+            // Fetch application data
+            fetch(`get_job_applications.php?job_id=${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    
+                    if (!data.success) {
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Failed to load applications',
+                            icon: 'error',
+                            confirmButtonColor: '#233a8b'
+                        });
+                        return;
+                    }
+                    
+                    const stats = data.stats || {};
+                    const recentApps = data.recent_applications || [];
+                    const total = parseInt(stats.total_applications || 0);
+                    
+                    // Build HTML content
+                    let html = `
+                        <div style="text-align: left; max-width: 600px;">
+                            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <h3 style="margin: 0 0 15px 0; color: #233a8b; font-size: 1.2rem;">Application Statistics</h3>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                                    <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #233a8b;">
+                                        <div style="font-size: 1.8rem; font-weight: bold; color: #233a8b;">${total}</div>
+                                        <div style="color: #666; font-size: 0.9rem;">Total Applications</div>
+                                    </div>
+                                    <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #1976d2;">
+                                        <div style="font-size: 1.8rem; font-weight: bold; color: #1976d2;">${parseInt(stats.applied_count || 0)}</div>
+                                        <div style="color: #666; font-size: 0.9rem;">Applied</div>
+                                    </div>
+                                    <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #4caf50;">
+                                        <div style="font-size: 1.8rem; font-weight: bold; color: #4caf50;">${parseInt(stats.accepted_count || 0)}</div>
+                                        <div style="color: #666; font-size: 0.9rem;">Accepted</div>
+                                    </div>
+                                    <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #f44336;">
+                                        <div style="font-size: 1.8rem; font-weight: bold; color: #f44336;">${parseInt(stats.rejected_count || 0)}</div>
+                                        <div style="color: #666; font-size: 0.9rem;">Rejected</div>
+                                    </div>
+                                </div>
+                            </div>
+                    `;
+                    
+                    if (recentApps.length > 0) {
+                        html += `
+                            <div style="margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; color: #233a8b; font-size: 1rem; border-bottom: 2px solid #233a8b; padding-bottom: 5px;">Recent Applications</h4>
+                                <div style="max-height: 200px; overflow-y: auto;">
+                        `;
+                        
+                        recentApps.forEach(app => {
+                            const fullName = `${app.firstname || ''} ${app.middlename && app.middlename !== 'n/a' ? app.middlename + ' ' : ''}${app.surname || ''}`.trim() || 'N/A';
+                            const appliedDate = new Date(app.applied_date).toLocaleDateString();
+                            const statusColor = app.application_status === 'Applied' ? '#1976d2' : 
+                                              app.application_status === 'Accepted' ? '#4caf50' : '#f44336';
+                            
+                            html += `
+                                <div style="padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid ${statusColor};">
+                                    <div style="font-weight: 600; color: #333; margin-bottom: 5px;">${escapeHtml(fullName)}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #666;">
+                                        <span>${appliedDate}</span>
+                                        <span style="padding: 3px 8px; background: ${statusColor}; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">${escapeHtml(app.application_status || 'Applied')}</span>
+                                    </div>
+                                    ${app.compatibility_score ? `<div style="font-size: 0.8rem; color: #666; margin-top: 5px;">Match: ${parseFloat(app.compatibility_score).toFixed(1)}%</div>` : ''}
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="text-align: center; padding: 20px; color: #666;">
+                                <i class="fas fa-user-slash" style="font-size: 2rem; color: #ccc; margin-bottom: 10px; display: block;"></i>
+                                <p style="margin: 0;">No applications yet for this job posting.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                    
+                    Swal.fire({
+                        title: `Applications: ${escapeHtml(job.title)}`,
+                        html: html,
+                        width: '700px',
+                        confirmButtonText: 'Close',
+                        confirmButtonColor: '#233a8b',
+                        showCancelButton: false
+                    });
+                })
+                .catch(error => {
+                    Swal.close();
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to load applications. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#233a8b'
+                    });
+                    console.error('Error:', error);
+                });
         }
         
         function deleteJob(jobId) {
@@ -2137,10 +1940,6 @@
         
         function closeViewModal() {
             document.getElementById('viewModal').style.display = 'none';
-        }
-        
-        function closeAnalyticsModal() {
-            document.getElementById('analyticsModal').style.display = 'none';
         }
         
         function submitForm() {
@@ -2362,16 +2161,12 @@
         window.onclick = function(event) {
             const jobModal = document.getElementById('jobModal');
             const viewModal = document.getElementById('viewModal');
-            const analyticsModal = document.getElementById('analyticsModal');
             
             if (event.target === jobModal) {
                 closeModal();
             }
             if (event.target === viewModal) {
                 closeViewModal();
-            }
-            if (event.target === analyticsModal) {
-                closeAnalyticsModal();
             }
         }
         
@@ -2391,7 +2186,7 @@
                         e.preventDefault();
                         if (selectedJobs.size === 1) {
                             const jobId = Array.from(selectedJobs)[0];
-                            editJob(jobId);
+                            // Edit functionality removed - companies cannot edit job postings
                         }
                         break;
                 }

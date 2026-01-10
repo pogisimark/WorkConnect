@@ -1,5 +1,7 @@
-
 <?php
+// Set timezone to Philippines
+date_default_timezone_set('Asia/Manila');
+
 // Start session and check if user is logged in
 session_start();
 
@@ -98,6 +100,43 @@ $db   = "WorkConnect";
 
 // Create connection with timeout and retry logic
 $conn = new mysqli($host, $user, $pass, $db);
+
+// Check if user has existing NRSP form and its status
+$userId = $_SESSION['user_id'];
+$existingNRSP = null;
+$canEditNRSP = false;
+$nrspStatus = null;
+$nrspSubmissionDate = null;
+
+$stmt = $conn->prepare("SELECT id, application_status, submission_date, submission_month, submission_year, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($result->num_rows > 0) {
+    $existingNRSP = $result->fetch_assoc();
+    $nrspStatus = $existingNRSP['application_status'] ?? null;
+    
+    // Format submission date
+    if (!empty($existingNRSP['submission_date'])) {
+        $nrspSubmissionDate = date('F d, Y', strtotime($existingNRSP['submission_date']));
+    } elseif (!empty($existingNRSP['submission_year']) && !empty($existingNRSP['submission_month'])) {
+        $nrspSubmissionDate = date('F Y', mktime(0, 0, 0, (int)$existingNRSP['submission_month'], 1, (int)$existingNRSP['submission_year']));
+    } elseif (!empty($existingNRSP['created_at'])) {
+        $nrspSubmissionDate = date('F d, Y', strtotime($existingNRSP['created_at']));
+    }
+    
+    // Allow editing only if status is NULL, empty, 'Pending', or 'Rejected' (not 'Accepted')
+    $canEditNRSP = empty($nrspStatus) || 
+                   strtolower($nrspStatus) === 'pending' || 
+                   strtolower($nrspStatus) === 'rejected' ||
+                   strtolower($nrspStatus) === '';
+    
+    // Don't allow editing if already accepted/sent to company
+    if (strtolower($nrspStatus) === 'accepted') {
+        $canEditNRSP = false;
+    }
+}
+$stmt->close();
 $conn->options(MYSQLI_OPT_CONNECT_TIMEOUT, 10);
 $conn->options(MYSQLI_OPT_READ_TIMEOUT, 30);
 
@@ -2527,6 +2566,81 @@ $conn->close();
           </div>
         </div>
       </form>
+      
+      <!-- Existing NRSP Form Status Section -->
+      <?php if ($existingNRSP): ?>
+      <div class="nrsp-status-section" style="margin-top: 40px; padding: 25px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-left: 4px solid #233a8b;">
+        <h3 style="margin: 0 0 20px 0; color: #233a8b; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-file-check"></i> Your Existing NRSP Form
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+          <div>
+            <strong style="color: #666; font-size: 0.9rem; display: block; margin-bottom: 5px;">Status:</strong>
+            <span class="status-badge status-<?php 
+              $statusClass = 'pending';
+              if (!empty($nrspStatus)) {
+                $statusLower = strtolower($nrspStatus);
+                if ($statusLower === 'accepted') {
+                  $statusClass = 'accepted';
+                } elseif ($statusLower === 'rejected') {
+                  $statusClass = 'rejected';
+                } else {
+                  $statusClass = 'pending';
+                }
+              }
+              echo $statusClass;
+            ?>" style="display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;">
+              <?php echo !empty($nrspStatus) ? htmlspecialchars($nrspStatus) : 'Pending Review'; ?>
+            </span>
+          </div>
+          <?php if ($nrspSubmissionDate): ?>
+          <div>
+            <strong style="color: #666; font-size: 0.9rem; display: block; margin-bottom: 5px;">Submitted:</strong>
+            <span style="color: #333;"><?php echo htmlspecialchars($nrspSubmissionDate); ?></span>
+          </div>
+          <?php endif; ?>
+        </div>
+        
+        <?php if ($canEditNRSP): ?>
+          <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
+              <i class="fas fa-info-circle"></i> 
+              Your NRSP form is still under review. You can edit it until it's accepted and sent to a company.
+            </p>
+            <button type="button" class="btn-edit-nrsp" onclick="loadExistingNRSPForm()" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #233a8b 0%, #1a2d6b 100%); color: white; padding: 12px 24px; border: none; border-radius: 5px; font-weight: 500; cursor: pointer; transition: all 0.3s;">
+              <i class="fas fa-edit"></i> Edit Existing NRSP Form
+            </button>
+          </div>
+        <?php else: ?>
+          <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <div style="margin-bottom: 15px; color: #856404; font-size: 0.9rem; background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107;">
+              <i class="fas fa-lock"></i> 
+              <strong>Form Locked:</strong> Your NRSP form has been accepted and sent to companies. 
+              Editing is no longer allowed to maintain data integrity.
+            </div>
+          </div>
+        <?php endif; ?>
+      </div>
+      <style>
+        .status-badge.status-pending {
+          background: #fff3cd;
+          color: #856404;
+        }
+        .status-badge.status-accepted {
+          background: #d4edda;
+          color: #155724;
+        }
+        .status-badge.status-rejected {
+          background: #f8d7da;
+          color: #721c24;
+        }
+        .btn-edit-nrsp:hover {
+          background: linear-gradient(135deg, #1a2d6b 0%, #0f1f4d 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(35, 58, 139, 0.3);
+        }
+      </style>
+      <?php endif; ?>
 
 <script>
   // Display realtime day, month, year at upper right of the form
@@ -5105,6 +5219,141 @@ $conn->close();
       console.warn('Form accessed without proper dashboard referrer');
     }
   });
+  
+  // Function to load existing NRSP form data for editing
+  function loadExistingNRSPForm() {
+    Swal.fire({
+      title: 'Loading Form...',
+      text: 'Please wait while we load your existing NRSP form data.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    // Fetch existing NRSP form data
+    fetch('get_nrsp_form_data.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'get_nrsp_data'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      Swal.close();
+      
+      if (data.success && data.nrsp_data) {
+        const nrsp = data.nrsp_data;
+        
+        // Populate personal information
+        const surnameField = document.querySelector('input[name="surname"]');
+        const firstnameField = document.querySelector('input[name="firstname"]');
+        const middlenameField = document.querySelector('input[name="middlename"]');
+        const suffixField = document.querySelector('input[name="suffix"]');
+        const dobField = document.querySelector('input[name="dob"]');
+        const sexField = document.querySelector('select[name="sex"]');
+        const religionField = document.querySelector('input[name="religion"]');
+        const civilstatusField = document.querySelector('select[name="civilstatus"]');
+        
+        if (surnameField && nrsp.surname) surnameField.value = nrsp.surname;
+        if (firstnameField && nrsp.firstname) firstnameField.value = nrsp.firstname;
+        if (middlenameField) middlenameField.value = nrsp.middlename || '';
+        if (suffixField) suffixField.value = nrsp.suffix || '';
+        if (dobField && nrsp.dob) dobField.value = nrsp.dob;
+        if (sexField && nrsp.sex) sexField.value = nrsp.sex;
+        if (religionField) religionField.value = nrsp.religion || '';
+        if (civilstatusField && nrsp.civilstatus) civilstatusField.value = nrsp.civilstatus;
+        
+        // Populate address
+        const streetField = document.querySelector('input[name="street"]');
+        const barangayField = document.querySelector('input[name="barangay"]');
+        const municipalityField = document.querySelector('input[name="municipality"]');
+        const provinceField = document.querySelector('input[name="province"]');
+        
+        if (streetField) streetField.value = nrsp.street || '';
+        if (barangayField && nrsp.barangay) barangayField.value = nrsp.barangay;
+        if (municipalityField && nrsp.municipality) municipalityField.value = nrsp.municipality;
+        if (provinceField && nrsp.province) provinceField.value = nrsp.province;
+        
+        // Populate other info
+        const tinField = document.querySelector('input[name="tin"]');
+        const heightField = document.querySelector('input[name="height"]');
+        const contactField = document.querySelector('input[name="contact"]');
+        const emailField = document.querySelector('input[name="email"]');
+        
+        if (tinField) tinField.value = nrsp.tin || '';
+        if (heightField) heightField.value = nrsp.height || '';
+        if (contactField && nrsp.contact) contactField.value = nrsp.contact;
+        if (emailField && nrsp.email) emailField.value = nrsp.email;
+        
+        // Populate job preferences
+        const occupation1Field = document.querySelector('input[name="occupation1"]');
+        const occupation2Field = document.querySelector('input[name="occupation2"]');
+        const occupation3Field = document.querySelector('input[name="occupation3"]');
+        const fulltimeField = document.querySelector('input[name="fulltime"]');
+        const parttimeField = document.querySelector('input[name="parttime"]');
+        const local1Field = document.querySelector('input[name="local1"]');
+        const local2Field = document.querySelector('input[name="local2"]');
+        const local3Field = document.querySelector('input[name="local3"]');
+        
+        if (occupation1Field && nrsp.occupation1) occupation1Field.value = nrsp.occupation1;
+        if (occupation2Field) occupation2Field.value = nrsp.occupation2 || '';
+        if (occupation3Field) occupation3Field.value = nrsp.occupation3 || '';
+        if (fulltimeField && nrsp.fulltime == 1) fulltimeField.checked = true;
+        if (parttimeField && nrsp.parttime == 1) parttimeField.checked = true;
+        if (local1Field && nrsp.local1) local1Field.value = nrsp.local1;
+        if (local2Field) local2Field.value = nrsp.local2 || '';
+        if (local3Field) local3Field.value = nrsp.local3 || '';
+        
+        // Populate skills
+        const trainingSkills1Field = document.querySelector('input[name="training_skills_1"]');
+        const trainingSkills2Field = document.querySelector('input[name="training_skills_2"]');
+        const trainingSkills3Field = document.querySelector('input[name="training_skills_3"]');
+        const skillOthersField = document.querySelector('input[name="skill_others"]');
+        
+        if (trainingSkills1Field) trainingSkills1Field.value = nrsp.training_skills_1 || '';
+        if (trainingSkills2Field) trainingSkills2Field.value = nrsp.training_skills_2 || '';
+        if (trainingSkills3Field) trainingSkills3Field.value = nrsp.training_skills_3 || '';
+        if (skillOthersField) skillOthersField.value = nrsp.skill_others || '';
+        
+        // Show success message and scroll to top
+        Swal.fire({
+          title: 'Form Loaded!',
+          text: 'Your existing NRSP form data has been loaded. Please review and update as needed.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#233a8b'
+        }).then(() => {
+          // Scroll to top of form
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Show first step
+          if (typeof showStep1 === 'function') {
+            showStep1();
+          }
+        });
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: data.message || 'Failed to load NRSP form data.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+      }
+    })
+    .catch(error => {
+      Swal.close();
+      console.error('Error loading NRSP form:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'Failed to load NRSP form data. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+    });
+  }
 </script>
 </body>
 </html>
