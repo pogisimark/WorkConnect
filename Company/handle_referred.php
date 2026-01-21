@@ -485,9 +485,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <h1>Application Update</h1>
                         </div>
                         <div class='content'>
-                            <h2 style='color: #1a3876; margin-bottom: 20px;'>Dear " . htmlspecialchars($jobseeker_name) . ",</h2>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>Thank you for your interest in the position at " . htmlspecialchars($company_name) . ".</p>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>After careful consideration, we regret to inform you that we will not be moving forward with your application for the following position:</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>Good day, " . htmlspecialchars($jobseeker_name) . ",</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>We hope this message finds you well.</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>This is to inform you that you were successfully referred by WorkConnect to a potential job opportunity that matched your qualifications. However, after the company's evaluation process, we regret to inform you that your application was not selected for the position.</p>
+                            
                             <div class='job-details'>
                                 <h3>Position Applied For</h3>
                                 <div class='detail-item'><strong>" . htmlspecialchars($job_title) . "</strong></div>";
@@ -505,12 +506,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 $rejection_message .= "
                             </div>
+                            
                             <div class='rejection-reason'>
-                                <h3>Reason for Rejection:</h3>
+                                <h3>The company provided the following reason for their decision:</h3>
                                 <p style='color: #333; margin: 0;'>" . nl2br(htmlspecialchars($rejection_reason)) . "</p>
                             </div>
-                            <p style='margin-top: 30px; font-size: 16px;'>We appreciate the time and effort you invested in your application. We encourage you to continue exploring other opportunities on WorkConnect.</p>
-                            <p style='margin-top: 15px; color: #666;'>Best of luck in your job search!</p>
+                            
+                            <p style='margin-top: 30px; font-size: 16px;'>Please note that this decision was made by the company and does not reflect your overall potential or capabilities. We highly encourage you to continue applying, as WorkConnect remains committed to assisting you in finding job opportunities that best suit your skills and experience.</p>
+                            
+                            <p style='margin-top: 20px; font-size: 16px;'>Should you have any questions or wish to explore other available job openings, feel free to reach out to us.</p>
+                            
+                            <p style='margin-top: 30px; font-size: 16px;'>Thank you for your continued trust in WorkConnect. We wish you the best in your job search journey.</p>
+                            
+                            <p style='margin-top: 20px; font-size: 16px; color: #666;'>Kind regards,<br><strong>The WorkConnect Team</strong></p>
                         </div>
                         <div class='footer'>
                             <p><strong>WorkConnect</strong></p>
