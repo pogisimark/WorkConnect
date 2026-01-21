@@ -206,8 +206,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             btnText.style.display = 'none';
             spinner.style.display = 'flex';
 
-            // Send AJAX request to forgot password handler
-            fetch('forgot_password_phpmailer.php', {
+            // Send AJAX request to forgot password handler (Company-specific)
+            fetch('forgot_password_handler.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

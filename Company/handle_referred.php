@@ -129,6 +129,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $jobseeker_name = 'Applicant';
         }
         $stmt->close();
+        
+        // Try to get job posting information if the jobseeker has an application
+        $job_details = null;
+        $job_title = 'the position';
+        
+        // Check if company_id column exists in job_postings
+        $check_company_id = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+        $has_company_id = $check_company_id && $check_company_id->num_rows > 0;
+        
+        if ($has_company_id) {
+            // Query with company_id filter
+            $job_stmt = $conn->prepare("
+                SELECT jp.title, jp.company, jp.location, jp.job_type, jp.salary_range, jp.description, jp.requirements 
+                FROM job_applications_extended jae
+                JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jae.jobseeker_id = ? AND jp.company_id = ?
+                ORDER BY jae.applied_date DESC
+                LIMIT 1
+            ");
+            if ($job_stmt) {
+                $job_stmt->bind_param("ii", $jobseeker_id, $company_id);
+                $job_stmt->execute();
+                $job_result = $job_stmt->get_result();
+                if ($job_result->num_rows > 0) {
+                    $job_details = $job_result->fetch_assoc();
+                    $job_title = $job_details['title'] ?? 'the position';
+                }
+                $job_stmt->close();
+            }
+        } else {
+            // Query without company_id filter (fallback)
+            $job_stmt = $conn->prepare("
+                SELECT jp.title, jp.company, jp.location, jp.job_type, jp.salary_range, jp.description, jp.requirements 
+                FROM job_applications_extended jae
+                JOIN job_postings jp ON jae.job_posting_id = jp.id
+                WHERE jae.jobseeker_id = ? AND jp.company = ?
+                ORDER BY jae.applied_date DESC
+                LIMIT 1
+            ");
+            if ($job_stmt) {
+                $job_stmt->bind_param("is", $jobseeker_id, $company_name);
+                $job_stmt->execute();
+                $job_result = $job_stmt->get_result();
+                if ($job_result->num_rows > 0) {
+                    $job_details = $job_result->fetch_assoc();
+                    $job_title = $job_details['title'] ?? 'the position';
+                }
+                $job_stmt->close();
+            }
+        }
     
         if ($action === 'accept') {
             // Update jobseeker's application_status from 'Referred' to 'Accepted'
@@ -390,12 +440,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             padding: 50px 40px;
                             background-color: #ffffff;
                         }
+                        .job-details {
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            padding: 20px;
+                            margin: 20px 0;
+                        }
+                        .job-details h3 {
+                            color: #1a3876;
+                            margin-bottom: 15px;
+                            font-size: 1.2rem;
+                        }
+                        .detail-item {
+                            margin-bottom: 10px;
+                            color: #666;
+                        }
+                        .detail-item strong {
+                            color: #333;
+                        }
                         .rejection-reason {
                             background: #fff3cd;
                             border-left: 4px solid #ffc107;
                             padding: 15px;
                             margin: 20px 0;
                             border-radius: 4px;
+                        }
+                        .rejection-reason h3 {
+                            color: #856404;
+                            margin-bottom: 10px;
+                            font-size: 1rem;
                         }
                         .footer {
                             background: #f8f9fa;
@@ -413,10 +486,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </div>
                         <div class='content'>
                             <h2 style='color: #1a3876; margin-bottom: 20px;'>Dear " . htmlspecialchars($jobseeker_name) . ",</h2>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>Thank you for your interest in working with " . htmlspecialchars($company_name) . ".</p>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>After careful consideration, we regret to inform you that we will not be moving forward with your application.</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>Thank you for your interest in the position at " . htmlspecialchars($company_name) . ".</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>After careful consideration, we regret to inform you that we will not be moving forward with your application for the following position:</p>
+                            <div class='job-details'>
+                                <h3>Position Applied For</h3>
+                                <div class='detail-item'><strong>" . htmlspecialchars($job_title) . "</strong></div>";
+                
+                if ($job_details) {
+                    $rejection_message .= "
+                                <div class='detail-item' style='margin-top: 10px;'>" . htmlspecialchars($job_details['company'] ?? $company_name) . " - " . htmlspecialchars($job_details['location'] ?? '') . "</div>";
+                    if (!empty($job_details['job_type'])) {
+                        $rejection_message .= "<div class='detail-item'><strong>Job Type:</strong> " . htmlspecialchars($job_details['job_type']) . "</div>";
+                    }
+                    if (!empty($job_details['salary_range'])) {
+                        $rejection_message .= "<div class='detail-item'><strong>Salary Range:</strong> ₱" . htmlspecialchars($job_details['salary_range']) . "</div>";
+                    }
+                }
+                
+                $rejection_message .= "
+                            </div>
                             <div class='rejection-reason'>
-                                <h3 style='color: #856404; margin-bottom: 10px; font-size: 1rem;'>Reason for Rejection:</h3>
+                                <h3>Reason for Rejection:</h3>
                                 <p style='color: #333; margin: 0;'>" . nl2br(htmlspecialchars($rejection_reason)) . "</p>
                             </div>
                             <p style='margin-top: 30px; font-size: 16px;'>We appreciate the time and effort you invested in your application. We encourage you to continue exploring other opportunities on WorkConnect.</p>
@@ -445,21 +535,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         $mail->Port = SMTP_PORT;
                         $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
                         $mail->addAddress($jobseeker_email);
-                        $mail->isHTML(true);
-                        $mail->CharSet = 'UTF-8';
-                        $mail->Subject = $subject;
-                        $mail->Body = $message;
-                        $mail->send();
-                        $email_sent = true;
-                    } catch (\Exception $e) {
-                        error_log("Email sending failed: " . $e->getMessage());
-                    }
-                } else {
-                    // Fallback to PHP mail()
-                    $headers = "MIME-Version: 1.0" . "\r\n";
-                    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                    $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
-                    $email_sent = mail($jobseeker_email, $subject, $message, $headers);
+                    $mail->isHTML(true);
+                    $mail->CharSet = 'UTF-8';
+                    $mail->Subject = $subject;
+                    $mail->Body = $rejection_message;
+                    $mail->send();
+                    $email_sent = true;
+                } catch (\Exception $e) {
+                    error_log("Email sending failed: " . $e->getMessage());
+                }
+            } else {
+                // Fallback to PHP mail()
+                $headers = "MIME-Version: 1.0" . "\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+                $email_sent = mail($jobseeker_email, $subject, $rejection_message, $headers);
                 }
                 
                 $response = [

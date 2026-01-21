@@ -4,6 +4,13 @@ require_once 'db.php';
 // Get username from URL parameter
 $reset_username = isset($_GET['username']) ? trim($_GET['username']) : '';
 
+// SECURITY: Prevent reset of super admin account
+// The super admin account (username: "Admin") can only be changed manually in source code
+if (strtolower($reset_username) === 'admin') {
+    header('Location: login.html?error=super_admin_protected');
+    exit;
+}
+
 // Verify username exists
 if ($reset_username) {
     $stmt = $conn->prepare("SELECT id, username FROM admin_accounts WHERE username = ?");
@@ -23,6 +30,12 @@ if ($reset_username) {
 
 // Handle password reset
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // SECURITY: Double-check to prevent super admin reset via POST
+    if (strtolower($reset_username) === 'admin') {
+        header('Location: login.html?error=super_admin_protected');
+        exit;
+    }
+    
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
@@ -58,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - WorkConnect</title>
     <link rel="icon" href="../assets/image/PESO Logo circle.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -115,9 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 500;
         }
 
+        .password-wrapper {
+            position: relative;
+        }
+
         .form-group input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 12px 45px 12px 16px;
             border: 2px solid #e1e5e9;
             border-radius: 8px;
             font-size: 1rem;
@@ -128,6 +146,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-group input:focus {
             outline: none;
             border-color: #1a3876;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 1.1rem;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+
+        .password-toggle:hover {
+            color: #1a3876;
+        }
+
+        .password-toggle:focus {
+            outline: none;
         }
 
         .reset-btn {
@@ -227,7 +270,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             .form-group input {
-                padding: 12px 14px;
+                padding: 12px 45px 12px 14px;
+                font-size: 1rem;
+            }
+            
+            .password-toggle {
+                right: 10px;
                 font-size: 1rem;
             }
             
@@ -276,7 +324,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             .form-group input {
-                padding: 10px 12px;
+                padding: 10px 40px 10px 12px;
+                font-size: 0.95rem;
+            }
+            
+            .password-toggle {
+                right: 8px;
                 font-size: 0.95rem;
             }
             
@@ -322,12 +375,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" id="resetPasswordForm">
             <div class="form-group">
                 <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" required minlength="6">
+                <div class="password-wrapper">
+                    <input type="password" id="new_password" name="new_password" required minlength="6">
+                    <button type="button" class="password-toggle" id="toggleNewPassword" aria-label="Show password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                <div class="password-wrapper">
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                    <button type="button" class="password-toggle" id="toggleConfirmPassword" aria-label="Show password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
             
             <button type="submit" class="reset-btn">Reset Password</button>
@@ -339,6 +402,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+    // Password toggle functionality
+    function setupPasswordToggle(toggleId, inputId) {
+        const toggle = document.getElementById(toggleId);
+        const input = document.getElementById(inputId);
+        const icon = toggle.querySelector('i');
+        
+        toggle.addEventListener('click', function() {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                toggle.setAttribute('aria-label', 'Hide password');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                toggle.setAttribute('aria-label', 'Show password');
+            }
+        });
+    }
+    
+    // Setup password toggles
+    setupPasswordToggle('toggleNewPassword', 'new_password');
+    setupPasswordToggle('toggleConfirmPassword', 'confirm_password');
+    
     // Password confirmation validation
     document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
         var newPassword = document.getElementById('new_password').value;

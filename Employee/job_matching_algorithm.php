@@ -74,8 +74,12 @@ class JobMatchingAlgorithm {
         $matchedLocations = is_array($locationResult) ? ($locationResult['matched_locations'] ?? []) : [];
         $matchedOccupations = is_array($occupationResult) ? ($occupationResult['matched_occupations'] ?? []) : [];
         
+        // Skill match metadata (used by UI)
+        $totalSkills = is_array($skillResult) ? (int)($skillResult['total_skills'] ?? 0) : 0;
+        $matchedSkillCount = is_array($skillResult) ? (int)($skillResult['matched_count'] ?? count($matchedSkills)) : 0;
+        
         // Check if skills are missing (n/a case)
-        $hasSkills = is_array($skillResult) && !empty($skillResult['total_skills']) && $skillResult['total_skills'] > 0;
+        $hasSkills = $totalSkills > 0;
         
         // Weighted average of all scores
         // Adjust weights if skills are missing to prevent low total scores
@@ -117,6 +121,8 @@ class JobMatchingAlgorithm {
             'salary_score' => round($salaryScore, 2),
             'job_type_score' => round($jobTypeScore, 2),
             'matched_skills' => $matchedSkills,
+            'total_skills' => $totalSkills,
+            'matched_count' => $matchedSkillCount,
             'matched_locations' => $matchedLocations,
             'matched_occupations' => $matchedOccupations,
             'weights' => $weights
@@ -193,7 +199,7 @@ class JobMatchingAlgorithm {
         });
         $jobSeekerSkills = array_unique(array_map('trim', $jobSeekerSkills));
         
-        $jobRequirements = strtolower($jobPosting['requirements'] . ' ' . $jobPosting['description']);
+        $jobRequirements = strtolower($jobPosting['requirements'] . ' ' . $jobPosting['description'] . ' ' . $jobPosting['title']);
         
         // If no skills or only "n/a", return 0% score
         if (empty($jobSeekerSkills)) {
@@ -203,50 +209,508 @@ class JobMatchingAlgorithm {
         $matchedSkills = [];
         $totalSkills = count($jobSeekerSkills);
         
-        // Common skills to look for in job requirements
-        $skillKeywords = [
-            'php', 'mysql', 'javascript', 'html', 'css', 'python', 'java', 'c++',
-            'communication', 'leadership', 'teamwork', 'problem solving',
-            'marketing', 'sales', 'customer service', 'data analysis',
-            'project management', 'time management', 'creativity',
-            'microsoft office', 'excel', 'word', 'powerpoint',
-            'photoshop', 'illustrator', 'adobe', 'design',
-            'accounting', 'finance', 'budgeting', 'reporting'
+        // Comprehensive skill-to-keyword mapping for intelligent matching
+        // Maps user skills to related keywords that should appear in job requirements
+        $skillToKeywordsMap = [
+            // Computer/IT Skills (expanded)
+            'computer' => ['computer', 'it', 'information technology', 'software', 'programming', 'coding', 'developer', 'programmer', 'web development', 'web developer', 'technical', 'technology', 'tech', 'system', 'application', 'database', 'network', 'hardware', 'software development', 'software engineer', 'it support', 'technical support', 'computer science', 'cs', 'information systems', 'is', 'data entry', 'computer literacy', 'ms office', 'microsoft office', 'office suite', 'computer skills', 'basic computer', 'pc', 'desktop', 'laptop', 'excel', 'word', 'powerpoint', 'spreadsheet', 'data analysis', 'cybersecurity', 'cloud computing', 'devops', 'frontend', 'backend', 'fullstack', 'api', 'sql', 'javascript', 'python', 'java', 'php', 'html', 'css'],
+            
+            // Communication Skills (expanded)
+            'communication' => ['communication', 'communicate', 'verbal', 'written', 'speaking', 'presentation', 'customer service', 'client relations', 'interpersonal', 'people skills', 'social', 'public speaking', 'negotiation', 'persuasion', 'explaining', 'listening', 'correspondence', 'email', 'phone', 'telephone', 'bilingual', 'multilingual', 'translation', 'interpretation', 'reporting', 'documentation', 'report writing', 'meeting', 'collaboration', 'teamwork'],
+            'communication skills' => ['communication', 'communicate', 'verbal', 'written', 'speaking', 'presentation', 'customer service', 'client relations', 'interpersonal', 'people skills', 'social', 'public speaking', 'negotiation', 'persuasion', 'explaining', 'listening', 'correspondence', 'email', 'phone', 'telephone', 'bilingual', 'multilingual', 'translation', 'interpretation', 'reporting', 'documentation', 'report writing', 'meeting', 'collaboration', 'teamwork'],
+            
+            // Photography (expanded)
+            'photography' => ['photography', 'photographer', 'photo', 'camera', 'photographic', 'imaging', 'visual', 'graphic design', 'adobe photoshop', 'photoshop', 'lightroom', 'editing', 'retouching', 'portrait', 'event photography', 'wedding photography', 'commercial photography', 'product photography', 'fashion photography', 'video', 'videography', 'cinematography', 'drone', 'aerial photography'],
+            
+            // Driver/Transportation (expanded)
+            'driver' => ['driver', 'driving', 'delivery', 'transportation', 'logistics', 'vehicle', 'motorcycle', 'car', 'truck', 'van', 'fleet', 'chauffeur', 'courier', 'rider', 'delivery rider', 'motorcycle rider', 'transport', 'shipping', 'driver\'s license', 'drivers license', 'valid license', 'cdl', 'commercial driver', 'truck driver', 'van driver', 'taxi', 'uber', 'grab', 'food delivery', 'package delivery'],
+            
+            // Painter/Painting (expanded)
+            'painter' => ['painter', 'painting', 'paint', 'decorative', 'interior', 'exterior', 'brush', 'roller', 'color', 'coating', 'finishing', 'renovation', 'construction', 'artistic', 'mural', 'wall painting', 'spray painting', 'automotive painting', 'industrial painting', 'residential painting', 'commercial painting'],
+            'painting' => ['painter', 'painting', 'paint', 'decorative', 'interior', 'exterior', 'brush', 'roller', 'color', 'coating', 'finishing', 'renovation', 'construction', 'artistic', 'mural', 'wall painting', 'spray painting', 'automotive painting', 'industrial painting', 'residential painting', 'commercial painting'],
+            
+            // Sales/Retail (expanded)
+            'sales' => ['sales', 'selling', 'retail', 'merchandise', 'customer', 'clerk', 'cashier', 'store', 'shop', 'outlet', 'point of sale', 'pos', 'transaction', 'inventory', 'product knowledge', 'upselling', 'cross-selling', 'sales representative', 'account executive', 'business development', 'client acquisition', 'revenue', 'quota', 'territory', 'cold calling', 'prospecting'],
+            
+            // Auto Mechanic (expanded)
+            'auto mechanic' => ['mechanic', 'automotive', 'auto', 'vehicle repair', 'car repair', 'engine', 'transmission', 'brake', 'diagnostic', 'troubleshooting', 'maintenance', 'servicing', 'garage', 'workshop', 'automotive technician', 'auto technician', 'diesel mechanic', 'motorcycle mechanic', 'auto body', 'collision repair', 'tire service', 'oil change', 'tune-up'],
+            
+            // Electrician (expanded)
+            'electrician' => ['electrician', 'electrical', 'wiring', 'circuit', 'electrical installation', 'electrical repair', 'electrical maintenance', 'power', 'voltage', 'electrical system', 'electrical work', 'residential electrician', 'commercial electrician', 'industrial electrician', 'electrical contractor', 'panel', 'breaker', 'outlet', 'switch', 'electrical code'],
+            
+            // Plumbing (expanded)
+            'plumbing' => ['plumber', 'plumbing', 'pipe', 'water system', 'drainage', 'sewer', 'faucet', 'installation', 'repair', 'maintenance', 'waterworks', 'pipefitting', 'water heater', 'toilet', 'sink', 'shower', 'bathtub', 'drain', 'sewer line', 'water line'],
+            
+            // Carpentry (expanded)
+            'carpentry' => ['carpenter', 'carpentry', 'woodwork', 'woodworking', 'furniture', 'cabinet', 'construction', 'framing', 'joinery', 'wood', 'lumber', 'saw', 'drill', 'cabinetmaker', 'finish carpenter', 'rough carpenter', 'trim', 'molding', 'millwork', 'custom furniture'],
+            
+            // Beautician (expanded)
+            'beautician' => ['beautician', 'beauty', 'cosmetology', 'hair', 'makeup', 'salon', 'spa', 'styling', 'manicure', 'pedicure', 'facial', 'skincare', 'aesthetic', 'hairstylist', 'barber', 'nail technician', 'esthetician', 'massage therapist', 'waxing', 'eyebrow', 'eyelash'],
+            
+            // Sewing/Tailoring (expanded)
+            'sewing' => ['sewing', 'tailor', 'tailoring', 'dressmaking', 'garment', 'fabric', 'textile', 'clothing', 'apparel', 'alteration', 'pattern', 'stitching', 'embroidery', 'seamstress', 'dressmaker', 'alterations specialist', 'fashion design', 'costume', 'uniform'],
+            'tailoring' => ['sewing', 'tailor', 'tailoring', 'dressmaking', 'garment', 'fabric', 'textile', 'clothing', 'apparel', 'alteration', 'pattern', 'stitching', 'embroidery', 'seamstress', 'dressmaker', 'alterations specialist', 'fashion design', 'costume', 'uniform'],
+            
+            // Embroidery (expanded)
+            'embroidery' => ['embroidery', 'embroid', 'needlework', 'stitching', 'decorative', 'textile', 'fabric', 'handicraft', 'craft', 'monogram', 'custom embroidery', 'machine embroidery', 'hand embroidery'],
+            
+            // Gardening (expanded)
+            'gardening' => ['gardening', 'gardener', 'landscaping', 'landscape', 'horticulture', 'plant', 'lawn', 'garden', 'nursery', 'agriculture', 'farming', 'cultivation', 'landscape design', 'lawn care', 'tree care', 'irrigation', 'greenhouse', 'nursery worker', 'groundskeeper'],
+            
+            // Masonry (expanded)
+            'masonry' => ['mason', 'masonry', 'brick', 'stone', 'concrete', 'construction', 'building', 'wall', 'foundation', 'cement', 'block', 'bricklayer', 'stonemason', 'concrete finisher', 'tile setter', 'tile installer', 'marble', 'granite'],
+            
+            // Stenography (expanded)
+            'stenography' => ['stenography', 'stenographer', 'typing', 'transcription', 'shorthand', 'court reporter', 'legal transcription', 'secretary', 'administrative', 'court stenographer', 'closed captioning', 'captioning', 'realtime reporting'],
+            
+            // Domestic (expanded)
+            'domestic' => ['domestic', 'housekeeping', 'housekeeper', 'cleaning', 'maid', 'household', 'home care', 'domestic helper', 'house help', 'house cleaning', 'residential cleaning', 'commercial cleaning', 'janitorial', 'custodial'],
+            
+            // Additional skills for comprehensive coverage
+            'welding' => ['welder', 'welding', 'weld', 'arc welding', 'mig', 'tig', 'stick welding', 'fabrication', 'metal work', 'steel'],
+            'cooking' => ['cook', 'chef', 'cooking', 'culinary', 'kitchen', 'food preparation', 'sous chef', 'line cook', 'pastry', 'baking', 'grill', 'sauté', 'prep cook'],
+            'teaching' => ['teacher', 'teaching', 'instructor', 'educator', 'tutor', 'professor', 'lecturer', 'curriculum', 'lesson planning', 'classroom management', 'education'],
+            'nursing' => ['nurse', 'nursing', 'patient care', 'medical', 'healthcare', 'rn', 'lpn', 'cna', 'patient', 'clinical', 'hospital', 'clinic'],
+            'accounting' => ['accountant', 'accounting', 'bookkeeping', 'financial', 'audit', 'tax', 'cpa', 'payroll', 'billing', 'accounts payable', 'accounts receivable', 'general ledger'],
+            'marketing' => ['marketing', 'advertising', 'promotion', 'brand', 'social media', 'digital marketing', 'seo', 'sem', 'ppc', 'content marketing', 'email marketing', 'campaign'],
+            'engineering' => ['engineer', 'engineering', 'mechanical', 'electrical', 'civil', 'chemical', 'industrial', 'design', 'cad', 'drafting', 'project management', 'technical drawing'],
+            'legal' => ['lawyer', 'attorney', 'legal', 'paralegal', 'law', 'litigation', 'contract', 'legal research', 'compliance', 'legal writing'],
+            'real estate' => ['real estate', 'realtor', 'realty', 'property', 'broker', 'agent', 'appraisal', 'property management', 'leasing', 'sales'],
+            'farming' => ['farmer', 'farming', 'agriculture', 'agricultural', 'livestock', 'poultry', 'crop', 'harvest', 'irrigation', 'ranch', 'ranching'],
+            'fitness' => ['fitness', 'trainer', 'personal trainer', 'gym', 'exercise', 'workout', 'strength training', 'cardio', 'yoga', 'pilates', 'coaching'],
+            'security' => ['security', 'guard', 'security officer', 'surveillance', 'patrol', 'access control', 'cctv', 'alarm', 'safety', 'protection'],
+            'hr' => ['human resources', 'hr', 'recruiter', 'talent acquisition', 'hiring', 'onboarding', 'employee relations', 'benefits', 'compensation', 'payroll'],
+            'research' => ['research', 'researcher', 'laboratory', 'lab', 'data analysis', 'scientific', 'experiment', 'study', 'analysis', 'data collection'],
+            'quality control' => ['quality control', 'qc', 'quality assurance', 'qa', 'inspection', 'testing', 'quality check', 'defect', 'standards', 'compliance'],
+            'logistics' => ['logistics', 'supply chain', 'warehouse', 'inventory', 'distribution', 'shipping', 'receiving', 'forklift', 'order fulfillment', 'stock'],
+            'energy' => ['energy', 'power', 'electric', 'utility', 'solar', 'wind', 'renewable', 'power plant', 'electrical utility', 'lineman'],
+            'telecommunications' => ['telecommunications', 'telecom', 'telephone', 'internet', 'isp', 'network', 'fiber', 'cable', 'satellite', 'wireless'],
+            'aviation' => ['aviation', 'airline', 'pilot', 'flight', 'aircraft', 'airport', 'air traffic', 'flight attendant', 'ground crew', 'aeronautical'],
+            'maritime' => ['maritime', 'shipping', 'seafarer', 'seaman', 'sailor', 'captain', 'deck', 'engine', 'port', 'harbor', 'vessel'],
+            'entertainment' => ['entertainment', 'performer', 'actor', 'actress', 'singer', 'musician', 'dancer', 'theater', 'stage', 'production'],
+            'environmental' => ['environmental', 'sustainability', 'conservation', 'ecology', 'waste management', 'recycling', 'green', 'climate', 'environmental science']
+        ];
+        
+        // Also check job title for skill relevance
+        $jobTitle = strtolower($jobPosting['title']);
+        $jobIndustry = strtolower($jobPosting['industry'] ?? '');
+        
+        // Comprehensive job categories for context-aware matching
+        // NOTE: If a job doesn't match any category, the system will use flexible matching (less strict)
+        // This ensures new job types still work correctly
+        $jobCategories = [
+            // IT & Technology
+            'it' => ['developer', 'programmer', 'software', 'web', 'it support', 'technical support', 'system', 'network', 'database', 'programming', 'coding', 'computer science', 'information technology', 'tech', 'it', 'software engineer', 'web developer', 'app developer', 'mobile developer', 'frontend', 'backend', 'fullstack', 'devops', 'cybersecurity', 'data scientist', 'data analyst', 'ai', 'machine learning', 'cloud', 'system administrator', 'network engineer', 'database administrator', 'qa', 'quality assurance', 'tester', 'ui', 'ux', 'user interface', 'user experience'],
+            
+            // Manual Labor & Manufacturing
+            'manual_labor' => ['factory', 'worker', 'warehouse', 'production', 'assembly', 'manufacturing', 'operator', 'machine operator', 'laborer', 'production worker', 'factory worker', 'packer', 'packaging', 'quality control', 'qc', 'machine', 'equipment operator', 'forklift', 'warehouse worker', 'stock', 'inventory'],
+            
+            // Delivery & Transportation
+            'delivery' => ['delivery', 'rider', 'courier', 'driver', 'transport', 'logistics', 'shipping', 'dispatch', 'messenger', 'truck driver', 'van driver', 'motorcycle', 'bike', 'delivery driver', 'delivery rider', 'logistics coordinator', 'fleet', 'transportation'],
+            
+            // Sales & Retail
+            'sales' => ['sales', 'retail', 'clerk', 'cashier', 'store', 'shop', 'salesperson', 'sales representative', 'merchandiser', 'sales associate', 'sales executive', 'account manager', 'business development', 'bd', 'sales manager', 'retail associate', 'store manager', 'supervisor', 'sales consultant', 'telemarketer', 'call center', 'telesales'],
+            
+            // Construction & Trades
+            'construction' => ['construction', 'carpenter', 'mason', 'plumber', 'electrician', 'painter', 'welder', 'builder', 'contractor', 'foreman', 'construction worker', 'roofer', 'tiler', 'concrete', 'steel', 'ironworker', 'scaffolder', 'heavy equipment', 'excavator', 'crane operator', 'construction manager', 'site supervisor', 'architect', 'civil engineer'],
+            
+            // Service Industry
+            'service' => ['service', 'customer service', 'receptionist', 'waiter', 'waitress', 'housekeeping', 'cleaning', 'server', 'host', 'bartender', 'housekeeper', 'janitor', 'custodian', 'maintenance', 'security guard', 'guard', 'concierge', 'bellhop', 'valet', 'porter', 'cleaner', 'maid', 'domestic helper'],
+            
+            // Creative & Design
+            'creative' => ['designer', 'photographer', 'artist', 'creative', 'graphic', 'multimedia', 'illustrator', 'animator', 'videographer', 'video editor', 'editor', 'copywriter', 'content creator', 'ui designer', 'ux designer', 'web designer', 'interior designer', 'fashion designer', 'industrial designer', 'game designer', 'motion graphics', '3d artist', 'visual effects', 'vfx'],
+            
+            // Administrative & Office
+            'administrative' => ['admin', 'administrative', 'secretary', 'clerk', 'office', 'receptionist', 'data entry', 'administrator', 'executive assistant', 'office assistant', 'office manager', 'administrative assistant', 'personal assistant', 'pa', 'virtual assistant', 'va', 'office clerk', 'file clerk', 'records', 'documentation'],
+            
+            // Healthcare & Medical
+            'healthcare' => ['nurse', 'doctor', 'medical', 'healthcare', 'health', 'caregiver', 'therapist', 'dentist', 'pharmacist', 'veterinary', 'physician', 'surgeon', 'paramedic', 'emt', 'medical assistant', 'dental assistant', 'pharmacy', 'lab technician', 'medical technician', 'radiologist', 'physiotherapist', 'occupational therapist', 'psychologist', 'psychiatrist', 'veterinarian', 'vet', 'medical receptionist', 'hospital', 'clinic', 'health center'],
+            
+            // Education & Training
+            'education' => ['teacher', 'instructor', 'educator', 'professor', 'tutor', 'trainer', 'faculty', 'education', 'teaching', 'lecturer', 'academic', 'principal', 'vice principal', 'school', 'university', 'college', 'training', 'coach', 'mentor', 'curriculum', 'librarian', 'research', 'academic researcher'],
+            
+            // Hospitality & Food Service
+            'hospitality' => ['hotel', 'restaurant', 'cafe', 'resort', 'hospitality', 'chef', 'cook', 'kitchen', 'baker', 'pastry chef', 'sous chef', 'line cook', 'dishwasher', 'barista', 'food service', 'catering', 'banquet', 'event coordinator', 'hotel manager', 'front desk', 'concierge', 'housekeeping', 'laundry', 'spa', 'wellness'],
+            
+            // Finance & Accounting
+            'finance' => ['accountant', 'finance', 'banking', 'auditor', 'bookkeeper', 'financial', 'accounting', 'cpa', 'tax', 'financial analyst', 'investment', 'banker', 'loan officer', 'credit analyst', 'treasurer', 'controller', 'payroll', 'billing', 'collections', 'insurance', 'actuary', 'financial advisor', 'wealth management'],
+            
+            // Marketing & Advertising
+            'marketing' => ['marketing', 'advertising', 'promotion', 'brand', 'social media', 'digital marketing', 'marketer', 'marketing manager', 'brand manager', 'product manager', 'seo', 'sem', 'ppc', 'content marketing', 'email marketing', 'public relations', 'pr', 'event marketing', 'trade show', 'market research', 'analyst'],
+            
+            // Engineering
+            'engineering' => ['engineer', 'engineering', 'mechanical', 'electrical', 'civil', 'chemical', 'industrial', 'aerospace', 'automotive', 'biomedical', 'environmental', 'materials', 'nuclear', 'petroleum', 'project engineer', 'design engineer', 'quality engineer', 'process engineer', 'maintenance engineer'],
+            
+            // Legal & Law
+            'legal' => ['lawyer', 'attorney', 'legal', 'paralegal', 'law', 'judge', 'court', 'legal assistant', 'legal secretary', 'compliance', 'notary', 'mediator', 'arbitrator', 'legal advisor', 'corporate lawyer', 'criminal lawyer', 'family lawyer'],
+            
+            // Real Estate
+            'real_estate' => ['real estate', 'realtor', 'realty', 'property', 'broker', 'agent', 'appraiser', 'property manager', 'leasing', 'real estate agent', 'real estate broker', 'property developer', 'land surveyor'],
+            
+            // Agriculture & Farming
+            'agriculture' => ['farmer', 'farming', 'agriculture', 'agricultural', 'fisherman', 'fishing', 'livestock', 'poultry', 'crop', 'harvest', 'irrigation', 'agronomist', 'veterinarian', 'farm worker', 'ranch', 'ranching'],
+            
+            // Automotive
+            'automotive' => ['automotive', 'auto', 'mechanic', 'car', 'vehicle', 'automobile', 'auto repair', 'auto technician', 'car mechanic', 'auto body', 'collision', 'auto parts', 'automotive technician', 'service advisor'],
+            
+            // Beauty & Cosmetics
+            'beauty' => ['beauty', 'cosmetics', 'salon', 'spa', 'hairdresser', 'hairstylist', 'barber', 'makeup artist', 'esthetician', 'nail technician', 'massage therapist', 'cosmetologist', 'beautician', 'facialist'],
+            
+            // Fitness & Sports
+            'fitness' => ['fitness', 'trainer', 'gym', 'personal trainer', 'coach', 'athletic', 'sports', 'instructor', 'yoga', 'pilates', 'fitness instructor', 'sports coach', 'athlete', 'physical education', 'pe'],
+            
+            // Media & Communications
+            'media' => ['media', 'journalist', 'reporter', 'news', 'broadcast', 'radio', 'television', 'tv', 'anchor', 'producer', 'director', 'cameraman', 'sound engineer', 'broadcast engineer', 'news anchor', 'correspondent', 'writer', 'author', 'blogger'],
+            
+            // Non-Profit & Social Services
+            'nonprofit' => ['nonprofit', 'non-profit', 'ngo', 'charity', 'social worker', 'counselor', 'case worker', 'community', 'outreach', 'volunteer coordinator', 'program coordinator', 'fundraiser', 'development officer'],
+            
+            // Government & Public Service
+            'government' => ['government', 'public service', 'civil service', 'municipal', 'city', 'provincial', 'national', 'public administration', 'policy', 'public officer', 'government employee'],
+            
+            // Energy & Utilities
+            'energy' => ['energy', 'power', 'electric', 'utility', 'solar', 'wind', 'renewable', 'oil', 'gas', 'petroleum', 'power plant', 'electrical utility', 'lineman', 'power line'],
+            
+            // Telecommunications
+            'telecommunications' => ['telecommunications', 'telecom', 'telephone', 'internet', 'isp', 'network', 'fiber', 'cable', 'satellite', 'wireless', 'mobile network', 'telecom engineer', 'network technician'],
+            
+            // Aviation & Aerospace
+            'aviation' => ['aviation', 'airline', 'pilot', 'flight', 'aircraft', 'airport', 'air traffic', 'flight attendant', 'ground crew', 'aviation mechanic', 'aeronautical'],
+            
+            // Maritime & Shipping
+            'maritime' => ['maritime', 'shipping', 'seafarer', 'seaman', 'sailor', 'captain', 'deck', 'engine', 'port', 'harbor', 'maritime engineer', 'ship', 'vessel'],
+            
+            // Security & Law Enforcement
+            'security' => ['security', 'guard', 'police', 'officer', 'law enforcement', 'detective', 'investigator', 'private investigator', 'security officer', 'bouncer', 'bodyguard', 'surveillance'],
+            
+            // Human Resources
+            'hr' => ['human resources', 'hr', 'recruiter', 'talent acquisition', 'hr manager', 'hr assistant', 'payroll', 'benefits', 'compensation', 'employee relations', 'training and development'],
+            
+            // Supply Chain & Procurement
+            'supply_chain' => ['supply chain', 'procurement', 'purchasing', 'buyer', 'sourcing', 'logistics coordinator', 'supply chain manager', 'inventory', 'warehouse manager', 'distribution'],
+            
+            // Research & Development
+            'research' => ['research', 'researcher', 'scientist', 'laboratory', 'lab', 'r&d', 'research and development', 'analyst', 'data analyst', 'research assistant', 'scientific', 'biologist', 'chemist', 'physicist'],
+            
+            // Entertainment & Performing Arts
+            'entertainment' => ['entertainment', 'performer', 'actor', 'actress', 'singer', 'musician', 'dancer', 'theater', 'theatre', 'stage', 'production', 'director', 'choreographer', 'composer', 'dj', 'disc jockey'],
+            
+            // Retail Management
+            'retail_management' => ['store manager', 'retail manager', 'department manager', 'assistant manager', 'supervisor', 'team leader', 'shift manager', 'operations manager'],
+            
+            // Quality Assurance & Testing
+            'qa' => ['quality assurance', 'qa', 'quality control', 'qc', 'tester', 'testing', 'test engineer', 'qa engineer', 'quality inspector', 'quality analyst'],
+            
+            // Environmental & Sustainability
+            'environmental' => ['environmental', 'sustainability', 'conservation', 'ecologist', 'environmental engineer', 'waste management', 'recycling', 'green', 'climate', 'environmental scientist']
+        ];
+        
+        // Determine job category from title and industry
+        $detectedCategory = null;
+        foreach ($jobCategories as $category => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (strpos($jobTitle, $keyword) !== false || strpos($jobIndustry, $keyword) !== false) {
+                    $detectedCategory = $category;
+                    break 2;
+                }
+            }
+        }
+        
+        // Comprehensive skill-to-job-category relevance mapping
+        // NOTE: If a skill is not in this map, it will use flexible matching (matches if keyword found)
+        // This allows new skills to work automatically with new job types
+        $skillRelevanceMap = [
+            // Computer & IT Skills
+            'computer' => ['it', 'administrative', 'qa', 'research', 'engineering', 'media', 'finance', 'marketing'],
+            'computer skills' => ['it', 'administrative', 'qa', 'research', 'engineering', 'media', 'finance', 'marketing'],
+            
+            // Driver & Transportation
+            'driver' => ['delivery', 'automotive', 'aviation', 'maritime', 'transport'],
+            'driving' => ['delivery', 'automotive', 'aviation', 'maritime', 'transport'],
+            
+            // Communication Skills (relevant for customer-facing and collaborative roles)
+            'communication' => ['sales', 'service', 'administrative', 'healthcare', 'education', 'hospitality', 'marketing', 'media', 'legal', 'hr', 'nonprofit', 'government', 'real_estate', 'finance'],
+            'communication skills' => ['sales', 'service', 'administrative', 'healthcare', 'education', 'hospitality', 'marketing', 'media', 'legal', 'hr', 'nonprofit', 'government', 'real_estate', 'finance'],
+            
+            // Photography & Visual Arts
+            'photography' => ['creative', 'marketing', 'media', 'entertainment', 'real_estate'],
+            'photographer' => ['creative', 'marketing', 'media', 'entertainment', 'real_estate'],
+            
+            // Painting & Construction
+            'painter' => ['construction', 'creative', 'automotive'],
+            'painting' => ['construction', 'creative', 'automotive'],
+            
+            // Sales Skills
+            'sales' => ['sales', 'marketing', 'real_estate', 'retail_management', 'finance'],
+            
+            // Auto Mechanic
+            'auto mechanic' => ['automotive', 'manual_labor', 'delivery'],
+            'mechanic' => ['automotive', 'manual_labor', 'delivery', 'aviation', 'maritime'],
+            
+            // Electrical & Technical
+            'electrician' => ['construction', 'engineering', 'energy', 'telecommunications', 'it'],
+            'electrical' => ['construction', 'engineering', 'energy', 'telecommunications', 'it'],
+            
+            // Plumbing
+            'plumbing' => ['construction', 'service'],
+            'plumber' => ['construction', 'service'],
+            
+            // Carpentry & Woodwork
+            'carpentry' => ['construction', 'creative', 'manual_labor'],
+            'carpenter' => ['construction', 'creative', 'manual_labor'],
+            
+            // Gardening & Landscaping
+            'gardening' => ['manual_labor', 'service', 'agriculture', 'hospitality', 'real_estate'],
+            'gardener' => ['manual_labor', 'service', 'agriculture', 'hospitality', 'real_estate'],
+            
+            // Masonry
+            'masonry' => ['construction'],
+            'mason' => ['construction'],
+            
+            // Sewing & Textiles
+            'sewing' => ['manual_labor', 'creative', 'service'],
+            'tailoring' => ['manual_labor', 'creative', 'service'],
+            'embroidery' => ['manual_labor', 'creative', 'service'],
+            
+            // Beauty & Personal Care
+            'beautician' => ['beauty', 'service', 'hospitality'],
+            'beauty' => ['beauty', 'service', 'hospitality'],
+            
+            // Domestic & Housekeeping
+            'domestic' => ['service', 'healthcare', 'hospitality'],
+            'housekeeping' => ['service', 'healthcare', 'hospitality'],
+            
+            // Stenography & Administrative
+            'stenography' => ['administrative', 'legal', 'government', 'media'],
+            'typing' => ['administrative', 'legal', 'government', 'media', 'it'],
+            
+            // Auto Mechanic (specific)
+            'automotive' => ['automotive', 'manual_labor', 'delivery'],
+            
+            // Construction Trades
+            'welder' => ['construction', 'engineering', 'manufacturing'],
+            'welding' => ['construction', 'engineering', 'manufacturing'],
+            
+            // Service Industry
+            'cooking' => ['hospitality', 'service'],
+            'chef' => ['hospitality', 'service'],
+            'baker' => ['hospitality', 'service', 'retail_management'],
+            
+            // Healthcare Related
+            'caregiving' => ['healthcare', 'service', 'nonprofit'],
+            'nursing' => ['healthcare'],
+            'medical' => ['healthcare'],
+            
+            // Education
+            'teaching' => ['education'],
+            'tutoring' => ['education'],
+            
+            // Finance & Accounting
+            'accounting' => ['finance', 'administrative'],
+            'bookkeeping' => ['finance', 'administrative'],
+            
+            // Marketing & Advertising
+            'marketing' => ['marketing', 'sales', 'media', 'creative'],
+            'advertising' => ['marketing', 'media', 'creative'],
+            
+            // Engineering
+            'engineering' => ['engineering', 'construction', 'it', 'energy', 'telecommunications', 'aviation', 'maritime'],
+            
+            // Legal
+            'legal' => ['legal', 'government', 'administrative'],
+            'paralegal' => ['legal', 'government', 'administrative'],
+            
+            // Real Estate
+            'real estate' => ['real_estate', 'sales', 'finance'],
+            
+            // Agriculture
+            'farming' => ['agriculture', 'manual_labor'],
+            'agricultural' => ['agriculture', 'manual_labor'],
+            
+            // Fitness & Sports
+            'fitness' => ['fitness', 'education', 'healthcare', 'hospitality'],
+            'coaching' => ['fitness', 'education', 'sports', 'entertainment'],
+            
+            // Media & Communications
+            'journalism' => ['media', 'entertainment', 'marketing'],
+            'writing' => ['media', 'entertainment', 'marketing', 'creative', 'administrative'],
+            
+            // Security
+            'security' => ['security', 'government', 'service'],
+            
+            // Human Resources
+            'hr' => ['hr', 'administrative', 'government'],
+            'recruiting' => ['hr', 'administrative'],
+            
+            // Research
+            'research' => ['research', 'education', 'healthcare', 'engineering', 'it'],
+            'laboratory' => ['research', 'healthcare', 'engineering', 'qa'],
+            
+            // Quality Assurance
+            'quality control' => ['qa', 'manual_labor', 'manufacturing', 'engineering'],
+            'testing' => ['qa', 'it', 'engineering', 'research'],
+            
+            // Supply Chain
+            'logistics' => ['supply_chain', 'delivery', 'manual_labor'],
+            'warehouse' => ['supply_chain', 'manual_labor', 'delivery'],
+            
+            // Energy & Utilities
+            'power' => ['energy', 'engineering', 'construction'],
+            'electrical utility' => ['energy', 'engineering', 'telecommunications'],
+            
+            // Telecommunications
+            'telecom' => ['telecommunications', 'it', 'engineering'],
+            'network' => ['telecommunications', 'it', 'engineering'],
+            
+            // Aviation
+            'aviation' => ['aviation', 'engineering', 'transport'],
+            'pilot' => ['aviation', 'transport'],
+            
+            // Maritime
+            'maritime' => ['maritime', 'engineering', 'transport'],
+            'seafarer' => ['maritime', 'transport'],
+            
+            // Entertainment
+            'performing' => ['entertainment', 'media', 'creative'],
+            'acting' => ['entertainment', 'media', 'creative'],
+            'music' => ['entertainment', 'media', 'creative', 'education'],
+            
+            // Environmental
+            'environmental' => ['environmental', 'engineering', 'research', 'government'],
+            'sustainability' => ['environmental', 'engineering', 'research', 'government']
         ];
         
         foreach ($jobSeekerSkills as $skill) {
             $skillLower = strtolower(trim($skill));
             if (empty($skillLower)) continue;
             
-            // Direct skill match
-            if (strpos($jobRequirements, $skillLower) !== false) {
-                $matchedSkills[] = $skill;
-                continue;
+            $isMatched = false;
+            
+            // Check if skill is relevant to the job category
+            $skillIsRelevant = false;
+            if ($detectedCategory) {
+                // Check if this skill is relevant to the detected job category
+                foreach ($skillRelevanceMap as $relevantSkill => $relevantCategories) {
+                    if (strpos($skillLower, $relevantSkill) !== false || strpos($relevantSkill, $skillLower) !== false) {
+                        if (in_array($detectedCategory, $relevantCategories)) {
+                            $skillIsRelevant = true;
+                            break;
+                        }
+                    }
+                }
             }
             
-            // Check for related keywords
-            foreach ($skillKeywords as $keyword) {
-                if (strpos($skillLower, $keyword) !== false && 
-                    strpos($jobRequirements, $keyword) !== false) {
+            // 1. Direct skill match in requirements/description/title (only if relevant or no category detected)
+            if (!$detectedCategory || $skillIsRelevant) {
+                // Use word boundary matching for more precise matching
+                $skillPattern = '/\b' . preg_quote($skillLower, '/') . '\b/i';
+                if (preg_match($skillPattern, $jobRequirements) || preg_match($skillPattern, $jobTitle)) {
+                $matchedSkills[] = $skill;
+                    $isMatched = true;
+                continue;
+                }
+            }
+            
+            // 2. Check skill-to-keyword mapping for intelligent matching (only if relevant)
+            if (!$detectedCategory || $skillIsRelevant) {
+                foreach ($skillToKeywordsMap as $mappedSkill => $keywords) {
+                    // Check if user skill matches the mapped skill (exact match, contains, or is contained)
+                    $skillMatches = ($skillLower === $mappedSkill) || 
+                                   strpos($skillLower, $mappedSkill) !== false || 
+                                   strpos($mappedSkill, $skillLower) !== false;
+                    
+                    if ($skillMatches) {
+                        // Check if any related keyword appears in job requirements or title
+                        // Use word boundary matching for more precise keyword matching
+                        foreach ($keywords as $keyword) {
+                            $keywordPattern = '/\b' . preg_quote($keyword, '/') . '\b/i';
+                            if (preg_match($keywordPattern, $jobRequirements) || preg_match($keywordPattern, $jobTitle)) {
+                                // Additional context check: ensure keyword is in a relevant context
+                                // For example, "computer" in "computer skills" is relevant, but "computer" in "computer-controlled machine" for factory worker is less relevant
+                                if ($this->isKeywordInRelevantContext($keyword, $jobRequirements, $jobTitle, $detectedCategory)) {
                     $matchedSkills[] = $skill;
+                                    $isMatched = true;
+                                    break 2; // Break out of both loops
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 3. Partial word matching for compound skills (only if relevant and no direct match found)
+            if (!$isMatched && (!$detectedCategory || $skillIsRelevant)) {
+                $skillWords = explode(' ', $skillLower);
+                foreach ($skillWords as $word) {
+                    if (strlen($word) > 4) { // Only check words longer than 4 characters (more strict)
+                        $wordPattern = '/\b' . preg_quote($word, '/') . '\b/i';
+                        if (preg_match($wordPattern, $jobRequirements) || preg_match($wordPattern, $jobTitle)) {
+                            if ($this->isKeywordInRelevantContext($word, $jobRequirements, $jobTitle, $detectedCategory)) {
+                                $matchedSkills[] = $skill;
+                                $isMatched = true;
                     break;
+                            }
+                        }
+                    }
                 }
             }
         }
         
-        // Calculate percentage and apply curve for better distribution
+        // Calculate percentage with enhanced scoring
         $matchedCount = count($matchedSkills);
         $skillMatchPercentage = ($matchedCount / $totalSkills) * 100;
         
-        // Apply curve: 0-50% maps to 0-60, 50-100% maps to 60-100
-        if ($skillMatchPercentage <= 50) {
-            $score = ($skillMatchPercentage / 50) * 60;
+        // Enhanced scoring algorithm that considers:
+        // 1. Percentage of skills matched
+        // 2. Quality of matches (direct vs keyword-based)
+        // 3. Relevance to job type
+        
+        // Base score from percentage of matched skills
+        $baseScore = $skillMatchPercentage;
+        
+        // Boost score if multiple skills matched (shows stronger fit)
+        if ($matchedCount > 0) {
+            $matchRatio = $matchedCount / max($totalSkills, 1);
+            
+            // If at least 50% of skills match, give bonus
+            if ($matchRatio >= 0.5) {
+                $baseScore = min(100, $baseScore * 1.2); // 20% boost
+            }
+            
+            // If all skills match, give maximum score
+            if ($matchRatio >= 1.0) {
+                $baseScore = 100;
+            }
+            
+            // If only 1 skill matches but it's highly relevant, give decent score
+            if ($matchedCount == 1 && $totalSkills >= 3) {
+                $baseScore = max($baseScore, 30); // Minimum 30% for single relevant match
+            }
+        }
+        
+        // Apply curve for better distribution: 
+        // - 0-30% matches: 0-40 score
+        // - 30-60% matches: 40-70 score  
+        // - 60-100% matches: 70-100 score
+        if ($skillMatchPercentage <= 30) {
+            $score = ($skillMatchPercentage / 30) * 40;
+        } elseif ($skillMatchPercentage <= 60) {
+            $score = 40 + ((($skillMatchPercentage - 30) / 30) * 30);
         } else {
-            $score = 60 + (($skillMatchPercentage - 50) / 50) * 40;
+            $score = 70 + ((($skillMatchPercentage - 60) / 40) * 30);
+        }
+        
+        // Apply the base score boost
+        $finalScore = max($score, $baseScore);
+        $finalScore = min(100, $finalScore); // Cap at 100
+        
+        // If we have matches but score is too low, ensure minimum visibility
+        if ($matchedCount > 0 && $finalScore < 20) {
+            $finalScore = 20; // Minimum 20% for any match
         }
         
         return [
-            'score' => round($score, 2),
+            'score' => round($finalScore, 2),
             'matched_skills' => array_unique($matchedSkills),
             'total_skills' => $totalSkills,
             'matched_count' => $matchedCount
@@ -595,6 +1059,83 @@ class JobMatchingAlgorithm {
         }
         
         return null;
+    }
+    
+    /**
+     * Check if a keyword appears in a relevant context for the job
+     * This prevents false matches like "computer" in "computer-controlled machine" for factory workers
+     */
+    private function isKeywordInRelevantContext($keyword, $jobRequirements, $jobTitle, $jobCategory) {
+        // If no category detected, allow the match (less strict)
+        if (!$jobCategory) {
+            return true;
+        }
+        
+        $keywordLower = strtolower($keyword);
+        $text = strtolower($jobRequirements . ' ' . $jobTitle);
+        
+        // Context exclusion patterns - if keyword appears in these contexts, it's likely not relevant
+        $exclusionPatterns = [
+            'computer' => [
+                '/computer[-\s]?controlled/i', // "computer-controlled"
+                '/computer[-\s]?based/i', // "computer-based system"
+                '/computer[-\s]?assisted/i', // "computer-assisted"
+                '/computer[-\s]?generated/i', // "computer-generated"
+            ],
+            'driver' => [
+                '/driving[-\s]?(results|innovation|growth|success|change|improvement)/i', // "driving results" etc.
+                '/driver[-\s]?(seat|license|program|software)/i', // "driver seat", "driver license" (but not "driver's license" which is valid)
+            ],
+        ];
+        
+        // Check exclusion patterns
+        if (isset($exclusionPatterns[$keywordLower])) {
+            foreach ($exclusionPatterns[$keywordLower] as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return false; // Keyword in irrelevant context
+                }
+            }
+        }
+        
+        // For IT jobs, "computer" should be in contexts like "computer skills", "computer science", "computer programming"
+        if ($keywordLower === 'computer' && $jobCategory === 'it') {
+            $relevantContexts = [
+                '/computer[-\s]?(skills|science|programming|knowledge|literacy|experience|expertise)/i',
+                '/basic[-\s]?computer/i',
+                '/computer[-\s]?proficient/i',
+                '/it[-\s]?skills/i',
+                '/information[-\s]?technology/i'
+            ];
+            foreach ($relevantContexts as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return true; // Found in relevant context
+                }
+            }
+            // If "computer" appears but not in relevant IT context, it might be less relevant
+            // But still allow it if it's in the title or requirements explicitly
+            return strpos($jobTitle, 'computer') !== false || strpos($jobTitle, 'it') !== false || strpos($jobTitle, 'software') !== false;
+        }
+        
+        // For delivery jobs, "driver" should be in contexts like "driver's license", "delivery driver", "motorcycle driver"
+        if ($keywordLower === 'driver' && $jobCategory === 'delivery') {
+            $relevantContexts = [
+                '/driver[\'s]?[-\s]?license/i',
+                '/delivery[-\s]?driver/i',
+                '/motorcycle[-\s]?driver/i',
+                '/vehicle[-\s]?driver/i',
+                '/valid[-\s]?driver/i'
+            ];
+            foreach ($relevantContexts as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return true; // Found in relevant context
+                }
+            }
+            // If "driver" appears in delivery job title, it's relevant
+            return strpos($jobTitle, 'driver') !== false || strpos($jobTitle, 'rider') !== false || strpos($jobTitle, 'delivery') !== false;
+        }
+        
+        // Default: allow the match if it passed exclusion checks
+        return true;
     }
     
     /**

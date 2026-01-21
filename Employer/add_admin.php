@@ -21,6 +21,12 @@ if ($username === '' || $password === '') {
     exit;
 }
 
+// SECURITY: Prevent creating admin account with super admin username
+if (strtolower($username) === 'admin') {
+    echo json_encode(['success' => false, 'message' => 'Cannot create account with super admin username.']);
+    exit;
+}
+
 // Prevent duplicate usernames
 $stmt = $conn->prepare('SELECT id FROM admin_accounts WHERE username = ?');
 $stmt->bind_param('s', $username);

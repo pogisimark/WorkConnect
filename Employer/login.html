@@ -699,6 +699,9 @@
         } else if (error === 'no_username') {
             errorDiv.textContent = 'No username provided. Please try again.';
             errorDiv.style.display = 'block';
+        } else if (error === 'super_admin_protected') {
+            errorDiv.textContent = 'The super admin account cannot be reset via this interface. Please contact your system administrator.';
+            errorDiv.style.display = 'block';
         }
         
         // Clear URL parameters after showing message

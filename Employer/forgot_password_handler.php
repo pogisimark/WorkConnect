@@ -12,6 +12,16 @@ if (!isset($input['username']) || empty(trim($input['username']))) {
 
 $username = trim($input['username']);
 
+// SECURITY: Prevent reset of super admin account
+// The super admin account (username: "Admin") can only be changed manually in source code
+if (strtolower($username) === 'admin') {
+    echo json_encode([
+        'success' => false, 
+        'message' => 'The super admin account cannot be reset via this interface. Please contact your system administrator.'
+    ]);
+    exit;
+}
+
 // Check if username exists in admin_accounts table
 $stmt = $conn->prepare("SELECT id, username FROM admin_accounts WHERE username = ?");
 $stmt->bind_param('s', $username);

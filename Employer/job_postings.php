@@ -2137,24 +2137,54 @@ include 'session_protect.php';
         }
         
         function exportToPDF() {
-            // This would typically make an AJAX call to generate PDF
+            // Show loading message
             Swal.fire({
                 title: 'Exporting PDF',
                 text: 'Generating PDF report...',
                 icon: 'info',
                 allowOutsideClick: false,
-                showConfirmButton: false
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
             });
             
-            // Simulate PDF generation
+            // Get current filter values
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const industryFilter = document.getElementById('industryFilter').value;
+            const searchTerm = document.getElementById('searchInput').value;
+            
+            // Build query string
+            const params = new URLSearchParams();
+            if (statusFilter) params.append('status', statusFilter);
+            if (typeFilter) params.append('type', typeFilter);
+            if (industryFilter) params.append('industry', industryFilter);
+            if (searchTerm) params.append('search', searchTerm);
+            
+            // Create download link
+            const url = 'export_job_postings_pdf.php' + (params.toString() ? '?' + params.toString() : '');
+            
+            // Create temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Close loading message after a short delay
             setTimeout(() => {
+                Swal.close();
                 Swal.fire({
-                    title: 'PDF Ready',
-                    text: 'Your job postings report has been generated.',
+                    title: 'PDF Generated',
+                    text: 'Your job postings report has been downloaded.',
                     icon: 'success',
-                    confirmButtonColor: '#233a8b'
+                    confirmButtonColor: '#233a8b',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
-            }, 2000);
+            }, 1000);
         }
         
         // Close modals when clicking outside

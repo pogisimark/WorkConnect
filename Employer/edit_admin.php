@@ -16,6 +16,13 @@ if ($id <= 0 || $username === '' || $password === '') {
     echo json_encode(['success' => false, 'message' => 'Invalid input']);
     exit;
 }
+
+// SECURITY: Prevent changing username to super admin username
+if (strtolower($username) === 'admin') {
+    echo json_encode(['success' => false, 'message' => 'Cannot use super admin username.']);
+    exit;
+}
+
 // Prevent editing main admin username
 $stmt = $conn->prepare('SELECT username FROM admin_accounts WHERE id = ?');
 $stmt->bind_param('i', $id);
