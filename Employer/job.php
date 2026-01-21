@@ -2485,6 +2485,12 @@ include 'session_protect.php';
                             });
                         }
                     } else if (status === 'Rejected') {
+                        // Get rejection reason from the request data
+                        const rejectionReason = requestData.rejection_reason || 'No specific reason provided.';
+                        
+                        // Send rejection email to jobseeker
+                        sendJobseekerRejectionEmail(jobseekerId, rejectionReason);
+                        
                         // Create notification for the jobseeker
                         createJobseekerNotification(jobseekerId, 'Application Update', 'Your job application status has been updated. Please check your dashboard for details.');
                         
@@ -2492,7 +2498,7 @@ include 'session_protect.php';
                         Swal.fire({
                             icon: 'success',
                             title: 'Application Rejected!',
-                            text: 'The jobseeker has been successfully rejected and notified.',
+                            text: 'The jobseeker has been successfully rejected and notified via email.',
                             confirmButtonColor: '#f44336',
                             confirmButtonText: 'OK'
                         }).then(() => {
@@ -2572,6 +2578,12 @@ include 'session_protect.php';
                         // Create notification for the jobseeker
                         createJobseekerNotification(jobseekerId, 'Application Accepted!', 'Congratulations! Your job application has been reffered to the employer. You will receive an email with further details.');
                     } else if (status === 'Rejected') {
+                        // Get rejection reason from the request data
+                        const rejectionReason = requestData.rejection_reason || 'No specific reason provided.';
+                        
+                        // Send rejection email to jobseeker
+                        sendJobseekerRejectionEmail(jobseekerId, rejectionReason);
+                        
                         // Create notification for the jobseeker
                         createJobseekerNotification(jobseekerId, 'Application Update', 'Your job application status has been updated. Please check your dashboard for details.');
                         
@@ -2579,7 +2591,7 @@ include 'session_protect.php';
                         Swal.fire({
                             icon: 'success',
                             title: 'Application Rejected!',
-                            text: 'The jobseeker has been successfully rejected and notified.',
+                            text: 'The jobseeker has been successfully rejected and notified via email.',
                             confirmButtonColor: '#f44336',
                             confirmButtonText: 'OK'
                         });
@@ -2706,6 +2718,40 @@ include 'session_protect.php';
             })
             .catch(error => {
                 console.error('Jobseeker email error:', error);
+                // Email error is logged but doesn't show SweetAlert to avoid duplication
+            });
+        }
+        
+        function sendJobseekerRejectionEmail(jobseekerId, rejectionReason) {
+            fetch('send_jobseeker_rejection_email.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jobseeker_id: jobseekerId,
+                    rejection_reason: rejectionReason
+                })
+            })
+            .then(response => {
+                console.log('Rejection email response status:', response.status);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Rejection email response data:', data);
+                try {
+                    const jsonData = JSON.parse(data);
+                    if (jsonData.success) {
+                        console.log('Rejection email sent successfully to jobseeker');
+                    } else {
+                        console.error('Rejection email failed to send:', jsonData.message);
+                    }
+                } catch (e) {
+                    console.log('Rejection email sent successfully (generic response)');
+                }
+            })
+            .catch(error => {
+                console.error('Rejection email error:', error);
                 // Email error is logged but doesn't show SweetAlert to avoid duplication
             });
         }
@@ -3044,7 +3090,8 @@ include 'session_protect.php';
             
             if (currentJobseekerId) {
                 // Call the update function and handle the response
-                updateJobseekerStatusWithCallback(currentJobseekerId, 'Rejected', rejectionReason, function(success) {
+                // Pass null for employerEmail (4th parameter) since rejection doesn't need it
+                updateJobseekerStatusWithCallback(currentJobseekerId, 'Rejected', rejectionReason, null, function(success) {
                     // Stop spinner and reset button state
                     rejectBtn.disabled = false;
                     cancelBtn.disabled = false;
