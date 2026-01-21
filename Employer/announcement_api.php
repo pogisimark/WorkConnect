@@ -135,8 +135,40 @@ function createAnnouncement() {
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
-        // If not in admin_accounts table, it's the main admin (ID = 1)
-        $admin_id = 1;
+        // If not in admin_accounts table, it's the main admin (username = "Admin")
+        // Check if ID 1 exists in admin_accounts
+        $stmt_check = $conn->prepare("SELECT id FROM admin_accounts WHERE id = 1");
+        $stmt_check->execute();
+        $check_result = $stmt_check->get_result();
+        
+        if ($check_result->num_rows > 0) {
+            // ID 1 exists, use it
+            $admin_id = 1;
+        } else {
+            // ID 1 doesn't exist, try to get any admin ID
+            $stmt_any = $conn->prepare("SELECT id FROM admin_accounts ORDER BY id ASC LIMIT 1");
+            $stmt_any->execute();
+            $any_result = $stmt_any->get_result();
+            
+            if ($any_result->num_rows > 0) {
+                // Use the first available admin ID
+                $any_admin = $any_result->fetch_assoc();
+                $admin_id = $any_admin['id'];
+            } else {
+                // No admin accounts exist - create a default admin account with ID 1
+                // This ensures the foreign key constraint is satisfied
+                $default_password = password_hash('Password', PASSWORD_DEFAULT);
+                $stmt_create = $conn->prepare("INSERT INTO admin_accounts (id, username, password) VALUES (1, 'Admin', ?)");
+                $stmt_create->bind_param("s", $default_password);
+                
+                if ($stmt_create->execute()) {
+                    $admin_id = 1;
+                } else {
+                    // If creation fails, this is a critical error
+                    throw new Exception('Failed to create default admin account. Please ensure admin_accounts table exists and has proper permissions.');
+                }
+            }
+        }
     } else {
         $admin_data = $result->fetch_assoc();
         $admin_id = $admin_data['id'];
