@@ -53,7 +53,7 @@ if ($conn->connect_error) {
 echo "<p class='success'>✅ Connected to database '$db_name' successfully</p></div>";
 
 // Step 4: Create Core Tables
-echo "<div class='step'><h2>Step 4: Creating Core Tables (4 tables)...</h2>";
+echo "<div class='step'><h2>Step 4: Creating Core Tables (5 tables)...</h2>";
 
 // 4.1 employee_users
 $sql = "CREATE TABLE IF NOT EXISTS employee_users (
@@ -239,15 +239,17 @@ $sql = "CREATE TABLE IF NOT EXISTS jobseeker (
     submission_date DATE,
     submission_month INT,
     submission_year INT,
-    application_status ENUM('Pending', 'Accepted', 'Rejected') DEFAULT 'Pending',
+    application_status ENUM('Pending', 'Referred', 'Accepted', 'Rejected') DEFAULT 'Pending',
     rejection_reason TEXT,
+    referred_to_company_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES employee_users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_application_status (application_status),
     INDEX idx_submission_date (submission_date),
-    INDEX idx_barangay (barangay)
+    INDEX idx_barangay (barangay),
+    INDEX idx_referred_to_company_id (referred_to_company_id)
 )";
 if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ jobseeker table created</p>";
@@ -255,7 +257,27 @@ if ($conn->query($sql) === TRUE) {
     echo "<p class='error'>❌ Error creating jobseeker: " . $conn->error . "</p>";
 }
 
-// 4.4 skill_registry
+// 4.4 company_users
+$sql = "CREATE TABLE IF NOT EXISTS company_users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    logo VARCHAR(255) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    website VARCHAR(255) DEFAULT NULL,
+    address TEXT DEFAULT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)";
+if ($conn->query($sql) === TRUE) {
+    echo "<p class='success'>✅ company_users table created</p>";
+} else {
+    echo "<p class='error'>❌ Error creating company_users: " . $conn->error . "</p>";
+}
+
+// 4.5 skill_registry
 $sql = "CREATE TABLE IF NOT EXISTS skill_registry (
     id INT AUTO_INCREMENT PRIMARY KEY,
     barangay VARCHAR(100) NOT NULL,
@@ -351,8 +373,11 @@ $sql = "CREATE TABLE IF NOT EXISTS job_postings (
     job_type ENUM('Full-time', 'Part-time', 'Contract', 'Internship') DEFAULT 'Full-time',
     industry VARCHAR(100),
     status ENUM('Active', 'Closed', 'Draft') DEFAULT 'Active',
+    company_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES company_users(id) ON DELETE SET NULL,
+    INDEX idx_company_id (company_id)
 )";
 if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ job_postings table created</p>";
@@ -783,14 +808,21 @@ echo "</div>";
 // Final Summary
 echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'>
 <h2 style='color: #28a745;'>✅ Setup Complete!</h2>
-<p><strong>All 24 database tables have been created successfully!</strong></p>
+<p><strong>All 25 database tables have been created successfully!</strong></p>
 <p><strong>Tables Created:</strong></p>
 <ul>
-    <li>✅ 4 Core Tables (employee_users, admin_accounts, jobseeker, skill_registry)</li>
+    <li>✅ 5 Core Tables (employee_users, admin_accounts, jobseeker, company_users, skill_registry)</li>
     <li>✅ 2 Utility Tables (notifications, password_resets)</li>
     <li>✅ 9 Feature Tables (job_postings, user_preferences, job_applications_extended, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
     <li>✅ 5 Announcement Tables (announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks)</li>
     <li>✅ 4 Resume Builder New Schema Tables (resumes_new, resume_work_experience, resume_education, resume_certifications)</li>
+</ul>
+<p><strong>Key Features Added:</strong></p>
+<ul>
+    <li>✅ Company user accounts with profile management</li>
+    <li>✅ Referral system with company-specific tracking</li>
+    <li>✅ Enhanced application status workflow (Pending → Referred → Accepted/Rejected)</li>
+    <li>✅ Company-linked job postings</li>
 </ul>
 <p>You can now:</p>
 <ul>

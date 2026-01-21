@@ -471,7 +471,7 @@
                 <span class="brand">WorkConnect</span>
             </div>
             <div class="nav-links">
-                <a href="#home">Home HAHA</a>
+                <a href="#home">Home</a>
                 <a href="#features">Features</a>
             </div>
         </div>
