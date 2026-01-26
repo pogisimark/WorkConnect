@@ -105,16 +105,25 @@ $conn = new mysqli($host, $user, $pass, $db);
 $userId = $_SESSION['user_id'];
 $existingNRSP = null;
 $canEditNRSP = false;
+$canSubmitNRSP = true;
 $nrspStatus = null;
 $nrspSubmissionDate = null;
+$rejectionDate = null;
+$cooldownRemaining = null;
+$isPending = false;
+$isRejected = false;
+$autoLoadForm = false;
 
-$stmt = $conn->prepare("SELECT id, application_status, submission_date, submission_month, submission_year, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt = $conn->prepare("SELECT id, application_status, submission_date, submission_month, submission_year, created_at, updated_at, resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $existingNRSP = $result->fetch_assoc();
     $nrspStatus = $existingNRSP['application_status'] ?? null;
+    $statusLower = strtolower($nrspStatus ?? '');
+    $existingResumeFile = $existingNRSP['resume_file'] ?? null;
+    $existingEsignatureFile = $existingNRSP['esignature_file'] ?? null;
     
     // Format submission date
     if (!empty($existingNRSP['submission_date'])) {
@@ -125,15 +134,42 @@ if ($result->num_rows > 0) {
         $nrspSubmissionDate = date('F d, Y', strtotime($existingNRSP['created_at']));
     }
     
-    // Allow editing only if status is NULL, empty, 'Pending', or 'Rejected' (not 'Accepted')
-    $canEditNRSP = empty($nrspStatus) || 
-                   strtolower($nrspStatus) === 'pending' || 
-                   strtolower($nrspStatus) === 'rejected' ||
-                   strtolower($nrspStatus) === '';
+    // Check status
+    $isPending = ($statusLower === 'pending');
+    $isRejected = ($statusLower === 'rejected');
     
-    // Don't allow editing if already accepted/sent to company
-    if (strtolower($nrspStatus) === 'accepted') {
+    // Allow editing only if status is 'Pending' (not 'Accepted' or 'Rejected')
+    // Pending: Can edit and save (update only, no status change)
+    // Rejected: Cannot edit, can only resubmit after cooldown (status changes to Pending)
+    // Accepted: Cannot edit or resubmit
+    $canEditNRSP = false;
+    $canSubmitNRSP = true;
+    
+    if ($statusLower === 'accepted') {
         $canEditNRSP = false;
+        $canSubmitNRSP = false;
+    } elseif ($isPending) {
+        $canEditNRSP = true; // Can edit pending forms
+        $canSubmitNRSP = true; // Can save (update) pending forms
+        $autoLoadForm = true; // Auto-load form data
+    } elseif ($isRejected) {
+        $canEditNRSP = false; // Cannot edit rejected forms
+        $rejectionDate = !empty($existingNRSP['updated_at']) ? strtotime($existingNRSP['updated_at']) : strtotime($existingNRSP['created_at']);
+        $currentTime = time();
+        $timeSinceRejection = $currentTime - $rejectionDate;
+        $cooldownPeriod = 24 * 60 * 60; // 24 hours in seconds
+        
+        if ($timeSinceRejection < $cooldownPeriod) {
+            $canSubmitNRSP = false; // Cannot resubmit during cooldown
+            $cooldownRemaining = $cooldownPeriod - $timeSinceRejection;
+        } else {
+            $canSubmitNRSP = true; // Can resubmit after cooldown
+        }
+        $autoLoadForm = true; // Auto-load form data for rejected applications
+    } else {
+        // No status or empty - treat as new form
+        $canEditNRSP = true;
+        $canSubmitNRSP = true;
     }
 }
 $stmt->close();
@@ -478,6 +514,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         sendJsonResponse(true, 'Test successful');
     }
     
+    // Check for existing NRSP form - we'll determine if this is an update or new submission later
+    // This early check only prevents new submissions when there's an accepted form
+    $checkStmt = $conn->prepare("SELECT id, application_status, updated_at, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    $checkStmt->bind_param("i", $userId);
+    $checkStmt->execute();
+    $checkResult = $checkStmt->get_result();
+    
+    if ($checkResult->num_rows > 0) {
+        $existingForm = $checkResult->fetch_assoc();
+        $existingStatus = strtolower($existingForm['application_status'] ?? '');
+        
+        // Only prevent NEW submissions if status is Accepted (updates are handled later)
+        // For pending/rejected forms, we'll allow updates (checked later in the code)
+        if ($existingStatus === 'accepted') {
+            $checkStmt->close();
+            sendJsonResponse(false, 'Your NRSP form has already been accepted and sent to companies. You cannot submit a new form.');
+        }
+    }
+    $checkStmt->close();
+    
     // Rate limiting: Check if user has submitted recently
     $current_time = time();
     $last_submission = isset($_SESSION['last_submission']) ? $_SESSION['last_submission'] : 0;
@@ -491,11 +547,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Update last submission time
     $_SESSION['last_submission'] = $current_time;
     
-    $resume_filename = '';
+    // Check for existing files first (from database or hidden input)
+    $existingResumeFile = null;
+    $existingEsignatureFile = null;
+    
+    // Check hidden inputs first (set by JavaScript)
+    if (!empty($_POST['existing_resume_file'])) {
+        $existingResumeFile = $conn->real_escape_string($_POST['existing_resume_file']);
+    }
+    if (!empty($_POST['existing_esignature_file'])) {
+        $existingEsignatureFile = $conn->real_escape_string($_POST['existing_esignature_file']);
+    }
+    
+    // If not in POST, check database
+    if (empty($existingResumeFile) || empty($existingEsignatureFile)) {
+        $checkFilesStmt = $conn->prepare("SELECT resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+        $checkFilesStmt->bind_param("i", $userId);
+        $checkFilesStmt->execute();
+        $filesResult = $checkFilesStmt->get_result();
+        if ($filesResult->num_rows > 0) {
+            $filesRow = $filesResult->fetch_assoc();
+            if (empty($existingResumeFile)) {
+                $existingResumeFile = $filesRow['resume_file'] ?? null;
+            }
+            if (empty($existingEsignatureFile)) {
+                $existingEsignatureFile = $filesRow['esignature_file'] ?? null;
+            }
+        }
+        $checkFilesStmt->close();
+    }
+    
+    $resume_filename = !empty($existingResumeFile) ? $existingResumeFile : ''; // Keep existing file by default
     if (isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] == UPLOAD_ERR_OK) {
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'pdf', 'doc', 'docx'];
+        $allowed_ext = ['pdf', 'doc', 'docx'];
         $allowed_mime_types = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
             'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ];
         $max_size = 5 * 1024 * 1024; // 5MB
@@ -507,7 +592,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Validate file extension
         if (!in_array($ext, $allowed_ext)) {
-            sendJsonResponse(false, 'Invalid file type. Please upload JPG, PNG, PDF, DOC, or DOCX files only.');
+            sendJsonResponse(false, 'Invalid file type. Please upload PDF, DOC, or DOCX files only.');
         }
         
         // Validate MIME type
@@ -530,6 +615,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     } else if (isset($_FILES['resume_file']) && $_FILES['resume_file']['error'] !== UPLOAD_ERR_NO_FILE) {
         sendJsonResponse(false, 'File upload error. Please try again.');
+    } else if (empty($resume_filename) && empty($existingResumeFile)) {
+        // Only require resume if no existing file and no new file uploaded
+        sendJsonResponse(false, 'Resume file is required.');
     }
 
     // Get submission date
@@ -538,7 +626,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $submission_year = date('Y');
     
     // Handle e-signature upload
-    $esignature_filename = '';
+    $esignature_filename = !empty($existingEsignatureFile) ? $existingEsignatureFile : ''; // Keep existing file by default
     if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] == UPLOAD_ERR_OK) {
         $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
         $allowed_mime_types = [
@@ -576,6 +664,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     } else if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] !== UPLOAD_ERR_NO_FILE) {
         sendJsonResponse(false, 'E-signature file upload error. Please try again.');
+    } else if (empty($esignature_filename) && empty($existingEsignatureFile)) {
+        // Only require esignature if no existing file and no new file uploaded
+        sendJsonResponse(false, 'E-signature file is required.');
     }
     
     // Personal Information
@@ -584,49 +675,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $middlename = $conn->real_escape_string(getval('middlename', ''));
     $suffix = $conn->real_escape_string(getval('suffix', ''));
     
-    // Server-side duplicate check - only check firstname, lastname, middlename, and suffix
-    try {
-        $duplicate_check_sql = "SELECT id, surname, firstname, middlename, suffix 
-                               FROM jobseeker 
-                               WHERE LOWER(surname) = LOWER(?) 
-                               AND LOWER(firstname) = LOWER(?) 
-                               AND COALESCE(NULLIF(NULLIF(middlename, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')
-                               AND COALESCE(NULLIF(NULLIF(suffix, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')";
-        
-        $duplicate_stmt = $conn->prepare($duplicate_check_sql);
-        if (!$duplicate_stmt) {
-            error_log("Duplicate check prepare failed: " . $conn->error);
-            sendJsonResponse(false, 'Database prepare error: ' . $conn->error);
-        }
-        
-        $duplicate_stmt->bind_param("ssss", $surname, $firstname, $middlename, $suffix);
-        $duplicate_stmt->execute();
-        $duplicate_result = $duplicate_stmt->get_result();
-    } catch (Exception $e) {
-        error_log("Duplicate check error: " . $e->getMessage());
-        sendJsonResponse(false, 'Duplicate check failed: ' . $e->getMessage());
-    }
-    
-    if ($duplicate_result->num_rows > 0) {
-        $existing_record = $duplicate_result->fetch_assoc();
-        
-        // Format the existing name for display
-        $existing_name = $existing_record['firstname'];
-        if (!empty($existing_record['middlename']) && $existing_record['middlename'] !== 'n/a') {
-            $existing_name .= ' ' . $existing_record['middlename'];
-        }
-        $existing_name .= ' ' . $existing_record['surname'];
-        if (!empty($existing_record['suffix']) && $existing_record['suffix'] !== 'n/a') {
-            $existing_name .= ' ' . $existing_record['suffix'];
-        }
-        
-        sendJsonResponse(false, 'Duplicate entry detected! A record with the same name combination already exists.', [
-            'duplicate_info' => [
-                'existing_name' => $existing_name
-            ]
-        ]);
-    }
-    $duplicate_stmt->close();
+    // Server-side duplicate check - ONLY for NEW submissions, NOT for updates
+    // This check will be done later after we determine if it's an update or new submission
     
     // Continue with all other form fields...
     $dob = $conn->real_escape_string(getval('dob'));
@@ -788,47 +838,182 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Get user_id from session
     $user_id = $_SESSION['user_id'];
+    
+    // Check if user has existing form to update
+    $checkExistingStmt = $conn->prepare("SELECT id, application_status FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    $checkExistingStmt->bind_param("i", $user_id);
+    $checkExistingStmt->execute();
+    $existingResult = $checkExistingStmt->get_result();
+    $existingFormId = null;
+    $isUpdate = false;
+    
+    if ($existingResult->num_rows > 0) {
+        $existingForm = $existingResult->fetch_assoc();
+        $existingStatus = strtolower($existingForm['application_status'] ?? '');
+        $existingFormId = $existingForm['id'];
+        
+        // Check if status is Pending - allow update
+        if ($existingStatus === 'pending') {
+            $isUpdate = true;
+        }
+        // Check if status is Rejected - allow resubmit only after cooldown
+        elseif ($existingStatus === 'rejected') {
+            // Check 24-hour cooldown for rejected applications
+            $rejectionTime = !empty($existingForm['updated_at']) ? strtotime($existingForm['updated_at']) : strtotime($existingForm['created_at']);
+            $currentTime = time();
+            $timeSinceRejection = $currentTime - $rejectionTime;
+            $cooldownPeriod = 24 * 60 * 60; // 24 hours in seconds
+            
+            if ($timeSinceRejection < $cooldownPeriod) {
+                $remainingSeconds = $cooldownPeriod - $timeSinceRejection;
+                $remainingHours = floor($remainingSeconds / 3600);
+                $remainingMinutes = floor(($remainingSeconds % 3600) / 60);
+                $checkExistingStmt->close();
+                sendJsonResponse(false, "You cannot resubmit your form yet. Please wait {$remainingHours} hour(s) and {$remainingMinutes} minute(s) before resubmitting.");
+            } else {
+                // Cooldown passed, allow resubmit
+                $isUpdate = true;
+            }
+        }
+        // If status is Accepted, don't allow update (already checked earlier)
+    }
+    $checkExistingStmt->close();
+    
+    // Server-side duplicate check - ONLY for NEW submissions, NOT for updates
+    if (!$isUpdate) {
+        // Only check for duplicates when creating a NEW form, not when updating
+        try {
+            $duplicate_check_sql = "SELECT id, surname, firstname, middlename, suffix 
+                                   FROM jobseeker 
+                                   WHERE LOWER(surname) = LOWER(?) 
+                                   AND LOWER(firstname) = LOWER(?) 
+                                   AND COALESCE(NULLIF(NULLIF(middlename, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')
+                                   AND COALESCE(NULLIF(NULLIF(suffix, ''), 'n/a'), '') = COALESCE(NULLIF(NULLIF(?, ''), 'n/a'), '')";
+            
+            $duplicate_stmt = $conn->prepare($duplicate_check_sql);
+            if (!$duplicate_stmt) {
+                error_log("Duplicate check prepare failed: " . $conn->error);
+                sendJsonResponse(false, 'Database prepare error: ' . $conn->error);
+            }
+            
+            $duplicate_stmt->bind_param("ssss", $surname, $firstname, $middlename, $suffix);
+            $duplicate_stmt->execute();
+            $duplicate_result = $duplicate_stmt->get_result();
+            
+            if ($duplicate_result->num_rows > 0) {
+                $existing_record = $duplicate_result->fetch_assoc();
+                
+                // Format the existing name for display
+                $existing_name = $existing_record['firstname'];
+                if (!empty($existing_record['middlename']) && $existing_record['middlename'] !== 'n/a') {
+                    $existing_name .= ' ' . $existing_record['middlename'];
+                }
+                $existing_name .= ' ' . $existing_record['surname'];
+                if (!empty($existing_record['suffix']) && $existing_record['suffix'] !== 'n/a') {
+                    $existing_name .= ' ' . $existing_record['suffix'];
+                }
+                
+                $duplicate_stmt->close();
+                sendJsonResponse(false, 'Duplicate entry detected! A record with the same name combination already exists.', [
+                    'duplicate_info' => [
+                        'existing_name' => $existing_name
+                    ]
+                ]);
+            }
+            $duplicate_stmt->close();
+        } catch (Exception $e) {
+            error_log("Duplicate check error: " . $e->getMessage());
+            sendJsonResponse(false, 'Duplicate check failed: ' . $e->getMessage());
+        }
+    }
+    
+    // Determine if this is a "save" (pending) or "resubmit" (rejected)
+    $isResubmit = false;
+    if ($isUpdate && $existingFormId) {
+        $checkStatusStmt = $conn->prepare("SELECT application_status FROM jobseeker WHERE id = ?");
+        $checkStatusStmt->bind_param("i", $existingFormId);
+        $checkStatusStmt->execute();
+        $statusResult = $checkStatusStmt->get_result();
+        if ($statusResult->num_rows > 0) {
+            $statusRow = $statusResult->fetch_assoc();
+            $currentStatus = strtolower($statusRow['application_status'] ?? '');
+            $isResubmit = ($currentStatus === 'rejected'); // Resubmit if rejected, save if pending
+        }
+        $checkStatusStmt->close();
+    }
+    
+    // Handle resume and esignature file updates (only if new files uploaded)
+    $resumeUpdate = !empty($resume_filename) ? "resume_file = '$resume_filename', " : "";
+    $esignatureUpdate = !empty($esignature_filename) ? "esignature_file = '$esignature_filename', " : "";
+    
+    // Status update: Keep "Pending" if saving, change to "Pending" if resubmitting
+    $statusUpdate = $isResubmit ? "application_status = 'Pending'" : "application_status = application_status"; // Keep current status if saving
 
-    // Build SQL
-    $sql = "INSERT INTO jobseeker (
-        user_id, surname, firstname, middlename, suffix, dob, sex, religion, civilstatus, street, barangay, municipality, province, tin, height, contact, email,
-        hasDisability, disability_speech, disability_hearing, disability_visual, disability_mental, disability_others, disability_other,
-        employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_others, other_jobs,
-        unemployed, unemployed_months, unemployed_type_first, unemployed_type_local, unemployed_type_resigned, unemployed_type_finished, unemployed_type_public, unemployed_type_retired, unemployed_type_terminated, terminated_country,
-        ofw, ofw_country, returnee, deployment_country, return_month, return_year, abroad, beneficiary, household_id,
-        occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, overseas1, overseas2, overseas3,
-        english_read, english_write, english_speak, english_understand, filipino_read, filipino_write, filipino_speak, filipino_understand,
-        mandarin_read, mandarin_write, mandarin_speak, mandarin_understand, other_language, other_read, other_write, other_speak, other_understand,
-        inschool, level, course, year_graduated, level_reached, last_attended,
-        training_course_1, training_hours_1, training_institution_1, training_skills_1, training_cert_1,
-        training_course_2, training_hours_2, training_institution_2, training_skills_2, training_cert_2,
-        training_course_3, training_hours_3, training_institution_3, training_skills_3, training_cert_3,
-        eligibility_1, eligibility_date_1, eligibility_2, eligibility_date_2, prc_1, prc_valid_1, prc_2, prc_valid_2,
-        company_name_1, company_address_1, position_1, months_1, status_1,
-        company_name_2, company_address_2, position_2, months_2, status_2,
-        company_name_3, company_address_3, position_3, months_3, status_3,
-        skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting, skill_others,
-        resume_file, esignature_file, submission_date, submission_month, submission_year, application_status
-    ) VALUES (
-        $user_id, '$surname', '$firstname', '$middlename', '$suffix', '$dob', '$sex', '$religion', '$civilstatus', '$street', '$barangay', '$municipality', '$province', '$tin', '$height', '$contact', '$email',
-        $hasDisability, $disability_speech, $disability_hearing, $disability_visual, $disability_mental, $disability_others, '$disability_other',
-        $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_others, '$other_jobs',
-        $unemployed, '$unemployed_months', $unemployed_type_first, $unemployed_type_local, $unemployed_type_resigned, $unemployed_type_finished, $unemployed_type_public, $unemployed_type_retired, $unemployed_type_terminated, '$terminated_country',
-        '$ofw', '$ofw_country', '$returnee', '$deployment_country', '$return_month', '$return_year', '$abroad', '$beneficiary', '$household_id',
-        '$occupation1', '$occupation2', '$occupation3', $fulltime, $parttime, '$local1', '$local2', '$local3', '$overseas1', '$overseas2', '$overseas3',
-        $english_read, $english_write, $english_speak, $english_understand, $filipino_read, $filipino_write, $filipino_speak, $filipino_understand,
-        $mandarin_read, $mandarin_write, $mandarin_speak, $mandarin_understand, '$other_language', $other_read, $other_write, $other_speak, $other_understand,
-        '$inschool', '$level', '$course', '$year_graduated', '$level_reached', '$last_attended',
-        '$training_course_1', '$training_hours_1', '$training_institution_1', '$training_skills_1', '$training_cert_1',
-        '$training_course_2', '$training_hours_2', '$training_institution_2', '$training_skills_2', '$training_cert_2',
-        '$training_course_3', '$training_hours_3', '$training_institution_3', '$training_skills_3', '$training_cert_3',
-        '$eligibility_1', '$eligibility_date_1', '$eligibility_2', '$eligibility_date_2', '$prc_1', '$prc_valid_1', '$prc_2', '$prc_valid_2',
-        '$company_name_1', '$company_address_1', '$position_1', '$months_1', '$status_1',
-        '$company_name_2', '$company_address_2', '$position_2', '$months_2', '$status_2',
-        '$company_name_3', '$company_address_3', '$position_3', '$months_3', '$status_3',
-        $skill_auto_mechanic, $skill_electrician, $skill_photography, $skill_beautician, $skill_embroidery, $skill_plumbing, $skill_carpentry, $skill_gardening, $skill_sewing, $skill_computer, $skill_masonry, $skill_stenography, $skill_domestic, $skill_painter, $skill_tailoring, $skill_driver, $skill_painting, '$skill_others',
-        '$resume_filename', '$esignature_filename', '$submission_date', $submission_month, $submission_year, 'Pending'
-    )";
+    // Build SQL - Use UPDATE if existing form, INSERT if new
+    if ($isUpdate && $existingFormId) {
+        // UPDATE existing form
+        $sql = "UPDATE jobseeker SET 
+            surname = '$surname', firstname = '$firstname', middlename = '$middlename', suffix = '$suffix', dob = '$dob', sex = '$sex', religion = '$religion', civilstatus = '$civilstatus', street = '$street', barangay = '$barangay', municipality = '$municipality', province = '$province', tin = '$tin', height = '$height', contact = '$contact', email = '$email',
+            hasDisability = $hasDisability, disability_speech = $disability_speech, disability_hearing = $disability_hearing, disability_visual = $disability_visual, disability_mental = $disability_mental, disability_others = $disability_others, disability_other = '$disability_other',
+            employed = $employed, employment_type_wage = $employment_type_wage, employment_type_self = $employment_type_self, self_employed_specify = '$self_employed_specify', self_type_voluntary = $self_type_voluntary, self_type_vendor = $self_type_vendor, self_type_homebased = $self_type_homebased, self_type_transport = $self_type_transport, self_type_domestic = $self_type_domestic, self_type_fisherfolk = $self_type_fisherfolk, self_type_others = $self_type_others, other_jobs = '$other_jobs',
+            unemployed = $unemployed, unemployed_months = '$unemployed_months', unemployed_type_first = $unemployed_type_first, unemployed_type_local = $unemployed_type_local, unemployed_type_resigned = $unemployed_type_resigned, unemployed_type_finished = $unemployed_type_finished, unemployed_type_public = $unemployed_type_public, unemployed_type_retired = $unemployed_type_retired, unemployed_type_terminated = $unemployed_type_terminated, terminated_country = '$terminated_country',
+            ofw = '$ofw', ofw_country = '$ofw_country', returnee = '$returnee', deployment_country = '$deployment_country', return_month = '$return_month', return_year = '$return_year', abroad = '$abroad', beneficiary = '$beneficiary', household_id = '$household_id',
+            occupation1 = '$occupation1', occupation2 = '$occupation2', occupation3 = '$occupation3', fulltime = $fulltime, parttime = $parttime, local1 = '$local1', local2 = '$local2', local3 = '$local3', overseas1 = '$overseas1', overseas2 = '$overseas2', overseas3 = '$overseas3',
+            english_read = $english_read, english_write = $english_write, english_speak = $english_speak, english_understand = $english_understand, filipino_read = $filipino_read, filipino_write = $filipino_write, filipino_speak = $filipino_speak, filipino_understand = $filipino_understand,
+            mandarin_read = $mandarin_read, mandarin_write = $mandarin_write, mandarin_speak = $mandarin_speak, mandarin_understand = $mandarin_understand, other_language = '$other_language', other_read = $other_read, other_write = $other_write, other_speak = $other_speak, other_understand = $other_understand,
+            inschool = '$inschool', level = '$level', course = '$course', year_graduated = '$year_graduated', level_reached = '$level_reached', last_attended = '$last_attended',
+            training_course_1 = '$training_course_1', training_hours_1 = '$training_hours_1', training_institution_1 = '$training_institution_1', training_skills_1 = '$training_skills_1', training_cert_1 = '$training_cert_1',
+            training_course_2 = '$training_course_2', training_hours_2 = '$training_hours_2', training_institution_2 = '$training_institution_2', training_skills_2 = '$training_skills_2', training_cert_2 = '$training_cert_2',
+            training_course_3 = '$training_course_3', training_hours_3 = '$training_hours_3', training_institution_3 = '$training_institution_3', training_skills_3 = '$training_skills_3', training_cert_3 = '$training_cert_3',
+            eligibility_1 = '$eligibility_1', eligibility_date_1 = '$eligibility_date_1', eligibility_2 = '$eligibility_2', eligibility_date_2 = '$eligibility_date_2', prc_1 = '$prc_1', prc_valid_1 = '$prc_valid_1', prc_2 = '$prc_2', prc_valid_2 = '$prc_valid_2',
+            company_name_1 = '$company_name_1', company_address_1 = '$company_address_1', position_1 = '$position_1', months_1 = '$months_1', status_1 = '$status_1',
+            company_name_2 = '$company_name_2', company_address_2 = '$company_address_2', position_2 = '$position_2', months_2 = '$months_2', status_2 = '$status_2',
+            company_name_3 = '$company_name_3', company_address_3 = '$company_address_3', position_3 = '$position_3', months_3 = '$months_3', status_3 = '$status_3',
+            skill_auto_mechanic = $skill_auto_mechanic, skill_electrician = $skill_electrician, skill_photography = $skill_photography, skill_beautician = $skill_beautician, skill_embroidery = $skill_embroidery, skill_plumbing = $skill_plumbing, skill_carpentry = $skill_carpentry, skill_gardening = $skill_gardening, skill_sewing = $skill_sewing, skill_computer = $skill_computer, skill_masonry = $skill_masonry, skill_stenography = $skill_stenography, skill_domestic = $skill_domestic, skill_painter = $skill_painter, skill_tailoring = $skill_tailoring, skill_driver = $skill_driver, skill_painting = $skill_painting, skill_others = '$skill_others',
+            {$resumeUpdate}{$esignatureUpdate}submission_date = '$submission_date', submission_month = $submission_month, submission_year = $submission_year, $statusUpdate
+            WHERE id = $existingFormId";
+    } else {
+        // INSERT new form
+        $sql = "INSERT INTO jobseeker (
+            user_id, surname, firstname, middlename, suffix, dob, sex, religion, civilstatus, street, barangay, municipality, province, tin, height, contact, email,
+            hasDisability, disability_speech, disability_hearing, disability_visual, disability_mental, disability_others, disability_other,
+            employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_others, other_jobs,
+            unemployed, unemployed_months, unemployed_type_first, unemployed_type_local, unemployed_type_resigned, unemployed_type_finished, unemployed_type_public, unemployed_type_retired, unemployed_type_terminated, terminated_country,
+            ofw, ofw_country, returnee, deployment_country, return_month, return_year, abroad, beneficiary, household_id,
+            occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, overseas1, overseas2, overseas3,
+            english_read, english_write, english_speak, english_understand, filipino_read, filipino_write, filipino_speak, filipino_understand,
+            mandarin_read, mandarin_write, mandarin_speak, mandarin_understand, other_language, other_read, other_write, other_speak, other_understand,
+            inschool, level, course, year_graduated, level_reached, last_attended,
+            training_course_1, training_hours_1, training_institution_1, training_skills_1, training_cert_1,
+            training_course_2, training_hours_2, training_institution_2, training_skills_2, training_cert_2,
+            training_course_3, training_hours_3, training_institution_3, training_skills_3, training_cert_3,
+            eligibility_1, eligibility_date_1, eligibility_2, eligibility_date_2, prc_1, prc_valid_1, prc_2, prc_valid_2,
+            company_name_1, company_address_1, position_1, months_1, status_1,
+            company_name_2, company_address_2, position_2, months_2, status_2,
+            company_name_3, company_address_3, position_3, months_3, status_3,
+            skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting, skill_others,
+            resume_file, esignature_file, submission_date, submission_month, submission_year, application_status
+        ) VALUES (
+            $user_id, '$surname', '$firstname', '$middlename', '$suffix', '$dob', '$sex', '$religion', '$civilstatus', '$street', '$barangay', '$municipality', '$province', '$tin', '$height', '$contact', '$email',
+            $hasDisability, $disability_speech, $disability_hearing, $disability_visual, $disability_mental, $disability_others, '$disability_other',
+            $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_others, '$other_jobs',
+            $unemployed, '$unemployed_months', $unemployed_type_first, $unemployed_type_local, $unemployed_type_resigned, $unemployed_type_finished, $unemployed_type_public, $unemployed_type_retired, $unemployed_type_terminated, '$terminated_country',
+            '$ofw', '$ofw_country', '$returnee', '$deployment_country', '$return_month', '$return_year', '$abroad', '$beneficiary', '$household_id',
+            '$occupation1', '$occupation2', '$occupation3', $fulltime, $parttime, '$local1', '$local2', '$local3', '$overseas1', '$overseas2', '$overseas3',
+            $english_read, $english_write, $english_speak, $english_understand, $filipino_read, $filipino_write, $filipino_speak, $filipino_understand,
+            $mandarin_read, $mandarin_write, $mandarin_speak, $mandarin_understand, '$other_language', $other_read, $other_write, $other_speak, $other_understand,
+            '$inschool', '$level', '$course', '$year_graduated', '$level_reached', '$last_attended',
+            '$training_course_1', '$training_hours_1', '$training_institution_1', '$training_skills_1', '$training_cert_1',
+            '$training_course_2', '$training_hours_2', '$training_institution_2', '$training_skills_2', '$training_cert_2',
+            '$training_course_3', '$training_hours_3', '$training_institution_3', '$training_skills_3', '$training_cert_3',
+            '$eligibility_1', '$eligibility_date_1', '$eligibility_2', '$eligibility_date_2', '$prc_1', '$prc_valid_1', '$prc_2', '$prc_valid_2',
+            '$company_name_1', '$company_address_1', '$position_1', '$months_1', '$status_1',
+            '$company_name_2', '$company_address_2', '$position_2', '$months_2', '$status_2',
+            '$company_name_3', '$company_address_3', '$position_3', '$months_3', '$status_3',
+            $skill_auto_mechanic, $skill_electrician, $skill_photography, $skill_beautician, $skill_embroidery, $skill_plumbing, $skill_carpentry, $skill_gardening, $skill_sewing, $skill_computer, $skill_masonry, $skill_stenography, $skill_domestic, $skill_painter, $skill_tailoring, $skill_driver, $skill_painting, '$skill_others',
+            '$resume_filename', '$esignature_filename', '$submission_date', $submission_month, $submission_year, 'Pending'
+        )";
+    }
 
     // Start transaction for atomic operation
     $conn->autocommit(FALSE);
@@ -839,20 +1024,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $conn->commit();
             $conn->autocommit(TRUE);
             
-            // Send confirmation email to the user
-            $user_email = $email; // Email from form submission
-            $user_firstname = $firstname;
-            $user_surname = $surname;
-            
-            // Send email notification (non-blocking - don't fail if email fails)
-            try {
-                sendSubmissionConfirmationEmail($user_email, $user_firstname, $user_surname);
-            } catch (Exception $email_error) {
-                // Log email error but don't fail the submission
-                error_log("Email sending error: " . $email_error->getMessage());
+            // Send confirmation email ONLY for NEW submissions, NOT for updates
+            if (!$isUpdate) {
+                // Only send email for new form submissions
+                $user_email = $email; // Email from form submission
+                $user_firstname = $firstname;
+                $user_surname = $surname;
+                
+                // Send email notification (non-blocking - don't fail if email fails)
+                try {
+                    sendSubmissionConfirmationEmail($user_email, $user_firstname, $user_surname);
+                } catch (Exception $email_error) {
+                    // Log email error but don't fail the submission
+                    error_log("Email sending error: " . $email_error->getMessage());
+                }
             }
             
-            sendJsonResponse(true, 'Registration saved successfully!');
+            if ($isUpdate) {
+                $message = $isResubmit ? 'Your NRSP form has been resubmitted successfully! Status changed to Pending.' : 'Your NRSP form has been saved successfully!';
+            } else {
+                $message = 'Registration saved successfully!';
+            }
+            sendJsonResponse(true, $message);
         } else {
             // Rollback on error
             $conn->rollback();
@@ -960,6 +1153,24 @@ $conn->close();
       min-width: 0 !important;
     }
     
+    /* Style for "Select All" checkboxes in Language section */
+    #section2_2 .form-group .select-all-label {
+      font-weight: bold !important;
+      color: #1a3876 !important;
+      margin-bottom: 8px !important;
+      padding: 4px 8px !important;
+      background: #f0f4ff !important;
+      border-radius: 4px !important;
+      border: 1px solid #1a3876 !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    #section2_2 .form-group .select-all-label:hover {
+      background: #e0e8ff !important;
+      cursor: pointer !important;
+    }
+    
     /* Fix checkbox and label alignment in Language section */
     #section2_2 .form-group label {
       display: flex !important;
@@ -1042,10 +1253,36 @@ $conn->close();
       align-items: center;
       text-align: center;
       opacity: 0.5;
-      transition: opacity 0.3s ease;
+      transition: all 0.3s ease;
       flex: 1;
       min-width: 80px;
       max-width: 100px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 8px;
+      position: relative;
+    }
+    
+    .step:hover {
+      opacity: 0.9;
+      background-color: rgba(25, 118, 210, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .step:active {
+      transform: translateY(0);
+    }
+    
+    .step.active {
+      opacity: 1;
+    }
+    
+    .step.completed {
+      opacity: 1;
+    }
+    
+    .step.completed:hover {
+      background-color: rgba(76, 175, 80, 0.15);
     }
     
     .step-label {
@@ -1348,7 +1585,14 @@ $conn->close();
         color: white !important;
       }
       
-      .back-btn:hover, .next-btn:hover {
+      .next-btn:disabled {
+        background: #6c757d !important;
+        color: #fff !important;
+        cursor: not-allowed !important;
+        opacity: 0.6 !important;
+      }
+      
+      .back-btn:hover, .next-btn:hover:not(:disabled) {
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
       }
@@ -1852,6 +2096,21 @@ $conn->close();
       margin-left: 2px;
     }
     
+    /* Disabled submit button styling */
+    .next-btn:disabled,
+    button[type="submit"]:disabled {
+      background: #6c757d !important;
+      color: #fff !important;
+      cursor: not-allowed !important;
+      opacity: 0.6 !important;
+      pointer-events: none !important;
+    }
+    
+    .next-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
     /* Hide SweetAlert checkbox on mobile */
     @media (max-width: 768px) {
       .swal2-checkbox {
@@ -1967,7 +2226,7 @@ $conn->close();
         </div>
       </div>
       
-      <form class="jobseeker-form" id="jobseekerForm" action="" method="POST">
+      <form class="jobseeker-form" id="jobseekerForm" action="" method="POST" novalidate>
         <div id="formMessage" style="margin-bottom:15px;color:green;font-weight:bold;"></div>
         <!-- Step 1 -->
         <div id="step1Section">
@@ -2284,6 +2543,7 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>English</label>
+                <label class="select-all-label"><input type="checkbox" id="english_select_all" onchange="toggleLanguageGroup('english', this.checked)"> Select All</label>
                 <label><input type="checkbox" name="english_read">Read</label>
                 <label><input type="checkbox" name="english_write">Write</label>
                 <label><input type="checkbox" name="english_speak">Speak</label>
@@ -2291,6 +2551,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label>Filipino</label>
+                <label class="select-all-label"><input type="checkbox" id="filipino_select_all" onchange="toggleLanguageGroup('filipino', this.checked)"> Select All</label>
                 <label><input type="checkbox" name="filipino_read">Read</label>
                 <label><input type="checkbox" name="filipino_write">Write</label>
                 <label><input type="checkbox" name="filipino_speak">Speak</label>
@@ -2298,6 +2559,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label>Mandarin</label>
+                <label class="select-all-label"><input type="checkbox" id="mandarin_select_all" onchange="toggleLanguageGroup('mandarin', this.checked)"> Select All</label>
                 <label><input type="checkbox" name="mandarin_read">Read</label>
                 <label><input type="checkbox" name="mandarin_write">Write</label>
                 <label><input type="checkbox" name="mandarin_speak">Speak</label>
@@ -2306,6 +2568,7 @@ $conn->close();
               <div class="form-group">
                 <label>Others</label>
                 <input type="text" name="other_language" placeholder="Specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
+                <label class="select-all-label"><input type="checkbox" id="other_select_all" onchange="toggleLanguageGroup('other', this.checked)"> Select All</label>
                 <label><input type="checkbox" name="other_read">Read</label>
                 <label><input type="checkbox" name="other_write">Write</label>
                 <label><input type="checkbox" name="other_speak">Speak</label>
@@ -2345,7 +2608,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <label>Year Graduated</label>
-              <input type="text" name="year_graduated" pattern="[0-9]{0,10}" maxlength="10" placeholder="e.g., 2023">
+              <input type="text" name="year_graduated" pattern="[0-9]*" maxlength="10" placeholder="e.g., 2023">
             </div>
             <div class="form-row">
               <label>If Undergraduate</label>
@@ -2362,7 +2625,7 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label for="last_attended">Year Last Attended</label>
-                <input type="text" name="last_attended" id="last_attended" placeholder="e.g., 2023" pattern="[0-9]{0,10}" maxlength="10">
+                <input type="text" name="last_attended" id="last_attended" placeholder="e.g., 2023" pattern="[0-9]*" maxlength="10">
               </div>
             </div>
             </fieldset>
@@ -2386,17 +2649,17 @@ $conn->close();
               <div class="header">Skills Acquired</div>
               <div class="header">Certificates Received</div>
               <input type="text" name="training_course_1" placeholder="Course 1" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_hours_1" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_hours_1" placeholder="Hours" pattern="[0-9]*" maxlength="10">
               <input type="text" name="training_institution_1" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_skills_1" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_cert_1" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_course_2" placeholder="Course 2" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_hours_2" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_hours_2" placeholder="Hours" pattern="[0-9]*" maxlength="10">
               <input type="text" name="training_institution_2" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_skills_2" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_cert_2" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_course_3" placeholder="Course 3" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_hours_3" placeholder="Hours" pattern="[0-9]{0,10}" maxlength="10">
+              <input type="text" name="training_hours_3" placeholder="Hours" pattern="[0-9]*" maxlength="10">
               <input type="text" name="training_institution_3" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_skills_3" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
               <input type="text" name="training_cert_3" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
@@ -2415,7 +2678,7 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>Eligibility (Civil Service)</label>
-                <input type="text" name="eligibility_1" placeholder="Eligibility 1" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
+                <input type="text" name="eligibility_1" placeholder="Eligibility 1" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Date Taken</label>
@@ -2424,7 +2687,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="eligibility_2" placeholder="Eligibility 2" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
+                <input type="text" name="eligibility_2" placeholder="Eligibility 2" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
               </div>
               <div class="form-group">
                 <input type="date" name="eligibility_date_2">
@@ -2433,7 +2696,7 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>Professional License (PRC)</label>
-                <input type="text" name="prc_1" placeholder="PRC License 1" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
+                <input type="text" name="prc_1" placeholder="PRC License 1" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Valid Until</label>
@@ -2442,7 +2705,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="prc_2" placeholder="PRC License 2" pattern="[A-Za-z0-9()\s\-\.]{0,40}" maxlength="40">
+                <input type="text" name="prc_2" placeholder="PRC License 2" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
               </div>
               <div class="form-group">
                 <input type="date" name="prc_valid_2">
@@ -2465,21 +2728,21 @@ $conn->close();
               <div style="font-weight:bold;">Position</div>
               <div style="font-weight:bold;">Number of Months</div>
               <div style="font-weight:bold;">Status</div>
-              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
-              <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
-              <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
-              <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]{0,10}" maxlength="10">
-              <input type="text" name="status_3" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9()\s\-\.]{0,50}" maxlength="50">
+              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
+              <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
+              <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
+              <input type="text" name="status_3" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
             </div>
             </fieldset>
             <div class="form-actions">
@@ -2530,7 +2793,7 @@ $conn->close();
                   <span class="esignature-text">Upload Your E-Signature<span class="required-asterisk">*</span></span>
                   <span class="esignature-subtext">Click to select your signature image</span>
                 </label>
-                <input type="file" id="esignature" name="esignature" accept="image/*" required class="esignature-input">
+                <input type="file" id="esignature" name="esignature" accept="image/*" class="esignature-input" <?php echo (empty($existingEsignatureFile)) ? 'required' : ''; ?>>
                 <div class="esignature-preview" id="esignaturePreview" style="display: none;">
                   <img id="esignatureImage" src="" alt="Signature Preview">
                   <span class="esignature-filename" id="esignatureFilename"></span>
@@ -2555,17 +2818,39 @@ $conn->close();
               <legend>Resume Upload</legend>
             <div class="form-row resume-upload-row">
               <label for="resume_file" class="resume-upload-label"><strong>Upload your resume:</strong></label>
-              <input type="file" id="resume_file" name="resume_file" class="resume-upload-input" accept=".pdf,.doc,.docx" required>
+              <input type="file" id="resume_file" name="resume_file" class="resume-upload-input" accept=".pdf,.doc,.docx" <?php echo (empty($existingResumeFile)) ? 'required' : ''; ?>>
               <span class="resume-upload-hint">Accepted formats: PDF, DOC, DOCX only. Max size: 5MB.</span>
             </div>
             </fieldset>
             <div class="form-actions">
               <button type="button" class="back-btn" onclick="showPreviousSection()">Back</button>
-              <button type="submit" class="next-btn">Submit</button>
+              <button type="submit" id="submitNRSPBtn" class="next-btn" <?php echo (!$canSubmitNRSP) ? 'disabled' : ''; ?>>
+                <?php 
+                  if ($isPending) {
+                    echo 'Save';
+                  } elseif ($isRejected && $cooldownRemaining === null) {
+                    echo 'Resubmit';
+                  } else {
+                    echo 'Submit';
+                  }
+                ?>
+              </button>
             </div>
           </div>
         </div>
       </form>
+      
+      <!-- Pass PHP variables to JavaScript -->
+      <script>
+        const NRSP_STATUS = <?php echo json_encode($nrspStatus); ?>;
+        const CAN_SUBMIT_NRSP = <?php echo json_encode($canSubmitNRSP); ?>;
+        const IS_PENDING = <?php echo json_encode($isPending); ?>;
+        const IS_REJECTED = <?php echo json_encode($isRejected); ?>;
+        const AUTO_LOAD_FORM = <?php echo json_encode($autoLoadForm); ?>;
+        const COOLDOWN_REMAINING = <?php echo json_encode($cooldownRemaining); ?>;
+        const EXISTING_RESUME_FILE = <?php echo json_encode($existingResumeFile ?? null); ?>;
+        const EXISTING_ESIGNATURE_FILE = <?php echo json_encode($existingEsignatureFile ?? null); ?>;
+      </script>
       
       <!-- Existing NRSP Form Status Section -->
       <?php if ($existingNRSP): ?>
@@ -2601,7 +2886,27 @@ $conn->close();
           <?php endif; ?>
         </div>
         
-        <?php if ($canEditNRSP): ?>
+        <?php if ($isPending): ?>
+        <div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px; margin-bottom: 15px;">
+          <i class="fas fa-clock"></i> 
+          <strong>Form Under Review:</strong> Your NRSP form is currently pending review. You can edit and save your changes. The form will remain in pending status.
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($isRejected && $cooldownRemaining !== null): ?>
+        <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 5px; margin-bottom: 15px;">
+          <i class="fas fa-hourglass-half"></i> 
+          <strong>Resubmission Cooldown:</strong> You cannot resubmit your form yet. Please wait for the cooldown period to expire.
+          <div id="cooldownTimer" style="margin-top: 10px; font-size: 1.1rem; font-weight: bold; color: #721c24;"></div>
+        </div>
+        <?php elseif ($isRejected && $cooldownRemaining === null): ?>
+        <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 5px; margin-bottom: 15px;">
+          <i class="fas fa-check-circle"></i> 
+          <strong>Resubmission Available:</strong> Resubmission is available now. You can resubmit your NRSP form.
+        </div>
+        <?php endif; ?>
+        
+        <?php if (!$autoLoadForm && $canEditNRSP): ?>
           <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
             <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
               <i class="fas fa-info-circle"></i> 
@@ -2611,7 +2916,7 @@ $conn->close();
               <i class="fas fa-edit"></i> Edit Existing NRSP Form
             </button>
           </div>
-        <?php else: ?>
+        <?php elseif (!$canEditNRSP && !$isRejected): ?>
           <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
             <div style="margin-bottom: 15px; color: #856404; font-size: 0.9rem; background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107;">
               <i class="fas fa-lock"></i> 
@@ -3300,6 +3605,18 @@ $conn->close();
     } else if (currentSection === 'section3_3') {
       showFormSection('section3_4');
     } else if (currentSection === 'section3_4') {
+      // Validate e-signature before proceeding to resume section
+      const skillsValidation = validateSkills();
+      if (!skillsValidation.valid) {
+        Swal.fire({
+          title: 'E-Signature Required!',
+          text: skillsValidation.message,
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9800'
+        });
+        return; // Prevent navigation
+      }
       showFormSection('section3_5');
     }
     
@@ -3407,6 +3724,393 @@ $conn->close();
       }
     });
   }
+  
+  // Map step numbers to their corresponding sections
+  const stepToSectionMap = {
+    1: { section: 'section1_1', stepSection: 'step1Section' },
+    2: { section: 'section1_2', stepSection: 'step1Section' },
+    3: { section: 'section2_1', stepSection: 'step2Section' },
+    4: { section: 'section2_2', stepSection: 'step2Section' },
+    5: { section: 'section2_3', stepSection: 'step2Section' },
+    6: { section: 'section3_1', stepSection: 'step3Section' },
+    7: { section: 'section3_2', stepSection: 'step3Section' },
+    8: { section: 'section3_3', stepSection: 'step3Section' },
+    9: { section: 'section3_4', stepSection: 'step3Section' },
+    10: { section: 'section3_5', stepSection: 'step3Section' }
+  };
+  
+  // Validate all required fields up to a specific step
+  function validateStepsUpTo(targetStep) {
+    const currentSection = getCurrentSection();
+    const currentStep = getStepNumberFromSection(currentSection);
+    
+    // If going backwards, no validation needed
+    if (targetStep <= currentStep) {
+      return { valid: true, message: '' };
+    }
+    
+    // Validate each step from current to target
+    for (let step = currentStep; step < targetStep; step++) {
+      const validation = validateStep(step);
+      if (!validation.valid) {
+        return validation;
+      }
+    }
+    
+    return { valid: true, message: '' };
+  }
+  
+  // Get step number from section ID
+  function getStepNumberFromSection(sectionId) {
+    const sectionToStepMap = {
+      'section1_1': 1, 'section1_2': 2, 'section2_1': 3, 'section2_2': 4, 'section2_3': 5,
+      'section3_1': 6, 'section3_2': 7, 'section3_3': 8, 'section3_4': 9, 'section3_5': 10
+    };
+    return sectionToStepMap[sectionId] || 1;
+  }
+  
+  // Validate a specific step
+  function validateStep(stepNumber) {
+    switch(stepNumber) {
+      case 1: // Personal Information (section1_1)
+        return validatePersonalInfo();
+      case 2: // Employment Status (section1_2)
+        return validateEmploymentStatus();
+      case 3: // Job Preference (section2_1)
+        return validateJobPreference();
+      case 4: // Language (section2_2) - no required fields, always valid
+        return { valid: true, message: '' };
+      case 5: // Education (section2_3)
+        return validateEducation();
+      case 6: // Training (section3_1) - no required fields, always valid
+        return { valid: true, message: '' };
+      case 7: // Eligibility (section3_2) - no required fields, always valid
+        return { valid: true, message: '' };
+      case 8: // Experience (section3_3) - no required fields, always valid
+        return { valid: true, message: '' };
+      case 9: // Skills (section3_4) - e-signature required
+        return validateSkills();
+      case 10: // Resume (section3_5) - resume required
+        return validateResume();
+      default:
+        return { valid: true, message: '' };
+    }
+  }
+  
+  // Validation functions for each step (reusing existing validation logic)
+  function validatePersonalInfo() {
+    const surname = document.getElementById('surname');
+    const firstname = document.getElementById('firstname');
+    const dob = document.getElementById('dob');
+    const sex = document.getElementById('sex');
+    const civilstatus = document.getElementById('civilstatus');
+    const street = document.getElementById('street');
+    const barangay = document.getElementById('barangay');
+    const municipality = document.getElementById('municipality');
+    const province = document.getElementById('province');
+    const contact = document.getElementById('contact');
+    const email = document.getElementById('email');
+    const tin = document.getElementById('tin');
+    
+    if (!surname.value.trim()) {
+      return { valid: false, message: 'Surname is required.' };
+    }
+    if (!firstname.value.trim()) {
+      return { valid: false, message: 'First Name is required.' };
+    }
+    if (!dob.value) {
+      return { valid: false, message: 'Date of Birth is required.' };
+    }
+    if (!sex.value) {
+      return { valid: false, message: 'Sex is required.' };
+    }
+    if (!civilstatus.value) {
+      return { valid: false, message: 'Civil Status is required.' };
+    }
+    if (!street.value.trim()) {
+      return { valid: false, message: 'Street Address is required.' };
+    }
+    if (!barangay.value.trim()) {
+      return { valid: false, message: 'Barangay is required.' };
+    }
+    if (!municipality.value.trim()) {
+      return { valid: false, message: 'Municipality/City is required.' };
+    }
+    if (!province.value.trim()) {
+      return { valid: false, message: 'Province is required.' };
+    }
+    if (!contact.value.trim()) {
+      return { valid: false, message: 'Contact Number is required.' };
+    }
+    const contactValue = contact.value.replace(/[^0-9]/g, '');
+    if (contactValue.length !== 11) {
+      return { valid: false, message: 'Contact number must be exactly 11 digits (xxxx-xxx-xxxx).' };
+    }
+    if (!email.value.trim()) {
+      return { valid: false, message: 'Email is required.' };
+    }
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailPattern.test(email.value.trim())) {
+      return { valid: false, message: 'Please enter a valid email address.' };
+    }
+    const tinValue = tin.value.replace(/[^0-9]/g, '');
+    if (tinValue.length > 0 && tinValue.length !== 9 && tinValue.length !== 12) {
+      return { valid: false, message: 'TIN must be empty, 9 digits (xxx-xxx-xxx), or 12 digits (xxx-xxx-xxx-xxxx).' };
+    }
+    
+    return { valid: true, message: '' };
+  }
+  
+  function validateEmploymentStatus() {
+    const employed = document.getElementById('employed');
+    const unemployed = document.getElementById('unemployed');
+    const wageEmployed = document.querySelector('input[name="employment_type_wage"]');
+    const selfEmployed = document.querySelector('input[name="employment_type_self"]');
+    const selfEmployedSpecify = document.querySelector('input[name="self_employed_specify"]');
+    const unemployedMonths = document.getElementById('unemployed_months');
+    const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
+    const terminatedCountry = document.getElementById('terminated_country');
+    const ofwYes = document.getElementById('ofwYes');
+    const ofwNo = document.getElementById('ofwNo');
+    const ofwCountry = document.getElementById('ofw_country');
+    const returneeYes = document.getElementById('returneeYes');
+    const returneeNo = document.getElementById('returneeNo');
+    const deploymentCountry = document.getElementById('deployment_country');
+    const returnMonth = document.getElementById('return_month');
+    const returnYear = document.getElementById('return_year');
+    const abroadYes = document.querySelector('input[name="abroad"][value="yes"]');
+    const abroadNo = document.querySelector('input[name="abroad"][value="no"]');
+    const beneficiaryYes = document.getElementById('beneficiaryYes');
+    const beneficiaryNo = document.getElementById('beneficiaryNo');
+    const householdId = document.getElementById('household_id');
+    
+    if (!employed.checked && !unemployed.checked) {
+      return { valid: false, message: 'Please select either "Employed" or "Unemployed".' };
+    }
+    
+    if (employed.checked) {
+      if (!wageEmployed.checked && !selfEmployed.checked) {
+        return { valid: false, message: 'Please select either "Wage employed" or "Self-employed".' };
+      }
+      if (selfEmployed.checked && !selfEmployedSpecify.value.trim()) {
+        return { valid: false, message: 'Please specify your self-employment type.' };
+      }
+    }
+    
+    if (unemployed.checked) {
+      if (!unemployedMonths.value.trim()) {
+        return { valid: false, message: 'Please specify how long you have been looking for work (in months).' };
+      }
+      const unemployedTypes = document.querySelectorAll('input[name^="unemployed_type_"]:not([name="unemployed_type_others"])');
+      let hasUnemployedType = false;
+      unemployedTypes.forEach(type => {
+        if (type.checked) hasUnemployedType = true;
+      });
+      if (!hasUnemployedType) {
+        return { valid: false, message: 'Please select at least one unemployment type.' };
+      }
+      if (terminatedCheckbox.checked && !terminatedCountry.value.trim()) {
+        return { valid: false, message: 'Please specify the country where you were terminated/laid off.' };
+      }
+    }
+    
+    if (!ofwYes.checked && !ofwNo.checked) {
+      return { valid: false, message: 'Please select whether you are an OFW or not.' };
+    }
+    if (ofwYes.checked && !ofwCountry.value.trim()) {
+      return { valid: false, message: 'Please specify the country where you are/were employed.' };
+    }
+    
+    if (!returneeYes.checked && !returneeNo.checked) {
+      return { valid: false, message: 'Please select whether you are a returnee OFW or not.' };
+    }
+    if (returneeYes.checked) {
+      if (!deploymentCountry.value.trim() || !returnMonth.value || !returnYear.value) {
+        return { valid: false, message: 'Please provide the deployment country, month of return, and year of return.' };
+      }
+    }
+    
+    if (!abroadYes.checked && !abroadNo.checked) {
+      return { valid: false, message: 'Please select whether you are/were employed abroad in the Philippines.' };
+    }
+    
+    if (!beneficiaryYes.checked && !beneficiaryNo.checked) {
+      return { valid: false, message: 'Please select whether you are a job beneficiary or not.' };
+    }
+    if (beneficiaryYes.checked && !householdId.value.trim()) {
+      return { valid: false, message: 'Please provide your Household ID number.' };
+    }
+    
+    return { valid: true, message: '' };
+  }
+  
+  function validateJobPreference() {
+    const fulltime = document.querySelector('input[name="fulltime"]');
+    const parttime = document.querySelector('input[name="parttime"]');
+    const occupation1 = document.querySelector('input[name="occupation1"]');
+    const local1 = document.querySelector('input[name="local1"]');
+    const overseas1 = document.querySelector('input[name="overseas1"]');
+    
+    if (!fulltime.checked && !parttime.checked) {
+      return { valid: false, message: 'Please select at least one employment type (Full-time or Part-time).' };
+    }
+    if (!occupation1.value.trim()) {
+      return { valid: false, message: 'Please provide at least one preferred occupation.' };
+    }
+    if (!local1.value.trim()) {
+      return { valid: false, message: 'Please provide at least one local work location (city/municipality).' };
+    }
+    if (!overseas1.value.trim()) {
+      return { valid: false, message: 'Please provide at least one overseas work location (country).' };
+    }
+    
+    return { valid: true, message: '' };
+  }
+  
+  function validateEducation() {
+    const inSchoolYes = document.querySelector('input[name="inschool"][value="yes"]');
+    const inSchoolNo = document.querySelector('input[name="inschool"][value="no"]');
+    const levelSelect = document.getElementById('levelSelect');
+    const yearGraduated = document.querySelector('input[name="year_graduated"]');
+    const levelReached = document.getElementById('level_reached');
+    const lastAttended = document.getElementById('last_attended');
+    
+    if (!inSchoolYes.checked && !inSchoolNo.checked) {
+      return { valid: false, message: 'Please select whether you are currently in school or not.' };
+    }
+    
+    if (inSchoolYes.checked) {
+      if (!levelSelect.value) {
+        return { valid: false, message: 'Please select your current education level.' };
+      }
+    }
+    
+    if (inSchoolNo.checked) {
+      const hasLevelAndYear = levelSelect.value && yearGraduated.value.trim();
+      const hasLevelReachedAndLastAttended = levelReached.value && lastAttended.value.trim();
+      
+      if (!hasLevelAndYear && !hasLevelReachedAndLastAttended) {
+        return { valid: false, message: 'Please provide either your graduation details (Level and Year Graduated) or your undergraduate information (Level Reached and Year Last Attended).' };
+      }
+    }
+    
+    return { valid: true, message: '' };
+  }
+  
+  function validateSkills() {
+    const esignatureInput = document.getElementById('esignature');
+    const esignaturePreview = document.getElementById('esignaturePreview');
+    
+    // Check for new file upload
+    const hasNewFile = esignatureInput && esignatureInput.files && esignatureInput.files.length > 0;
+    
+    // Check for existing file displayed in preview
+    const hasExistingPreview = esignaturePreview && 
+                               esignaturePreview.style.display !== 'none' && 
+                               esignaturePreview.offsetParent !== null;
+    
+    // Check for hidden input with existing filename
+    const existingEsignatureInput = document.querySelector('input[name="existing_esignature_file"]');
+    const hasHiddenInput = existingEsignatureInput && existingEsignatureInput.value && existingEsignatureInput.value.trim() !== '';
+    
+    // Check if preview has an image source (existing file loaded)
+    const esignatureImage = document.getElementById('esignatureImage');
+    const hasImageSource = esignatureImage && esignatureImage.src && esignatureImage.src !== window.location.href;
+    
+    // If any of these conditions are true, we have a valid e-signature
+    if (hasNewFile || hasExistingPreview || hasHiddenInput || hasImageSource) {
+      return { valid: true, message: '' };
+    }
+    
+    return { valid: false, message: 'E-Signature is required before proceeding to the next section.' };
+  }
+  
+  function validateResume() {
+    const resumeInput = document.getElementById('resume_file');
+    const resumeContainer = resumeInput ? resumeInput.closest('.form-row') : null;
+    const existingResumeInput = document.querySelector('input[name="existing_resume_file"]');
+    
+    // Check for new file upload
+    const hasNewFile = resumeInput && resumeInput.files && resumeInput.files.length > 0;
+    
+    // Check for existing resume display
+    const hasExistingResumeDisplay = resumeContainer && resumeContainer.querySelector('.existing-resume-display');
+    
+    // Check for hidden input with existing filename
+    const hasHiddenInput = existingResumeInput && existingResumeInput.value && existingResumeInput.value.trim() !== '';
+    
+    // If any of these conditions are true, we have a valid resume
+    if (hasNewFile || hasExistingResumeDisplay || hasHiddenInput) {
+      return { valid: true, message: '' };
+    }
+    
+    return { valid: false, message: 'Resume upload is required.' };
+  }
+  
+  // Navigate to a specific step with validation
+  function navigateToStep(stepNumber) {
+    const currentSection = getCurrentSection();
+    const currentStep = getStepNumberFromSection(currentSection);
+    
+    // If clicking on current step, do nothing
+    if (stepNumber === currentStep) {
+      return;
+    }
+    
+    // Validate if going forward
+    if (stepNumber > currentStep) {
+      const validation = validateStepsUpTo(stepNumber);
+      if (!validation.valid) {
+        Swal.fire({
+          title: 'Validation Required!',
+          text: validation.message + ' Please complete the required fields before proceeding.',
+          icon: 'warning',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9800'
+        });
+        return;
+      }
+    }
+    
+    // Navigate to the target step
+    const targetStepInfo = stepToSectionMap[stepNumber];
+    if (!targetStepInfo) {
+      return;
+    }
+    
+    // Show the appropriate step section container
+    document.getElementById('step1Section').style.display = 'none';
+    document.getElementById('step2Section').style.display = 'none';
+    document.getElementById('step3Section').style.display = 'none';
+    document.getElementById(targetStepInfo.stepSection).style.display = '';
+    
+    // Show the specific section
+    showFormSection(targetStepInfo.section);
+    
+    // Update required fields for the new step
+    setRequiredForStep(targetStepInfo.stepSection);
+    
+    // Scroll to top
+    scrollToTop();
+  }
+  
+  // Add click event listeners to step indicators
+  function setupStepNavigation() {
+    const steps = document.querySelectorAll('.step');
+    steps.forEach((step, index) => {
+      const stepNumber = index + 1;
+      step.addEventListener('click', function() {
+        navigateToStep(stepNumber);
+      });
+      
+      // Add title attribute for better UX
+      const stepLabels = ['Personal Info', 'Employment', 'Job Preference', 'Language', 'Education', 
+                          'Training', 'Eligibility', 'Experience', 'Skills', 'Resume'];
+      step.setAttribute('title', `Click to go to Step ${stepNumber}: ${stepLabels[index]}`);
+    });
+  }
+  
+  // Step navigation is initialized after page load (called after showStep1)
 
 
   // On page load, mark all required fields with a data attribute
@@ -4881,9 +5585,145 @@ $conn->close();
     }
   });
 
+  // Language proficiency "Select All" functionality
+  function toggleLanguageGroup(language, checked) {
+    const checkboxes = [
+      document.querySelector(`input[name="${language}_read"]`),
+      document.querySelector(`input[name="${language}_write"]`),
+      document.querySelector(`input[name="${language}_speak"]`),
+      document.querySelector(`input[name="${language}_understand"]`)
+    ];
+    
+    checkboxes.forEach(checkbox => {
+      if (checkbox) {
+        checkbox.checked = checked;
+      }
+    });
+  }
+  
+  // Update "Select All" checkbox state when individual checkboxes change
+  function updateSelectAllCheckbox(language) {
+    const selectAllCheckbox = document.getElementById(`${language}_select_all`);
+    if (!selectAllCheckbox) return;
+    
+    const checkboxes = [
+      document.querySelector(`input[name="${language}_read"]`),
+      document.querySelector(`input[name="${language}_write"]`),
+      document.querySelector(`input[name="${language}_speak"]`),
+      document.querySelector(`input[name="${language}_understand"]`)
+    ];
+    
+    const allChecked = checkboxes.every(checkbox => checkbox && checkbox.checked);
+    const someChecked = checkboxes.some(checkbox => checkbox && checkbox.checked);
+    
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = someChecked && !allChecked;
+  }
+  
+  // Add event listeners to individual language checkboxes
+  ['english', 'filipino', 'mandarin', 'other'].forEach(language => {
+    ['read', 'write', 'speak', 'understand'].forEach(proficiency => {
+      const checkbox = document.querySelector(`input[name="${language}_${proficiency}"]`);
+      if (checkbox) {
+        checkbox.addEventListener('change', () => {
+          updateSelectAllCheckbox(language);
+        });
+      }
+    });
+  });
+
   // Initial step
   showStep1();
   updateProgressIndicator(1);
+  
+  // Setup clickable step navigation
+  setupStepNavigation();
+  
+  // Auto-load form data if needed
+  if (typeof AUTO_LOAD_FORM !== 'undefined' && AUTO_LOAD_FORM) {
+    console.log('Auto-loading form data...');
+    // Wait a bit for DOM to be fully ready
+    setTimeout(() => {
+      console.log('Calling loadExistingNRSPForm...');
+      loadExistingNRSPForm(true); // Pass true to indicate auto-load (no alert)
+    }, 500);
+  }
+  
+  // Setup cooldown timer if needed
+  if (typeof COOLDOWN_REMAINING !== 'undefined' && COOLDOWN_REMAINING !== null && COOLDOWN_REMAINING > 0) {
+    startCooldownTimer(COOLDOWN_REMAINING);
+  }
+  
+  // Update submit button text and state based on status
+  const submitBtn = document.getElementById('submitNRSPBtn');
+  if (submitBtn) {
+    if (typeof IS_PENDING !== 'undefined' && IS_PENDING) {
+      submitBtn.textContent = 'Save';
+      submitBtn.title = 'Save your changes. The form will remain in pending status.';
+    } else if (typeof IS_REJECTED !== 'undefined' && IS_REJECTED) {
+      if (typeof COOLDOWN_REMAINING !== 'undefined' && COOLDOWN_REMAINING !== null && COOLDOWN_REMAINING > 0) {
+        submitBtn.textContent = 'Resubmit';
+        submitBtn.disabled = true;
+        submitBtn.title = 'You cannot resubmit your form until the cooldown period expires.';
+      } else {
+        submitBtn.textContent = 'Resubmit';
+        submitBtn.title = 'Resubmit your form. Status will change to Pending.';
+      }
+    } else {
+      submitBtn.textContent = 'Submit';
+      submitBtn.title = 'Submit your NRSP form.';
+    }
+    
+    // Disable if not allowed
+    if (typeof CAN_SUBMIT_NRSP !== 'undefined' && !CAN_SUBMIT_NRSP) {
+      submitBtn.disabled = true;
+      if (typeof IS_REJECTED !== 'undefined' && IS_REJECTED) {
+        submitBtn.title = 'You cannot resubmit your form until the cooldown period expires.';
+      }
+    }
+  }
+  
+  // Cooldown timer function
+  function startCooldownTimer(remainingSeconds) {
+    const timerElement = document.getElementById('cooldownTimer');
+    if (!timerElement) return;
+    
+    function updateTimer() {
+      if (remainingSeconds <= 0) {
+        timerElement.innerHTML = '<span style="color: #28a745;">Resubmission is available now.</span>';
+        const submitBtn = document.getElementById('submitNRSPBtn');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Resubmit';
+          submitBtn.title = '';
+        }
+        // Update the status message
+        const statusDiv = timerElement.closest('div');
+        if (statusDiv) {
+          statusDiv.style.background = '#d1ecf1';
+          statusDiv.style.borderLeftColor = '#17a2b8';
+          statusDiv.querySelector('strong').textContent = 'Resubmission Available:';
+          statusDiv.querySelector('i').className = 'fas fa-check-circle';
+        }
+        // Reload page to refresh status after a moment
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+        return;
+      }
+      
+      const hours = Math.floor(remainingSeconds / 3600);
+      const minutes = Math.floor((remainingSeconds % 3600) / 60);
+      const seconds = remainingSeconds % 60;
+      
+      timerElement.innerHTML = `Time remaining: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      remainingSeconds--;
+      setTimeout(updateTimer, 1000);
+    }
+    
+    updateTimer();
+  }
 
   // Duplicate entry validation function
   async function checkDuplicateEntry() {
@@ -4934,18 +5774,69 @@ $conn->close();
   // Validation and AJAX submit
   document.getElementById('jobseekerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    let valid = true;
+    e.stopPropagation();
     
-    // Check for duplicate entry first
-    const isNotDuplicate = await checkDuplicateEntry();
-    if (!isNotDuplicate) {
-      return; // Stop submission if duplicate is found
+    // Remove required attributes from hidden fields to prevent validation errors
+    const allSections = document.querySelectorAll('.form-section');
+    allSections.forEach(section => {
+      if (section.style.display === 'none' || section.offsetParent === null) {
+        const requiredFields = section.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+          field.removeAttribute('required');
+          // Also remove pattern to prevent regex errors
+          if (field.hasAttribute('pattern')) {
+            const pattern = field.getAttribute('pattern');
+            // Fix invalid patterns by removing problematic parts
+            if (pattern && pattern.includes('{0,')) {
+              field.removeAttribute('pattern');
+            }
+          }
+        });
+      }
+    });
+    
+    // Remove pattern from all hidden inputs to prevent regex validation errors
+    const allHiddenInputs = document.querySelectorAll('input[style*="display: none"], input[style*="display:none"], .form-section[style*="display: none"] input, .form-section[style*="display:none"] input');
+    allHiddenInputs.forEach(input => {
+      input.removeAttribute('required');
+      input.removeAttribute('pattern');
+    });
+    
+    // Check for duplicate entry ONLY for NEW submissions, NOT for updates
+    // Skip duplicate check if this is an update (pending or rejected form being edited)
+    const isUpdate = (typeof IS_PENDING !== 'undefined' && IS_PENDING) || 
+                     (typeof IS_REJECTED !== 'undefined' && IS_REJECTED && typeof COOLDOWN_REMAINING !== 'undefined' && (COOLDOWN_REMAINING === null || COOLDOWN_REMAINING === 0));
+    
+    if (!isUpdate) {
+      // Only check for duplicates when creating a NEW form
+      const isNotDuplicate = await checkDuplicateEntry();
+      if (!isNotDuplicate) {
+        return; // Stop submission if duplicate is found
+      }
     }
     
-    // Check for e-signature validation before final submission
+    // Check for e-signature validation - only if no existing file
     const esignatureInput = document.getElementById('esignature');
-    if (!esignatureInput.files || esignatureInput.files.length === 0) {
-      // Show SweetAlert warning if no e-signature is uploaded
+    const esignaturePreview = document.getElementById('esignaturePreview');
+    const esignatureImage = document.getElementById('esignatureImage');
+    const existingEsignatureInput = document.querySelector('input[name="existing_esignature_file"]');
+    
+    // Check for new file upload
+    const hasNewFile = esignatureInput && esignatureInput.files && esignatureInput.files.length > 0;
+    
+    // Check for existing file displayed in preview
+    const hasExistingPreview = esignaturePreview && 
+                               esignaturePreview.style.display !== 'none' && 
+                               esignaturePreview.offsetParent !== null;
+    
+    // Check for hidden input with existing filename
+    const hasHiddenInput = existingEsignatureInput && existingEsignatureInput.value && existingEsignatureInput.value.trim() !== '';
+    
+    // Check if preview has an image source (existing file loaded)
+    const hasImageSource = esignatureImage && esignatureImage.src && esignatureImage.src !== window.location.href;
+    
+    // If none of these conditions are true, we need an e-signature
+    if (!hasNewFile && !hasExistingPreview && !hasHiddenInput && !hasImageSource) {
       Swal.fire({
         title: 'E-Signature Required!',
         text: 'Please upload your e-signature before submitting the form.',
@@ -4956,17 +5847,60 @@ $conn->close();
       return;
     }
     
-    // Only validate required fields in the visible step
-    const visibleStep = [document.getElementById('step1Section'), document.getElementById('step2Section'), document.getElementById('step3Section')].find(s => s.style.display !== 'none');
-    const fields = visibleStep.querySelectorAll('[required]');
-    fields.forEach(field => {
-      if (!field.value.trim()) {
-        field.style.borderColor = 'red';
-        valid = false;
-      } else {
-        field.style.borderColor = '';
+    // Check for resume validation - only if no existing file
+    const resumeInput = document.getElementById('resume_file');
+    const resumeContainer = resumeInput ? resumeInput.closest('.form-row') : null;
+    const existingResumeInput = document.querySelector('input[name="existing_resume_file"]');
+    
+    // Check for new file upload
+    const hasNewResumeFile = resumeInput && resumeInput.files && resumeInput.files.length > 0;
+    
+    // Check for existing resume display
+    const hasExistingResumeDisplay = resumeContainer && resumeContainer.querySelector('.existing-resume-display');
+    
+    // Check for hidden input with existing filename
+    const hasResumeHiddenInput = existingResumeInput && existingResumeInput.value && existingResumeInput.value.trim() !== '';
+    
+    // If none of these conditions are true, we need a resume
+    if (!hasNewResumeFile && !hasExistingResumeDisplay && !hasResumeHiddenInput) {
+      Swal.fire({
+        title: 'Resume Required!',
+        text: 'Please upload your resume before submitting the form.',
+        icon: 'warning',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ff9800'
+      });
+      return;
+    }
+    
+    // Only validate required fields in visible sections
+    let valid = true;
+    const visibleSections = document.querySelectorAll('.form-section[style*="block"], .form-section:not([style*="none"])');
+    visibleSections.forEach(section => {
+      if (section.offsetParent !== null) {
+        const requiredFields = section.querySelectorAll('[required]');
+        requiredFields.forEach(field => {
+          // Skip file inputs if they have existing files
+          if (field.type === 'file') {
+            if (field.id === 'esignature' && hasExistingEsignature) return;
+            if (field.id === 'resume_file' && hasExistingResume) return;
+          }
+          
+          if (field.type === 'checkbox' || field.type === 'radio') {
+            const checked = section.querySelector(`input[name="${field.name}"]:checked`);
+            if (!checked) {
+              valid = false;
+            }
+          } else if (!field.value || !field.value.trim()) {
+            field.style.borderColor = 'red';
+            valid = false;
+          } else {
+            field.style.borderColor = '';
+          }
+        });
       }
     });
+    
     if (!valid) {
       // Show SweetAlert validation error
       Swal.fire({
@@ -4982,6 +5916,21 @@ $conn->close();
      const form = this;
      const formData = new FormData(form);
      
+     // Explicitly add hidden inputs for existing files if they exist (reuse variables declared above)
+     if (existingEsignatureInput && existingEsignatureInput.value) {
+       formData.append('existing_esignature_file', existingEsignatureInput.value);
+     }
+     
+     if (existingResumeInput && existingResumeInput.value) {
+       formData.append('existing_resume_file', existingResumeInput.value);
+     }
+     
+     // Remove required from all hidden fields one more time before submission
+     const allHiddenFields = form.querySelectorAll('input[type="text"][style*="display: none"], input[type="text"][style*="display:none"], .form-section[style*="display: none"] input, .form-section[style*="display:none"] input');
+     allHiddenFields.forEach(field => {
+       field.removeAttribute('required');
+     });
+     
      // Show loading state
      const submitBtn = form.querySelector('button[type="submit"]');
      const originalText = submitBtn.textContent;
@@ -4992,9 +5941,16 @@ $conn->close();
        method: 'POST',
        body: formData
      })
-     .then(response => {
+     .then(async response => {
        console.log('Response status:', response.status);
-       return response.json();
+       const contentType = response.headers.get('content-type');
+       if (contentType && contentType.includes('application/json')) {
+         return response.json();
+       } else {
+         const text = await response.text();
+         console.error('Non-JSON response:', text);
+         throw new Error('Server returned non-JSON response');
+       }
      })
      .then(data => {
        console.log('Response data:', data);
@@ -5010,9 +5966,17 @@ $conn->close();
            allowOutsideClick: false,
            allowEscapeKey: false
          }).then(() => {
-           // Reset form and go to first page after user clicks OK
-           form.reset();
-           showStep1();
+           // Check if this was an update (existing form) or new submission
+           const isUpdate = typeof IS_PENDING !== 'undefined' && IS_PENDING;
+           
+           if (isUpdate) {
+             // Reload the page to refresh the form with updated data
+             window.location.reload();
+           } else {
+             // Reset form and go to first page for new submissions
+             form.reset();
+             showStep1();
+           }
          });
        } else {
          // Check if it's a duplicate error
@@ -5220,16 +6184,216 @@ $conn->close();
     }
   });
   
-  // Function to load existing NRSP form data for editing
-  function loadExistingNRSPForm() {
-    Swal.fire({
-      title: 'Loading Form...',
-      text: 'Please wait while we load your existing NRSP form data.',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
+  // Comprehensive function to populate all form fields
+  function populateFormFields(nrsp) {
+    // Personal Information
+    const fields = {
+      'surname': nrsp.surname,
+      'firstname': nrsp.firstname,
+      'middlename': nrsp.middlename || '',
+      'suffix': nrsp.suffix || '',
+      'dob': nrsp.dob,
+      'sex': nrsp.sex,
+      'religion': nrsp.religion || '',
+      'civilstatus': nrsp.civilstatus,
+      'street': nrsp.street || '',
+      'barangay': nrsp.barangay,
+      'municipality': nrsp.municipality,
+      'province': nrsp.province,
+      'tin': nrsp.tin || '',
+      'height': nrsp.height || '',
+      'contact': nrsp.contact,
+      'email': nrsp.email,
+      'disability_other': nrsp.disability_other || '',
+      'self_employed_specify': nrsp.self_employed_specify || '',
+      'other_jobs': nrsp.other_jobs || '',
+      'unemployed_months': nrsp.unemployed_months || '',
+      'terminated_country': nrsp.terminated_country || '',
+      'ofw_country': nrsp.ofw_country || '',
+      'returnee': nrsp.returnee,
+      'deployment_country': nrsp.deployment_country || '',
+      'return_month': nrsp.return_month || '',
+      'return_year': nrsp.return_year || '',
+      'abroad': nrsp.abroad,
+      'beneficiary': nrsp.beneficiary,
+      'household_id': nrsp.household_id || '',
+      'occupation1': nrsp.occupation1,
+      'occupation2': nrsp.occupation2 || '',
+      'occupation3': nrsp.occupation3 || '',
+      'local1': nrsp.local1,
+      'local2': nrsp.local2 || '',
+      'local3': nrsp.local3 || '',
+      'overseas1': nrsp.overseas1,
+      'overseas2': nrsp.overseas2 || '',
+      'overseas3': nrsp.overseas3 || '',
+      'other_language': nrsp.other_language || '',
+      'inschool': nrsp.inschool,
+      'level': nrsp.level,
+      'course': nrsp.course || '',
+      'year_graduated': nrsp.year_graduated || '',
+      'level_reached': nrsp.level_reached || '',
+      'last_attended': nrsp.last_attended || '',
+      'training_course_1': nrsp.training_course_1 || '',
+      'training_hours_1': nrsp.training_hours_1 || '',
+      'training_institution_1': nrsp.training_institution_1 || '',
+      'training_skills_1': nrsp.training_skills_1 || '',
+      'training_cert_1': nrsp.training_cert_1 || '',
+      'training_course_2': nrsp.training_course_2 || '',
+      'training_hours_2': nrsp.training_hours_2 || '',
+      'training_institution_2': nrsp.training_institution_2 || '',
+      'training_skills_2': nrsp.training_skills_2 || '',
+      'training_cert_2': nrsp.training_cert_2 || '',
+      'training_course_3': nrsp.training_course_3 || '',
+      'training_hours_3': nrsp.training_hours_3 || '',
+      'training_institution_3': nrsp.training_institution_3 || '',
+      'training_skills_3': nrsp.training_skills_3 || '',
+      'training_cert_3': nrsp.training_cert_3 || '',
+      'eligibility_1': nrsp.eligibility_1 || '',
+      'eligibility_date_1': nrsp.eligibility_date_1 || '',
+      'eligibility_2': nrsp.eligibility_2 || '',
+      'eligibility_date_2': nrsp.eligibility_date_2 || '',
+      'prc_1': nrsp.prc_1 || '',
+      'prc_valid_1': nrsp.prc_valid_1 || '',
+      'prc_2': nrsp.prc_2 || '',
+      'prc_valid_2': nrsp.prc_valid_2 || '',
+      'company_name_1': nrsp.company_name_1 || '',
+      'company_address_1': nrsp.company_address_1 || '',
+      'position_1': nrsp.position_1 || '',
+      'months_1': nrsp.months_1 || '',
+      'status_1': nrsp.status_1 || '',
+      'company_name_2': nrsp.company_name_2 || '',
+      'company_address_2': nrsp.company_address_2 || '',
+      'position_2': nrsp.position_2 || '',
+      'months_2': nrsp.months_2 || '',
+      'status_2': nrsp.status_2 || '',
+      'company_name_3': nrsp.company_name_3 || '',
+      'company_address_3': nrsp.company_address_3 || '',
+      'skill_others': nrsp.skill_others || ''
+    };
+    
+    // Populate text/select inputs
+    Object.keys(fields).forEach(fieldName => {
+      const field = document.querySelector(`input[name="${fieldName}"], select[name="${fieldName}"]`);
+      if (field && fields[fieldName] !== null && fields[fieldName] !== undefined) {
+        if (field.type === 'checkbox' || field.type === 'radio') {
+          // Handle separately
+        } else {
+          field.value = fields[fieldName];
+        }
       }
     });
+    
+    // Populate checkboxes
+    const checkboxes = {
+      'hasDisability': nrsp.hasDisability,
+      'disability_speech': nrsp.disability_speech,
+      'disability_hearing': nrsp.disability_hearing,
+      'disability_visual': nrsp.disability_visual,
+      'disability_mental': nrsp.disability_mental,
+      'disability_others': nrsp.disability_others,
+      'employed': nrsp.employed,
+      'employment_type_wage': nrsp.employment_type_wage,
+      'employment_type_self': nrsp.employment_type_self,
+      'self_type_voluntary': nrsp.self_type_voluntary,
+      'self_type_vendor': nrsp.self_type_vendor,
+      'self_type_homebased': nrsp.self_type_homebased,
+      'self_type_transport': nrsp.self_type_transport,
+      'self_type_domestic': nrsp.self_type_domestic,
+      'self_type_fisherfolk': nrsp.self_type_fisherfolk,
+      'self_type_others': nrsp.self_type_others,
+      'unemployed': nrsp.unemployed,
+      'unemployed_type_first': nrsp.unemployed_type_first,
+      'unemployed_type_local': nrsp.unemployed_type_local,
+      'unemployed_type_resigned': nrsp.unemployed_type_resigned,
+      'unemployed_type_finished': nrsp.unemployed_type_finished,
+      'unemployed_type_public': nrsp.unemployed_type_public,
+      'unemployed_type_retired': nrsp.unemployed_type_retired,
+      'unemployed_type_terminated': nrsp.unemployed_type_terminated,
+      'fulltime': nrsp.fulltime,
+      'parttime': nrsp.parttime,
+      'english_read': nrsp.english_read,
+      'english_write': nrsp.english_write,
+      'english_speak': nrsp.english_speak,
+      'english_understand': nrsp.english_understand,
+      'filipino_read': nrsp.filipino_read,
+      'filipino_write': nrsp.filipino_write,
+      'filipino_speak': nrsp.filipino_speak,
+      'filipino_understand': nrsp.filipino_understand,
+      'mandarin_read': nrsp.mandarin_read,
+      'mandarin_write': nrsp.mandarin_write,
+      'mandarin_speak': nrsp.mandarin_speak,
+      'mandarin_understand': nrsp.mandarin_understand,
+      'other_read': nrsp.other_read,
+      'other_write': nrsp.other_write,
+      'other_speak': nrsp.other_speak,
+      'other_understand': nrsp.other_understand,
+      'skill_auto_mechanic': nrsp.skill_auto_mechanic,
+      'skill_electrician': nrsp.skill_electrician,
+      'skill_photography': nrsp.skill_photography,
+      'skill_beautician': nrsp.skill_beautician,
+      'skill_embroidery': nrsp.skill_embroidery,
+      'skill_plumbing': nrsp.skill_plumbing,
+      'skill_carpentry': nrsp.skill_carpentry,
+      'skill_gardening': nrsp.skill_gardening,
+      'skill_sewing': nrsp.skill_sewing,
+      'skill_computer': nrsp.skill_computer,
+      'skill_masonry': nrsp.skill_masonry,
+      'skill_stenography': nrsp.skill_stenography,
+      'skill_domestic': nrsp.skill_domestic,
+      'skill_painter': nrsp.skill_painter,
+      'skill_tailoring': nrsp.skill_tailoring,
+      'skill_driver': nrsp.skill_driver,
+      'skill_painting': nrsp.skill_painting
+    };
+    
+    Object.keys(checkboxes).forEach(checkboxName => {
+      const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
+      if (checkbox && checkboxes[checkboxName] == 1) {
+        checkbox.checked = true;
+      }
+    });
+    
+    // Update "Select All" checkboxes for language proficiency after populating
+    ['english', 'filipino', 'mandarin', 'other'].forEach(language => {
+      updateSelectAllCheckbox(language);
+    });
+    
+    // Handle radio buttons
+    if (nrsp.inschool) {
+      const inschoolRadio = document.querySelector(`input[name="inschool"][value="${nrsp.inschool}"]`);
+      if (inschoolRadio) inschoolRadio.checked = true;
+    }
+    if (nrsp.ofw) {
+      const ofwRadio = document.querySelector(`input[name="ofw"][value="${nrsp.ofw}"]`);
+      if (ofwRadio) ofwRadio.checked = true;
+    }
+    if (nrsp.returnee) {
+      const returneeRadio = document.querySelector(`input[name="returnee"][value="${nrsp.returnee}"]`);
+      if (returneeRadio) returneeRadio.checked = true;
+    }
+    if (nrsp.abroad) {
+      const abroadRadio = document.querySelector(`input[name="abroad"][value="${nrsp.abroad}"]`);
+      if (abroadRadio) abroadRadio.checked = true;
+    }
+    if (nrsp.beneficiary) {
+      const beneficiaryRadio = document.querySelector(`input[name="beneficiary"][value="${nrsp.beneficiary}"]`);
+      if (beneficiaryRadio) beneficiaryRadio.checked = true;
+    }
+    
+  }
+  
+  // Function to load existing NRSP form data for editing
+  function loadExistingNRSPForm(autoLoad = false) {
+    if (!autoLoad) {
+      Swal.fire({
+        title: 'Loading Form...',
+        text: 'Please wait while we load your existing NRSP form data.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+    }
     
     // Fetch existing NRSP form data
     fetch('get_nrsp_form_data.php', {
@@ -5243,97 +6407,197 @@ $conn->close();
     })
     .then(response => response.json())
     .then(data => {
-      Swal.close();
+      if (!autoLoad) {
+        Swal.close();
+      }
       
       if (data.success && data.nrsp_data) {
         const nrsp = data.nrsp_data;
         
-        // Populate personal information
-        const surnameField = document.querySelector('input[name="surname"]');
-        const firstnameField = document.querySelector('input[name="firstname"]');
-        const middlenameField = document.querySelector('input[name="middlename"]');
-        const suffixField = document.querySelector('input[name="suffix"]');
-        const dobField = document.querySelector('input[name="dob"]');
-        const sexField = document.querySelector('select[name="sex"]');
-        const religionField = document.querySelector('input[name="religion"]');
-        const civilstatusField = document.querySelector('select[name="civilstatus"]');
+        // Populate ALL form fields comprehensively
+        populateFormFields(nrsp);
         
-        if (surnameField && nrsp.surname) surnameField.value = nrsp.surname;
-        if (firstnameField && nrsp.firstname) firstnameField.value = nrsp.firstname;
-        if (middlenameField) middlenameField.value = nrsp.middlename || '';
-        if (suffixField) suffixField.value = nrsp.suffix || '';
-        if (dobField && nrsp.dob) dobField.value = nrsp.dob;
-        if (sexField && nrsp.sex) sexField.value = nrsp.sex;
-        if (religionField) religionField.value = nrsp.religion || '';
-        if (civilstatusField && nrsp.civilstatus) civilstatusField.value = nrsp.civilstatus;
+        // Trigger field toggles to show/hide conditional fields
+        if (nrsp.hasDisability == 1) {
+          const hasDisabilityCheckbox = document.getElementById('hasDisability');
+          if (hasDisabilityCheckbox) {
+            hasDisabilityCheckbox.checked = true;
+            toggleDisabilityFields();
+          }
+        }
+        if (nrsp.employed == 1) {
+          const employedCheckbox = document.getElementById('employed');
+          if (employedCheckbox) {
+            employedCheckbox.checked = true;
+            toggleEmployedFields();
+          }
+        }
+        if (nrsp.unemployed == 1) {
+          const unemployedCheckbox = document.getElementById('unemployed');
+          if (unemployedCheckbox) {
+            unemployedCheckbox.checked = true;
+            toggleUnemployedFields();
+          }
+        }
         
-        // Populate address
-        const streetField = document.querySelector('input[name="street"]');
-        const barangayField = document.querySelector('input[name="barangay"]');
-        const municipalityField = document.querySelector('input[name="municipality"]');
-        const provinceField = document.querySelector('input[name="province"]');
+        // Trigger toggles for radio buttons
+        if (nrsp.inschool) {
+          const inschoolRadio = document.querySelector(`input[name="inschool"][value="${nrsp.inschool}"]`);
+          if (inschoolRadio) {
+            inschoolRadio.checked = true;
+            toggleCourseField();
+          }
+        }
+        if (nrsp.ofw) {
+          toggleOfwCountry();
+        }
+        if (nrsp.returnee) {
+          toggleReturneeFields();
+        }
+        if (nrsp.beneficiary) {
+          toggleHouseholdId();
+        }
         
-        if (streetField) streetField.value = nrsp.street || '';
-        if (barangayField && nrsp.barangay) barangayField.value = nrsp.barangay;
-        if (municipalityField && nrsp.municipality) municipalityField.value = nrsp.municipality;
-        if (provinceField && nrsp.province) provinceField.value = nrsp.province;
+        // Handle wage/self-employed toggles
+        if (nrsp.employment_type_wage == 1) {
+          const wageCheckbox = document.querySelector('input[name="employment_type_wage"]');
+          if (wageCheckbox) {
+            wageCheckbox.checked = true;
+            toggleEmployedFields();
+          }
+        }
+        if (nrsp.employment_type_self == 1) {
+          const selfCheckbox = document.querySelector('input[name="employment_type_self"]');
+          if (selfCheckbox) {
+            selfCheckbox.checked = true;
+            toggleEmployedFields();
+          }
+        }
         
-        // Populate other info
-        const tinField = document.querySelector('input[name="tin"]');
-        const heightField = document.querySelector('input[name="height"]');
-        const contactField = document.querySelector('input[name="contact"]');
-        const emailField = document.querySelector('input[name="email"]');
+        // Handle terminated checkbox toggle
+        if (nrsp.unemployed_type_terminated == 1) {
+          const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
+          if (terminatedCheckbox) {
+            terminatedCheckbox.checked = true;
+            const terminatedCountryLabel = document.querySelector('label[for="terminated_country"]');
+            const terminatedCountryInput = document.getElementById('terminated_country');
+            if (terminatedCountryLabel && terminatedCountryInput) {
+              terminatedCountryLabel.style.display = '';
+              terminatedCountryInput.style.display = '';
+              terminatedCountryInput.disabled = false;
+            }
+          }
+        }
         
-        if (tinField) tinField.value = nrsp.tin || '';
-        if (heightField) heightField.value = nrsp.height || '';
-        if (contactField && nrsp.contact) contactField.value = nrsp.contact;
-        if (emailField && nrsp.email) emailField.value = nrsp.email;
+        // Display existing esignature file if available
+        if (nrsp.esignature_file) {
+          const esignaturePreview = document.getElementById('esignaturePreview');
+          const esignatureImage = document.getElementById('esignatureImage');
+          const esignatureFilename = document.getElementById('esignatureFilename');
+          if (esignaturePreview && esignatureImage && esignatureFilename) {
+            // Try different possible paths
+            const possiblePaths = [
+              '../uploads/esignatures/' + nrsp.esignature_file,
+              'uploads/esignatures/' + nrsp.esignature_file,
+              '/WorkConnect/uploads/esignatures/' + nrsp.esignature_file
+            ];
+            
+            // Set image source and handle error
+            esignatureImage.onerror = function() {
+              // If image fails to load, try next path or show filename only
+              this.style.display = 'none';
+            };
+            esignatureImage.src = possiblePaths[0];
+            esignatureFilename.textContent = nrsp.esignature_file;
+            esignaturePreview.style.display = 'flex';
+            // Remove required attribute since file exists
+            const esignatureInput = document.getElementById('esignature');
+            if (esignatureInput) {
+              esignatureInput.removeAttribute('required');
+              // Store existing filename in a hidden input for form submission
+              let hiddenInput = document.querySelector('input[name="existing_esignature_file"]');
+              if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'existing_esignature_file';
+                esignatureInput.parentNode.appendChild(hiddenInput);
+              }
+              hiddenInput.value = nrsp.esignature_file;
+            }
+          }
+        }
         
-        // Populate job preferences
-        const occupation1Field = document.querySelector('input[name="occupation1"]');
-        const occupation2Field = document.querySelector('input[name="occupation2"]');
-        const occupation3Field = document.querySelector('input[name="occupation3"]');
-        const fulltimeField = document.querySelector('input[name="fulltime"]');
-        const parttimeField = document.querySelector('input[name="parttime"]');
-        const local1Field = document.querySelector('input[name="local1"]');
-        const local2Field = document.querySelector('input[name="local2"]');
-        const local3Field = document.querySelector('input[name="local3"]');
+        // Display existing resume file if available
+        if (nrsp.resume_file) {
+          const resumeInput = document.getElementById('resume_file');
+          if (resumeInput) {
+            // Create a display element for existing resume
+            const resumeContainer = resumeInput.closest('.form-row');
+            if (resumeContainer) {
+              // Check if display already exists
+              let existingResumeDiv = resumeContainer.querySelector('.existing-resume-display');
+              if (!existingResumeDiv) {
+                existingResumeDiv = document.createElement('div');
+                existingResumeDiv.className = 'existing-resume-display';
+                existingResumeDiv.style.cssText = 'margin-top: 10px; padding: 10px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 5px;';
+                existingResumeDiv.innerHTML = '<strong>Current Resume:</strong> ' + nrsp.resume_file + ' <span style="color: #666; font-size: 0.9rem;">(Upload a new file to replace)</span>';
+                resumeContainer.appendChild(existingResumeDiv);
+              }
+              // Remove required attribute since file exists
+              resumeInput.removeAttribute('required');
+              // Store existing filename in a hidden input for form submission
+              let hiddenInput = document.querySelector('input[name="existing_resume_file"]');
+              if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'existing_resume_file';
+                resumeInput.parentNode.appendChild(hiddenInput);
+              }
+              hiddenInput.value = nrsp.resume_file;
+            }
+          }
+        }
         
-        if (occupation1Field && nrsp.occupation1) occupation1Field.value = nrsp.occupation1;
-        if (occupation2Field) occupation2Field.value = nrsp.occupation2 || '';
-        if (occupation3Field) occupation3Field.value = nrsp.occupation3 || '';
-        if (fulltimeField && nrsp.fulltime == 1) fulltimeField.checked = true;
-        if (parttimeField && nrsp.parttime == 1) parttimeField.checked = true;
-        if (local1Field && nrsp.local1) local1Field.value = nrsp.local1;
-        if (local2Field) local2Field.value = nrsp.local2 || '';
-        if (local3Field) local3Field.value = nrsp.local3 || '';
-        
-        // Populate skills
-        const trainingSkills1Field = document.querySelector('input[name="training_skills_1"]');
-        const trainingSkills2Field = document.querySelector('input[name="training_skills_2"]');
-        const trainingSkills3Field = document.querySelector('input[name="training_skills_3"]');
-        const skillOthersField = document.querySelector('input[name="skill_others"]');
-        
-        if (trainingSkills1Field) trainingSkills1Field.value = nrsp.training_skills_1 || '';
-        if (trainingSkills2Field) trainingSkills2Field.value = nrsp.training_skills_2 || '';
-        if (trainingSkills3Field) trainingSkills3Field.value = nrsp.training_skills_3 || '';
-        if (skillOthersField) skillOthersField.value = nrsp.skill_others || '';
-        
-        // Show success message and scroll to top
-        Swal.fire({
-          title: 'Form Loaded!',
-          text: 'Your existing NRSP form data has been loaded. Please review and update as needed.',
-          icon: 'success',
-          confirmButtonText: 'OK',
-          confirmButtonColor: '#233a8b'
-        }).then(() => {
-          // Scroll to top of form
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          // Show first step
-          if (typeof showStep1 === 'function') {
-            showStep1();
+        // Remove required attributes from hidden fields to prevent validation errors
+        const allSections = document.querySelectorAll('.form-section');
+        allSections.forEach(section => {
+          if (section.style.display === 'none' || section.offsetParent === null) {
+            const requiredFields = section.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+              field.removeAttribute('required');
+            });
           }
         });
+        
+        // Show success message only if not auto-loading
+        if (!autoLoad) {
+          Swal.fire({
+            title: 'Form Loaded!',
+            text: 'Your existing NRSP form data has been loaded. Please review and update as needed.',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#233a8b'
+          }).then(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (typeof showStep1 === 'function') {
+              showStep1();
+            }
+          });
+        } else {
+          // Auto-load: just scroll to top and show first step
+          console.log('Auto-load complete, showing form...');
+          // Make sure form is visible
+          const form = document.getElementById('jobseekerForm');
+          if (form) {
+            form.style.display = '';
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (typeof showStep1 === 'function') {
+            showStep1();
+          } else {
+            console.error('showStep1 function not found');
+          }
+        }
       } else {
         Swal.fire({
           title: 'Error',
