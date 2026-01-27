@@ -5873,6 +5873,10 @@ $conn->close();
       return;
     }
     
+    // Define variables to check if existing files are present (used in validation loop)
+    const hasExistingEsignature = hasNewFile || hasExistingPreview || hasHiddenInput || hasImageSource;
+    const hasExistingResume = hasNewResumeFile || hasExistingResumeDisplay || hasResumeHiddenInput;
+    
     // Only validate required fields in visible sections
     let valid = true;
     const visibleSections = document.querySelectorAll('.form-section[style*="block"], .form-section:not([style*="none"])');

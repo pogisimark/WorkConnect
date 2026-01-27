@@ -512,6 +512,56 @@ $conn->close();
             padding: 20px !important;
         }
         
+        /* Apply Confirmation Modal Styles */
+        .apply-confirm-modal .swal2-popup {
+            border-radius: 15px !important;
+            padding: 30px !important;
+        }
+        
+        .apply-confirm-modal .swal2-title {
+            font-size: 24px !important;
+            font-weight: 600 !important;
+            color: #233a8b !important;
+            margin-bottom: 10px !important;
+        }
+        
+        .apply-confirm-modal .swal2-html-container {
+            margin: 20px 0 !important;
+            padding: 0 !important;
+        }
+        
+        .swal2-confirm-apply {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+            border: none !important;
+            padding: 12px 30px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            transition: all 0.3s !important;
+        }
+        
+        .swal2-confirm-apply:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ea085 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+        }
+        
+        .swal2-cancel-apply {
+            background: #6c757d !important;
+            border: none !important;
+            padding: 12px 30px !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            transition: all 0.3s !important;
+        }
+        
+        .swal2-cancel-apply:hover {
+            background: #5a6268 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4) !important;
+        }
+        
         @media (max-width: 768px) {
             .breakdown-grid {
                 grid-template-columns: 1fr;
@@ -541,6 +591,24 @@ $conn->close();
             .job-details-modal .swal2-popup {
                 max-width: 95% !important;
                 margin: 10px !important;
+            }
+            
+            .apply-confirm-modal .swal2-popup {
+                max-width: 90% !important;
+                margin: 10px !important;
+                padding: 20px !important;
+            }
+            
+            .apply-confirm-modal .swal2-title {
+                font-size: 20px !important;
+            }
+            
+            .swal2-confirm-apply,
+            .swal2-cancel-apply {
+                padding: 10px 20px !important;
+                font-size: 14px !important;
+                width: 100% !important;
+                margin: 5px 0 !important;
             }
         }
     </style>
@@ -1094,10 +1162,10 @@ $conn->close();
                                                 <i class="fas fa-check"></i> Applied
                                             </div>
                                         <?php else: ?>
-                                            <form method="POST" style="flex: 1;">
+                                            <form method="POST" style="flex: 1;" id="applyForm_<?php echo $job['id']; ?>">
                                                 <input type="hidden" name="action" value="apply_job">
                                                 <input type="hidden" name="job_id" value="<?php echo $job['id']; ?>">
-                                                <button type="submit" class="btn-apply" onclick="return confirmApply()">
+                                                <button type="button" class="btn-apply" onclick="confirmApply(<?php echo $job['id']; ?>)">
                                                     <i class="fas fa-paper-plane"></i> Apply Now
                                                 </button>
                                             </form>
@@ -1148,8 +1216,33 @@ $conn->close();
             }
         }
         
-        function confirmApply() {
-            return confirm('Are you sure you want to apply for this job?');
+        async function confirmApply(jobId) {
+            const result = await Swal.fire({
+                title: 'Confirm Application',
+                html: '<div style="text-align: center;"><i class="fas fa-briefcase" style="font-size: 48px; color: #28a745; margin-bottom: 20px;"></i><p style="font-size: 16px; color: #333;">Are you sure you want to apply for this job?</p></div>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-check"></i> Yes, Apply Now',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'apply-confirm-modal',
+                    confirmButton: 'swal2-confirm-apply',
+                    cancelButton: 'swal2-cancel-apply'
+                },
+                buttonsStyling: true,
+                width: '450px'
+            });
+            
+            if (result.isConfirmed) {
+                // Submit the form
+                const form = document.getElementById('applyForm_' + jobId);
+                if (form) {
+                    form.submit();
+                }
+            }
         }
         
         function viewJobDetails(jobId) {
