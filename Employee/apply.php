@@ -148,6 +148,7 @@ if ($result->num_rows > 0) {
     if ($statusLower === 'accepted') {
         $canEditNRSP = false;
         $canSubmitNRSP = false;
+        $autoLoadForm = true; // Auto-load form data for accepted applications (pre-fill for display)
     } elseif ($isPending) {
         $canEditNRSP = true; // Can edit pending forms
         $canSubmitNRSP = true; // Can save (update) pending forms
@@ -2895,9 +2896,8 @@ $conn->close();
         
         <?php if ($isRejected && $cooldownRemaining !== null): ?>
         <div style="padding: 15px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 5px; margin-bottom: 15px;">
-          <i class="fas fa-hourglass-half"></i> 
-          <strong>Resubmission Cooldown:</strong> You cannot resubmit your form yet. Please wait for the cooldown period to expire.
-          <div id="cooldownTimer" style="margin-top: 10px; font-size: 1.1rem; font-weight: bold; color: #721c24;"></div>
+          <i class="fas fa-lock"></i> 
+          <strong>Form locked.</strong> Re-submission of your NSRP form will be available again 24 hours after your application was declined. Please return after that period to resubmit.
         </div>
         <?php elseif ($isRejected && $cooldownRemaining === null): ?>
         <div style="padding: 15px; background: #d1ecf1; border-left: 4px solid #17a2b8; border-radius: 5px; margin-bottom: 15px;">
@@ -5649,11 +5649,6 @@ $conn->close();
     }, 500);
   }
   
-  // Setup cooldown timer if needed
-  if (typeof COOLDOWN_REMAINING !== 'undefined' && COOLDOWN_REMAINING !== null && COOLDOWN_REMAINING > 0) {
-    startCooldownTimer(COOLDOWN_REMAINING);
-  }
-  
   // Update submit button text and state based on status
   const submitBtn = document.getElementById('submitNRSPBtn');
   if (submitBtn) {
@@ -5683,48 +5678,6 @@ $conn->close();
     }
   }
   
-  // Cooldown timer function
-  function startCooldownTimer(remainingSeconds) {
-    const timerElement = document.getElementById('cooldownTimer');
-    if (!timerElement) return;
-    
-    function updateTimer() {
-      if (remainingSeconds <= 0) {
-        timerElement.innerHTML = '<span style="color: #28a745;">Resubmission is available now.</span>';
-        const submitBtn = document.getElementById('submitNRSPBtn');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Resubmit';
-          submitBtn.title = '';
-        }
-        // Update the status message
-        const statusDiv = timerElement.closest('div');
-        if (statusDiv) {
-          statusDiv.style.background = '#d1ecf1';
-          statusDiv.style.borderLeftColor = '#17a2b8';
-          statusDiv.querySelector('strong').textContent = 'Resubmission Available:';
-          statusDiv.querySelector('i').className = 'fas fa-check-circle';
-        }
-        // Reload page to refresh status after a moment
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-        return;
-      }
-      
-      const hours = Math.floor(remainingSeconds / 3600);
-      const minutes = Math.floor((remainingSeconds % 3600) / 60);
-      const seconds = remainingSeconds % 60;
-      
-      timerElement.innerHTML = `Time remaining: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      
-      remainingSeconds--;
-      setTimeout(updateTimer, 1000);
-    }
-    
-    updateTimer();
-  }
-
   // Duplicate entry validation function
   async function checkDuplicateEntry() {
     const surname = document.getElementById('surname').value.trim();

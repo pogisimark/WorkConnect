@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1 class="brand">WorkConnect</h1>
         </div>
         
-        <h2 class="login-title">Welcome Back</h2>
+        
         
         <?php if (isset($_GET['success']) && $_GET['success'] === 'account_created'): ?>
             <div class="success-message">Account created successfully! You can now login with your credentials.</div>

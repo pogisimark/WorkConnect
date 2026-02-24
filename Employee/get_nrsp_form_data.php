@@ -38,31 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nrspData = $result->fetch_assoc();
         $stmt->close();
         
-        // Check if form can be edited (not accepted)
+        // Determine if form can be edited (accepted forms are read-only but data is still returned for pre-load/display)
         $status = $nrspData['application_status'] ?? null;
-        $canEdit = empty($status) || 
-                   strtolower($status) === 'pending' || 
-                   strtolower($status) === 'rejected' ||
-                   strtolower($status) === '';
+        $statusLower = strtolower($status ?? '');
+        $canEdit = $statusLower === 'pending' || $statusLower === 'rejected' || $statusLower === '';
         
-        if (strtolower($status) === 'accepted') {
-            $canEdit = false;
-        }
-        
-        if (!$canEdit) {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'This form has been accepted and cannot be edited.',
-                'status' => $status
-            ]);
-            exit();
-        }
-        
-        // Return the NRSP form data
+        // Return the NRSP form data for all statuses (pending, rejected, accepted) so form can be pre-loaded
         echo json_encode([
             'success' => true,
             'nrsp_data' => $nrspData,
-            'can_edit' => true
+            'can_edit' => $canEdit
         ]);
         
     } catch (Exception $e) {

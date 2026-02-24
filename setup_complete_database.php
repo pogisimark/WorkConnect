@@ -312,8 +312,8 @@ if ($conn->query($sql) === TRUE) {
 
 echo "</div>";
 
-// Step 5: Create notifications table
-echo "<div class='step'><h2>Step 5: Creating Notifications Table...</h2>";
+// Step 5: Create notifications and password-reset tables
+echo "<div class='step'><h2>Step 5: Creating Notifications & Password-Reset Tables...</h2>";
 $sql = "CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -354,6 +354,25 @@ if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ password_resets table created</p>";
 } else {
     echo "<p class='error'>❌ Error creating password_resets: " . $conn->error . "</p>";
+}
+
+// company_password_resets (for Company portal forgot-password)
+$sql = "CREATE TABLE IF NOT EXISTS company_password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token (token),
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires_at (expires_at),
+    FOREIGN KEY (user_id) REFERENCES company_users(id) ON DELETE CASCADE
+)";
+if ($conn->query($sql) === TRUE) {
+    echo "<p class='success'>✅ company_password_resets table created</p>";
+} else {
+    echo "<p class='error'>❌ Error creating company_password_resets: " . $conn->error . "</p>";
 }
 
 echo "</div>";
@@ -808,11 +827,11 @@ echo "</div>";
 // Final Summary
 echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'>
 <h2 style='color: #28a745;'>✅ Setup Complete!</h2>
-<p><strong>All 25 database tables have been created successfully!</strong></p>
+<p><strong>All 26 database tables have been created successfully!</strong></p>
 <p><strong>Tables Created:</strong></p>
 <ul>
     <li>✅ 5 Core Tables (employee_users, admin_accounts, jobseeker, company_users, skill_registry)</li>
-    <li>✅ 2 Utility Tables (notifications, password_resets)</li>
+    <li>✅ 3 Utility Tables (notifications, password_resets, company_password_resets)</li>
     <li>✅ 9 Feature Tables (job_postings, user_preferences, job_applications_extended, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
     <li>✅ 5 Announcement Tables (announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks)</li>
     <li>✅ 4 Resume Builder New Schema Tables (resumes_new, resume_work_experience, resume_education, resume_certifications)</li>

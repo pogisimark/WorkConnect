@@ -124,6 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <p style='color: #333; margin: 0;'>" . nl2br(htmlspecialchars($rejection_reason)) . "</p>
                     </div>
                     <p style='margin-top: 30px; font-size: 16px;'>We appreciate the time and effort you invested in your application. We encourage you to continue exploring other opportunities on WorkConnect.</p>
+                    <p style='margin-top: 20px; font-size: 16px;'>If you wish to re-apply, please note that <strong>re-submission of your NSRP form will be available again 24 hours</strong> after this notification. You may then submit an updated application through your WorkConnect account.</p>
                     <p style='margin-top: 15px; color: #666;'>Best of luck in your job search!</p>
                 </div>
                 <div class='footer'>
