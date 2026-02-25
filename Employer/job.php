@@ -1121,15 +1121,16 @@ include 'session_protect.php';
     </div>
     <div class="layout">
         <div class="sidebar">
-            <a href="Dashboard.php">📊 DASHBOARD</a>
-            <a href="job_postings.php">💼 JOB POSTINGS</a>
-            <a href="#" class="active">👥 JOBSEEKERS</a>
-            <a href="skill.php">🛠️ SKILL REGISTRY</a>
-            <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
-            <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
-            <a href="analytics.php">📊 Analytics</a>
-            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
-            <a href="logout.php" class="logout">🚪 Logout</a>
+            <a href="Dashboard.php"> DASHBOARD</a>
+            <a href="job_postings.php"> JOB POSTINGS</a>
+            <a href="#" class="active"> JOBSEEKERS</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
+            <a href="skill.php"> SKILL REGISTRY</a>
+            <a href="btec.php"> BTEC MONTHLY REPORT</a>
+            <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
+            <a href="analytics.php"> Analytics</a>
+            <a href="announcement.php"> ANNOUNCEMENTS</a>
+            <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e3f2fd;">

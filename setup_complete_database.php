@@ -461,6 +461,25 @@ if ($conn->query($sql) === TRUE) {
     echo "<p class='error'>❌ Error: " . $conn->error . "</p>";
 }
 
+// 6.4b follow_up_requests (jobseeker follow-up requests for admin)
+$sql = "CREATE TABLE IF NOT EXISTS follow_up_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jobseeker_id INT NOT NULL,
+    message TEXT,
+    status ENUM('pending','answered') DEFAULT 'pending',
+    admin_response TEXT,
+    responded_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (jobseeker_id) REFERENCES jobseeker(id) ON DELETE CASCADE,
+    INDEX idx_status (status),
+    INDEX idx_jobseeker_id (jobseeker_id)
+)";
+if ($conn->query($sql) === TRUE) {
+    echo "<p class='success'>✅ follow_up_requests table created</p>";
+} else {
+    echo "<p class='error'>❌ Error creating follow_up_requests: " . $conn->error . "</p>";
+}
+
 // 6.5 resume_templates
 $sql = "CREATE TABLE IF NOT EXISTS resume_templates (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -827,12 +846,12 @@ echo "</div>";
 // Final Summary
 echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'>
 <h2 style='color: #28a745;'>✅ Setup Complete!</h2>
-<p><strong>All 26 database tables have been created successfully!</strong></p>
+<p><strong>All 27 database tables have been created successfully!</strong></p>
 <p><strong>Tables Created:</strong></p>
 <ul>
     <li>✅ 5 Core Tables (employee_users, admin_accounts, jobseeker, company_users, skill_registry)</li>
     <li>✅ 3 Utility Tables (notifications, password_resets, company_password_resets)</li>
-    <li>✅ 9 Feature Tables (job_postings, user_preferences, job_applications_extended, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
+    <li>✅ 10 Feature Tables (job_postings, user_preferences, job_applications_extended, follow_up_requests, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
     <li>✅ 5 Announcement Tables (announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks)</li>
     <li>✅ 4 Resume Builder New Schema Tables (resumes_new, resume_work_experience, resume_education, resume_certifications)</li>
 </ul>

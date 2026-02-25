@@ -526,15 +526,16 @@
     </div>
     <div class="layout">
         <div class="sidebar">
-            <a href="Dashboard.php">📊 DASHBOARD</a>
-            <a href="job_postings.php">💼 JOB POSTINGS</a>
-            <a href="job.php">👥 JOBSEEKERS</a>
-            <a href="skill.php">🛠️ SKILL REGISTRY</a>
-            <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
-            <a href="#" class="active">➕ ADD ACCOUNT</a>
-            <a href="analytics.php">📊 Analytics</a>
-            <a href="announcement.php">📢 ANNOUNCEMENTS</a>
-            <a href="logout.php" class="logout">🚪 Logout</a>
+            <a href="Dashboard.php"> DASHBOARD</a>
+            <a href="job_postings.php"> JOB POSTINGS</a>
+            <a href="job.php"> JOBSEEKERS</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
+            <a href="skill.php"> SKILL REGISTRY</a>
+            <a href="btec.php"> BTEC MONTHLY REPORT</a>
+            <a href="#" class="active"> ADD ACCOUNT</a>
+            <a href="analytics.php"> Analytics</a>
+            <a href="announcement.php"> ANNOUNCEMENTS</a>
+            <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
             <div class="admin-form-container">

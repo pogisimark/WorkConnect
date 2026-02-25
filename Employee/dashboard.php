@@ -1956,6 +1956,7 @@ $conn->close();
                 <li><a href="#recommended_jobs" onclick="showSection('recommended_jobs')">Recommended Jobs <span class="badge" id="jobBadge" style="display:none;">New</span></a></li>
                 <!--<li><a href="#resume" onclick="showSection('resume')">Resume Builder</a></li>-->
                 <li><a href="#apply" onclick="showSection('apply')">NSRP Registration</a></li>
+                <li><a href="#follow_up" onclick="showSection('follow_up')">Request follow-up</a></li>
                 <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
                 <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
                 <li><a href="#" onclick="showLogoutModal()">Logout</a></li>
@@ -2150,6 +2151,18 @@ $conn->close();
                 </div>
             </div>
 
+            <!-- Follow-up Request Section -->
+            <div id="follow_up-section" class="content-section" style="display: none;">
+                <h2 class="section-title">Request follow-up</h2>
+                <div id="follow_up_content" style="padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <div id="follow_up_loading" style="text-align: center;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin: 10px 0 0 0; color: #666;">Checking eligibility...</p>
+                    </div>
+                    <div id="follow_up_body" style="display: none;"></div>
+                </div>
+            </div>
+
             <!-- Apply Section -->
             <div id="apply-section" class="content-section" style="display: none;"> 
                 <h2 class="section-title">Jobseeker Registration Form</h2>
@@ -2257,6 +2270,7 @@ $conn->close();
         <div class="mobile-nav-item active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard</div>
         <div class="mobile-nav-item" data-section="recommended_jobs" onclick="showSection('recommended_jobs')">Jobs</div>
         <div class="mobile-nav-item" data-section="resume" onclick="showSection('resume')">Resume</div>
+        <div class="mobile-nav-item" data-section="follow_up" onclick="showSection('follow_up')">Follow-up</div>
         <div class="mobile-nav-item" data-section="announcements" onclick="showSection('announcements')">📢</div>
         <div class="mobile-nav-item" data-section="profile" onclick="showSection('profile')">Profile</div>
     </div>
@@ -2266,7 +2280,7 @@ $conn->close();
         // Handle URL hash changes (for direct links)
         function handleHashChange() {
             const hash = window.location.hash.substring(1); // Remove the #
-            if (hash && ['dashboard', 'recommended_jobs', 'resume', 'apply', 'announcements', 'profile'].includes(hash)) {
+            if (hash && ['dashboard', 'recommended_jobs', 'resume', 'apply', 'follow_up', 'announcements', 'profile'].includes(hash)) {
                 showSection(hash);
             }
         }
@@ -2397,6 +2411,11 @@ $conn->close();
                 if (section === 'announcements') {
                     hideAnnouncementsLoadingIndicator();
                 }
+                
+                // If showing follow-up section, load eligibility and render content
+                if (section === 'follow_up') {
+                    loadFollowUpSection();
+                }
             }
             
             // Update active nav item
@@ -2414,6 +2433,78 @@ $conn->close();
                     item.classList.add('active');
                 }
             });
+        }
+        
+        function loadFollowUpSection() {
+            const loadingEl = document.getElementById('follow_up_loading');
+            const bodyEl = document.getElementById('follow_up_body');
+            if (!loadingEl || !bodyEl) return;
+            loadingEl.style.display = 'block';
+            bodyEl.style.display = 'none';
+            bodyEl.innerHTML = '';
+            fetch('check_follow_up_eligibility.php')
+                .then(r => r.json())
+                .then(data => {
+                    loadingEl.style.display = 'none';
+                    bodyEl.style.display = 'block';
+                    if (!data.success) {
+                        bodyEl.innerHTML = '<p style="color: #666;">Unable to check eligibility. Please try again.</p>';
+                        return;
+                    }
+                    if (!data.eligible) {
+                        bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'You can request a follow-up once your application has been pending for at least 7 days.') + '</p>';
+                        return;
+                    }
+                    if (data.already_pending) {
+                        bodyEl.innerHTML = '<p style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">You already have a pending follow-up request. You will be notified when admin responds.</p>';
+                        return;
+                    }
+                    if (data.last_response && data.last_response.admin_response) {
+                        var lastResp = data.last_response;
+                        var questionHtml = (lastResp.message && lastResp.message.trim() !== '') ? '<p style="color: #666; margin-bottom: 6px;">Your question:</p><div style="background: #f5f5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #1976d2; margin-bottom: 12px;">' + escapeHtml(lastResp.message) + '</div>' : '';
+                        bodyEl.innerHTML = '<div style="margin-bottom: 20px;"><p style="color: #666;">Your last follow-up response:</p>' + questionHtml + '<p style="color: #666; margin-bottom: 6px;">Admin response:</p><div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">' + escapeHtml(lastResp.admin_response) + '</div><p style="font-size: 0.9rem; color: #666; margin-top: 8px;">Responded: ' + (lastResp.responded_at ? new Date(lastResp.responded_at).toLocaleString() : '') + '</p></div>';
+                    }
+                    bodyEl.innerHTML += '<p style="color: #333; margin-bottom: 15px;">You have a pending application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>' +
+                        '<textarea id="follow_up_message" placeholder="Optional: Add a short message for admin..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>' +
+                        '<button type="button" class="apply-now-btn" id="submit_follow_up_btn">Submit follow-up request</button>';
+                    document.getElementById('submit_follow_up_btn').onclick = submitFollowUpRequest;
+                })
+                .catch(() => {
+                    loadingEl.style.display = 'none';
+                    bodyEl.style.display = 'block';
+                    bodyEl.innerHTML = '<p style="color: #666;">Unable to load. Please try again.</p>';
+                });
+        }
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function submitFollowUpRequest() {
+            const btn = document.getElementById('submit_follow_up_btn');
+            const messageEl = document.getElementById('follow_up_message');
+            if (btn) btn.disabled = true;
+            const message = messageEl ? messageEl.value.trim() : '';
+            fetch('submit_follow_up_request.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message || '' })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (btn) btn.disabled = false;
+                    if (data.success) {
+                        Swal.fire({ title: 'Submitted', text: data.message, icon: 'success' });
+                        loadFollowUpSection();
+                    } else {
+                        Swal.fire({ title: 'Error', text: data.message || 'Request failed.', icon: 'error' });
+                    }
+                })
+                .catch(() => {
+                    if (btn) btn.disabled = false;
+                    Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error' });
+                });
         }
         
         // Function to load apply form with proper session isolation

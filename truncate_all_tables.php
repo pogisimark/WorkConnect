@@ -145,7 +145,7 @@ if (!$confirmed) {
     $expected_tables = [
         'employee_users', 'admin_accounts', 'jobseeker', 'company_users', 'skill_registry',
         'notifications', 'password_resets', 'company_password_resets',
-        'job_postings', 'user_preferences', 'job_applications_extended', 'resume_templates', 
+        'job_postings', 'user_preferences', 'job_applications_extended', 'follow_up_requests', 'resume_templates', 
         'resumes', 'application_analytics', 'application_timeline', 'analytics_insights', 'monthly_analytics',
         'announcements', 'announcement_attachments', 'announcement_tags', 'announcement_views', 'announcement_clicks',
         'resumes_new', 'resume_work_experience', 'resume_education', 'resume_certifications'
