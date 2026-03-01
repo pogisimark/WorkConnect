@@ -526,6 +526,7 @@ $conn->close();
             <a href="job_postings.php">💼 JOB POSTINGS</a>
             <a href="job.php">👥 JOBSEEKERS</a>
             <a href="follow_up_requests.php">📩 FOLLOW-UP REQUESTS</a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php">🛠️ SKILL REGISTRY</a>
             <a href="btec.php">📈 BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>

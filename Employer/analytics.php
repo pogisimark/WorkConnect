@@ -615,6 +615,7 @@
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
@@ -2239,7 +2240,7 @@
     <!-- Logout Modal -->
     <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
         <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
-            <div style="font-size:3rem;margin-bottom:16px;">🚪</div>
+            <div style="font-size:3rem;margin-bottom:16px;"></div>
             <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>
             <p style="color:#666;margin-bottom:24px;font-size:1rem;">Are you sure you want to logout from your account?</p>
             <div style="display:flex;gap:12px;justify-content:center;">

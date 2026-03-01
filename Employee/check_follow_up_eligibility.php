@@ -48,26 +48,32 @@ $row = $result->fetch_assoc();
 $jobseeker_id = (int) $row['jobseeker_id'];
 $days_pending = (int) $row['days_pending'];
 
-// Check if there is already a pending follow-up request for this jobseeker
-$check = $conn->prepare("SELECT id, status, message, admin_response, responded_at FROM follow_up_requests WHERE jobseeker_id = ? ORDER BY id DESC LIMIT 1");
-$check->bind_param("i", $jobseeker_id);
-$check->execute();
-$reqResult = $check->get_result();
-$check->close();
+// Fetch all follow-up requests for this jobseeker (newest first) for conversation history
+$listStmt = $conn->prepare("SELECT id, message, status, admin_response, responded_at, created_at FROM follow_up_requests WHERE jobseeker_id = ? AND (COALESCE(hidden_by_jobseeker, 0) = 0) ORDER BY created_at DESC, id DESC");
+$listStmt->bind_param("i", $jobseeker_id);
+$listStmt->execute();
+$listResult = $listStmt->get_result();
+$requests = [];
+while ($r = $listResult->fetch_assoc()) {
+    // Send datetimes as ISO 8601 with +08:00 so frontend always displays correct PH time
+    $createdAt = $r['created_at'] ? date('c', strtotime($r['created_at'])) : null;
+    $respondedAt = $r['responded_at'] ? date('c', strtotime($r['responded_at'])) : null;
+    $requests[] = [
+        'id' => (int) $r['id'],
+        'message' => $r['message'],
+        'status' => $r['status'],
+        'admin_response' => $r['admin_response'],
+        'responded_at' => $respondedAt,
+        'created_at' => $createdAt
+    ];
+}
+$listStmt->close();
 
 $existing_pending = false;
-$existing_answered = null;
-
-if ($reqResult->num_rows > 0) {
-    $req = $reqResult->fetch_assoc();
-    if ($req['status'] === 'pending') {
+foreach ($requests as $r) {
+    if ($r['status'] === 'pending') {
         $existing_pending = true;
-    } else {
-        $existing_answered = [
-            'message' => $req['message'],
-            'admin_response' => $req['admin_response'],
-            'responded_at' => $req['responded_at']
-        ];
+        break;
     }
 }
 
@@ -77,6 +83,6 @@ echo json_encode([
     'jobseeker_id' => $jobseeker_id,
     'days_pending' => $days_pending,
     'already_pending' => $existing_pending,
-    'last_response' => $existing_answered
+    'requests' => $requests
 ]);
 $conn->close();

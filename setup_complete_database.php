@@ -1,7 +1,16 @@
 <?php
 // Complete Database Setup Script for WorkConnect
-// This script automatically creates the database and ALL tables
-// Run this once to set up everything automatically
+// This script automatically creates the database and ALL tables.
+// Run this once to set up everything automatically.
+//
+// Tables created (28 total):
+//   Core (5):     employee_users, admin_accounts, jobseeker, company_users, skill_registry
+//   Utility (3):  notifications, password_resets, company_password_resets
+//   Feature (11): job_postings, user_preferences, job_applications_extended, follow_up_requests,
+//                 admin_company_follow_up, resume_templates, resumes, application_analytics,
+//                 application_timeline, analytics_insights, monthly_analytics
+//   Announcement (5): announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks
+//   Resume new (4): resumes_new, resume_work_experience, resume_education, resume_certifications
 
 $host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
@@ -320,12 +329,19 @@ $sql = "CREATE TABLE IF NOT EXISTS notifications (
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     is_read TINYINT(1) DEFAULT 0,
+    type VARCHAR(50) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ notifications table created</p>";
 } else {
     echo "<p class='error'>❌ Error creating notifications: " . $conn->error . "</p>";
+}
+// Ensure notifications has optional 'type' column (for follow_up etc.)
+$nc = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
+if ($nc && $nc->num_rows === 0) {
+    $conn->query("ALTER TABLE notifications ADD COLUMN type VARCHAR(50) NULL");
+    echo "<p class='success'>✅ Added type column to notifications table</p>";
 }
 
 // Add rejection_reason column to jobseeker if it doesn't exist
@@ -470,6 +486,8 @@ $sql = "CREATE TABLE IF NOT EXISTS follow_up_requests (
     admin_response TEXT,
     responded_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    hidden_by_jobseeker TINYINT(1) DEFAULT 0,
+    hidden_by_admin TINYINT(1) DEFAULT 0,
     FOREIGN KEY (jobseeker_id) REFERENCES jobseeker(id) ON DELETE CASCADE,
     INDEX idx_status (status),
     INDEX idx_jobseeker_id (jobseeker_id)
@@ -478,6 +496,27 @@ if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ follow_up_requests table created</p>";
 } else {
     echo "<p class='error'>❌ Error creating follow_up_requests: " . $conn->error . "</p>";
+}
+
+// 6.4c admin_company_follow_up (admin requests follow-up from company; company can respond)
+$sql = "CREATE TABLE IF NOT EXISTS admin_company_follow_up (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    message TEXT,
+    status ENUM('pending','answered') DEFAULT 'pending',
+    company_response TEXT,
+    responded_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    hidden_by_admin TINYINT(1) DEFAULT 0,
+    hidden_by_company TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (company_id) REFERENCES company_users(id) ON DELETE CASCADE,
+    INDEX idx_status (status),
+    INDEX idx_company_id (company_id)
+)";
+if ($conn->query($sql) === TRUE) {
+    echo "<p class='success'>✅ admin_company_follow_up table created</p>";
+} else {
+    echo "<p class='error'>❌ Error creating admin_company_follow_up: " . $conn->error . "</p>";
 }
 
 // 6.5 resume_templates
@@ -846,12 +885,12 @@ echo "</div>";
 // Final Summary
 echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'>
 <h2 style='color: #28a745;'>✅ Setup Complete!</h2>
-<p><strong>All 27 database tables have been created successfully!</strong></p>
+<p><strong>All 28 database tables have been created successfully!</strong></p>
 <p><strong>Tables Created:</strong></p>
 <ul>
     <li>✅ 5 Core Tables (employee_users, admin_accounts, jobseeker, company_users, skill_registry)</li>
     <li>✅ 3 Utility Tables (notifications, password_resets, company_password_resets)</li>
-    <li>✅ 10 Feature Tables (job_postings, user_preferences, job_applications_extended, follow_up_requests, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
+    <li>✅ 11 Feature Tables (job_postings, user_preferences, job_applications_extended, follow_up_requests, admin_company_follow_up, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
     <li>✅ 5 Announcement Tables (announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks)</li>
     <li>✅ 4 Resume Builder New Schema Tables (resumes_new, resume_work_experience, resume_education, resume_certifications)</li>
 </ul>
@@ -861,6 +900,7 @@ echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'
     <li>✅ Referral system with company-specific tracking</li>
     <li>✅ Enhanced application status workflow (Pending → Referred → Accepted/Rejected)</li>
     <li>✅ Company-linked job postings</li>
+    <li>✅ Jobseeker and Admin follow-up requests; Admin → Company follow-up requests</li>
 </ul>
 <p>You can now:</p>
 <ul>

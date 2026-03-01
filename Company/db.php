@@ -10,9 +10,10 @@ $db   = "WorkConnect";
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
-    // Don't use die() as it outputs HTML - log error instead
     error_log("Company DB Connection failed: " . $conn->connect_error);
     $conn = null;
+} else {
+    $conn->query("SET time_zone = '+08:00'");
 }
 ?>
 

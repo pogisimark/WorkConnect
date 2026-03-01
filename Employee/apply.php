@@ -5922,15 +5922,18 @@ $conn->close();
            confirmButtonColor: '#4caf50',
            allowOutsideClick: false,
            allowEscapeKey: false
-         }).then(() => {
+        }).then(() => {
+          // Notify parent dashboard to reload so NRSP status / recommended jobs reflect the submission
+           if (window.parent && window.parent !== window) {
+             try {
+               window.parent.postMessage({ type: 'nrsp_submitted' }, '*');
+             } catch (err) {}
+           }
            // Check if this was an update (existing form) or new submission
            const isUpdate = typeof IS_PENDING !== 'undefined' && IS_PENDING;
-           
            if (isUpdate) {
-             // Reload the page to refresh the form with updated data
              window.location.reload();
            } else {
-             // Reset form and go to first page for new submissions
              form.reset();
              showStep1();
            }

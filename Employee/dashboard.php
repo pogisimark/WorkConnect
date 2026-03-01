@@ -2288,6 +2288,13 @@ $conn->close();
         // Listen for hash changes
         window.addEventListener('hashchange', handleHashChange);
         
+        // Reload dashboard when NRSP form is submitted in iframe so status / recommended jobs reflect the submission
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'nrsp_submitted') {
+                location.reload();
+            }
+        });
+        
         // Check hash on page load
         document.addEventListener('DOMContentLoaded', function() {
             handleHashChange();
@@ -2455,19 +2462,85 @@ $conn->close();
                         bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'You can request a follow-up once your application has been pending for at least 7 days.') + '</p>';
                         return;
                     }
+                    var requests = data.requests || [];
+                    var html = '';
                     if (data.already_pending) {
-                        bodyEl.innerHTML = '<p style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">You already have a pending follow-up request. You will be notified when admin responds.</p>';
-                        return;
+                        html += '<p style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">You have a pending follow-up request. You will be notified when admin responds.</p>';
                     }
-                    if (data.last_response && data.last_response.admin_response) {
-                        var lastResp = data.last_response;
-                        var questionHtml = (lastResp.message && lastResp.message.trim() !== '') ? '<p style="color: #666; margin-bottom: 6px;">Your question:</p><div style="background: #f5f5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #1976d2; margin-bottom: 12px;">' + escapeHtml(lastResp.message) + '</div>' : '';
-                        bodyEl.innerHTML = '<div style="margin-bottom: 20px;"><p style="color: #666;">Your last follow-up response:</p>' + questionHtml + '<p style="color: #666; margin-bottom: 6px;">Admin response:</p><div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">' + escapeHtml(lastResp.admin_response) + '</div><p style="font-size: 0.9rem; color: #666; margin-top: 8px;">Responded: ' + (lastResp.responded_at ? new Date(lastResp.responded_at).toLocaleString() : '') + '</p></div>';
+                    if (requests.length > 0) {
+                        html += '<h3 style="color: #233a8b; margin: 0 0 12px 0; font-size: 1.1rem;">Past requests</h3>';
+                        html += '<div class="bulk-actions-fu" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="fuSelectAll"> Select all</label><button type="button" class="btn-delete-selected-fu" id="fuDeleteSelected" disabled style="background:#d32f2f;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:0.9rem;">Delete selected</button></div>';
+                        html += '<div style="margin-bottom: 24px;" id="follow_up_cards_container">';
+                        function formatPhTime(isoStr) {
+                            if (!isoStr) return '';
+                            var d = new Date(isoStr);
+                            return d.toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+                        }
+                        requests.forEach(function(req, idx) {
+                            var dateStr = formatPhTime(req.created_at);
+                            var isPending = req.status === 'pending';
+                            html += '<div class="follow-up-card" data-request-id="' + req.id + '" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: ' + (isPending ? '#fffbf0' : '#fff') + '; border-left: 4px solid ' + (isPending ? '#ffc107' : '#4caf50') + ';">';
+                            html += '<p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0;">Requested: ' + dateStr + ' <span style="color:#888;font-size:0.8rem;">(PH time)</span>' + (isPending ? ' <span style="background:#ffc107;color:#333;padding:2px 8px;border-radius:4px;font-weight:600;">Pending</span>' : '') + '</p>';
+                            var msg = (req.message && req.message.trim() !== '') ? escapeHtml(req.message) : '<em style="color:#999;">No message</em>';
+                            html += '<p style="color: #666; margin-bottom: 6px; font-size: 0.9rem;">Your message:</p><div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 0.9rem;">' + msg + '</div>';
+                            if (isPending) {
+                                html += '<p style="color: #856404; font-size: 0.9rem; margin: 0;">Awaiting admin response.</p>';
+                            } else {
+                                var resp = (req.admin_response && req.admin_response.trim() !== '') ? escapeHtml(req.admin_response) : '<em style="color:#999;">No response text</em>';
+                                html += '<p style="color: #666; margin-bottom: 6px; font-size: 0.9rem;">Admin response:</p><div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem;">' + resp + '</div>';
+                                if (req.responded_at) html += '<p style="font-size: 0.8rem; color: #666; margin: 0;">Responded: ' + formatPhTime(req.responded_at) + ' <span style="color:#888;font-size:0.75rem;">(PH time)</span></p>';
+                            }
+                            html += '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="fu-card-checkbox" value="' + req.id + '"> Select</label><button type="button" class="btn-delete-fu" data-id="' + req.id + '" style="background:#f44336;color:#fff;padding:6px 12px;border-radius:6px;border:none;font-size:0.85rem;cursor:pointer;">Delete</button></div>';
+                            html += '</div>';
+                        });
+                        html += '</div>';
                     }
-                    bodyEl.innerHTML += '<p style="color: #333; margin-bottom: 15px;">You have a pending application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>' +
-                        '<textarea id="follow_up_message" placeholder="Optional: Add a short message for admin..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>' +
-                        '<button type="button" class="apply-now-btn" id="submit_follow_up_btn">Submit follow-up request</button>';
-                    document.getElementById('submit_follow_up_btn').onclick = submitFollowUpRequest;
+                    if (!data.already_pending) {
+                        html += '<p style="color: #333; margin-bottom: 15px;">You have a pending application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>';
+                        html += '<textarea id="follow_up_message" placeholder="Optional: Add a short message for admin..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>';
+                        html += '<button type="button" class="apply-now-btn" id="submit_follow_up_btn">Submit follow-up request</button>';
+                    }
+                    bodyEl.innerHTML = html;
+                    if (!data.already_pending) {
+                        var btn = document.getElementById('submit_follow_up_btn');
+                        if (btn) btn.onclick = submitFollowUpRequest;
+                    }
+                    if (requests.length > 0) {
+                        var fuSelectAll = bodyEl.querySelector('#fuSelectAll');
+                        var fuDeleteSelectedBtn = bodyEl.querySelector('#fuDeleteSelected');
+                        var fuCheckboxes = bodyEl.querySelectorAll('.fu-card-checkbox');
+                        function updateFuDeleteBtn() {
+                            var n = bodyEl.querySelectorAll('.fu-card-checkbox:checked').length;
+                            if (fuDeleteSelectedBtn) fuDeleteSelectedBtn.disabled = n === 0;
+                            if (fuSelectAll) fuSelectAll.checked = n > 0 && n === fuCheckboxes.length;
+                        }
+                        if (fuSelectAll) fuSelectAll.addEventListener('change', function() { fuCheckboxes.forEach(function(cb) { cb.checked = fuSelectAll.checked; }); updateFuDeleteBtn(); });
+                        fuCheckboxes.forEach(function(cb) { cb.addEventListener('change', updateFuDeleteBtn); });
+                        if (fuDeleteSelectedBtn) fuDeleteSelectedBtn.addEventListener('click', function() {
+                            var ids = []; bodyEl.querySelectorAll('.fu-card-checkbox:checked').forEach(function(cb) { ids.push(parseInt(cb.value, 10)); });
+                            if (ids.length === 0) return;
+                            Swal.fire({ title: 'Delete requests?', text: 'Permanently delete ' + ids.length + ' request(s)?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' }).then(function(r) {
+                                if (!r.isConfirmed) return;
+                                fuDeleteSelectedBtn.disabled = true;
+                                fetch('delete_follow_up_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) })
+                                    .then(function(res) { return res.json(); })
+                                    .then(function(data) { if (data.success) { Swal.fire({ title: 'Deleted', text: data.message, icon: 'success' }); loadFollowUpSection(); } else { Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' }); fuDeleteSelectedBtn.disabled = false; } })
+                                    .catch(function() { Swal.fire({ title: 'Error', text: 'Request failed.', icon: 'error' }); fuDeleteSelectedBtn.disabled = false; });
+                            });
+                        });
+                        bodyEl.querySelectorAll('.btn-delete-fu').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                var id = parseInt(this.getAttribute('data-id'), 10);
+                                Swal.fire({ title: 'Delete this request?', text: 'This conversation will be permanently deleted.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' }).then(function(r) {
+                                    if (!r.isConfirmed) return;
+                                    fetch('delete_follow_up_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
+                                        .then(function(res) { return res.json(); })
+                                        .then(function(data) { if (data.success) { Swal.fire({ title: 'Deleted', text: data.message, icon: 'success' }); loadFollowUpSection(); } else { Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' }); } })
+                                        .catch(function() { Swal.fire({ title: 'Error', text: 'Request failed.', icon: 'error' }); });
+                                });
+                            });
+                        });
+                    }
                 })
                 .catch(() => {
                     loadingEl.style.display = 'none';
@@ -3557,6 +3630,31 @@ $conn->close();
             container.innerHTML = html;
         }
 
+        // Poll for new announcements (admin-created) and refresh if detected
+        var announcementCheck = { count: 0, latest_id: 0 };
+        function pollNewAnnouncements() {
+            fetch('announcement_api.php?action=check')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.success) return;
+                    var count = data.count || 0;
+                    var latestId = data.latest_id || 0;
+                    if (announcementCheck.count !== count || announcementCheck.latest_id !== latestId) {
+                        if (announcementCheck.count > 0 || announcementCheck.latest_id > 0) {
+                            loadLatestAnnouncements();
+                            var iframe = document.getElementById('announcements-iframe');
+                            if (iframe && iframe.src) {
+                                var sep = iframe.src.indexOf('?') >= 0 ? '&' : '?';
+                                iframe.src = iframe.src.split('&t=')[0].split('?t=')[0] + sep + 't=' + Date.now();
+                            }
+                        }
+                        announcementCheck.count = count;
+                        announcementCheck.latest_id = latestId;
+                    }
+                })
+                .catch(function() {});
+        }
+
         // Load announcements when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadLatestAnnouncements();
@@ -3564,6 +3662,16 @@ $conn->close();
             loadApplicationSuccessRate();
             loadMostAcceptedSkills();
             loadSkillsGapAnalysis();
+            fetch('announcement_api.php?action=check')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        announcementCheck.count = data.count || 0;
+                        announcementCheck.latest_id = data.latest_id || 0;
+                    }
+                })
+                .catch(function() {});
+            setInterval(pollNewAnnouncements, 25000);
         });
     </script>
 </body>

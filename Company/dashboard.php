@@ -659,6 +659,7 @@ $conn->close();
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
                 <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
                 <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
+                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests</a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>

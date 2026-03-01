@@ -574,8 +574,14 @@ include 'session_protect.php';
 
     #statusFilter:focus {
         outline: none;
+    }
+    #nameSearchInput:hover {
         border-color: #1976d2;
-        box-shadow: 0 0 0 3px rgba(25,118,210,0.1);
+    }
+    #nameSearchInput:focus {
+        outline: none;
+        border-color: #1976d2;
+        box-shadow: 0 2px 8px rgba(35,58,139,0.1);
     }
 
     /* Responsive dropdown */
@@ -594,6 +600,10 @@ include 'session_protect.php';
         
         #statusFilter, #occupationFilter, #skillsFilter {
             min-width: 120px;
+            font-size: 0.85rem;
+        }
+        #nameSearchInput {
+            min-width: 160px;
             font-size: 0.85rem;
         }
         
@@ -637,6 +647,11 @@ include 'session_protect.php';
         
         #statusFilter, #occupationFilter, #skillsFilter {
             min-width: 100px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+        }
+        #nameSearchInput {
+            min-width: 140px;
             font-size: 0.8rem;
             padding: 6px 12px;
         }
@@ -1125,6 +1140,7 @@ include 'session_protect.php';
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="#" class="active"> JOBSEEKERS</a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
@@ -1139,7 +1155,11 @@ include 'session_protect.php';
                         <h2 id="pageTitle" style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">Pending Jobseekers</h2>
                         <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Review and manage jobseeker applications</p>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px;" class="filter-container" id="filterContainer">
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" class="filter-container" id="filterContainer">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="nameSearchInput" style="font-weight: 600; color: #233a8b; font-size: 0.9rem;">Search by Name:</label>
+                            <input type="text" id="nameSearchInput" placeholder="First, middle, or last name..." oninput="filterAndDisplayJobseekers()" style="padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-size: 0.9rem; min-width: 200px; transition: all 0.3s ease;" title="Type to filter jobseekers by name">
+                        </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <label for="statusFilter" style="font-weight: 600; color: #233a8b; font-size: 0.9rem;">Filter by Status:</label>
                             <select id="statusFilter" onchange="showTab(this.value)" style="padding: 8px 16px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; min-width: 140px;">
@@ -1355,7 +1375,7 @@ include 'session_protect.php';
         <!-- Logout Modal -->
         <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
             <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
-                <div style="font-size:3rem;margin-bottom:16px;">🚪</div>
+                <div style="font-size:3rem;margin-bottom:16px;"></div>
                 <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>
                 <p style="color:#666;margin-bottom:24px;font-size:1rem;">Are you sure you want to logout from your account?</p>
                 <div style="display:flex;gap:12px;justify-content:center;">
@@ -1826,6 +1846,19 @@ include 'session_protect.php';
                 filteredData = allJobseekers.filter(j => j.application_status === 'Rejected');
             }
             
+            // Apply name search
+            const nameSearchEl = document.getElementById('nameSearchInput');
+            const nameQuery = (nameSearchEl && nameSearchEl.value) ? nameSearchEl.value.trim().toLowerCase() : '';
+            if (nameQuery) {
+                filteredData = filteredData.filter(j => {
+                    const first = (j.firstname || '').toLowerCase();
+                    const middle = (j.middlename && j.middlename !== 'n/a' ? j.middlename : '').toLowerCase();
+                    const last = (j.surname || '').toLowerCase();
+                    const full = (first + ' ' + middle + ' ' + last).replace(/\s+/g, ' ').trim();
+                    return full.includes(nameQuery) || first.includes(nameQuery) || middle.includes(nameQuery) || last.includes(nameQuery);
+                });
+            }
+            
             // Apply occupation filter
             if (currentOccupationFilter !== 'all') {
                 filteredData = filteredData.filter(j => {
@@ -1933,6 +1966,11 @@ include 'session_protect.php';
                     </div>`;
                 }
                 
+                let statusText = j.application_status || 'Pending';
+                if (j.application_status === 'Referred' && j.referred_to_company_id) {
+                    const refCompany = allCompanies.find(c => c.id == j.referred_to_company_id);
+                    statusText = 'Referred (' + (refCompany ? refCompany.company_name : 'Unknown') + ')';
+                }
                     card.innerHTML = `
                         <div style="position: relative; margin-bottom: 16px;">
                             <div style="position: absolute; top: -8px; left: -8px; z-index: 10; display: none;" class="checkbox-container">
@@ -1944,7 +1982,7 @@ include 'session_protect.php';
                         <div class="jobseeker-name">${j.firstname} ${j.middlename && j.middlename !== 'n/a' ? j.middlename + ' ' : ''}${j.surname}${j.suffix && j.suffix !== 'n/a' ? ', ' + j.suffix : ''}</div>
                         <div class="jobseeker-info"><strong>Age:</strong> ${j.age} years</div>
                         <div class="jobseeker-info"><strong>Gender:</strong> ${j.sex}</div>
-                        <div class="jobseeker-info"><strong>Status:</strong> <span class="status-${j.application_status ? j.application_status.toLowerCase() : 'pending'}">${j.application_status || 'Pending'}</span></div>
+                        <div class="jobseeker-info"><strong>Status:</strong> <span class="status-${j.application_status ? j.application_status.toLowerCase() : 'pending'}">${statusText}</span></div>
                         <button class="view-details-btn">📋 View Details</button>
                     ${actionButtons}
                     `;
@@ -2776,8 +2814,9 @@ include 'session_protect.php';
                     if (data.success) {
                         allCompanies = data.companies;
                         console.log('Companies loaded:', allCompanies.length);
-                        // Refresh dropdowns after companies are loaded
+                        // Refresh dropdowns and re-render cards so Referred (Company Name) shows
                         refreshCompanyDropdowns();
+                        filterAndDisplayJobseekers();
                     } else {
                         console.error('Error loading companies:', data.message);
                         Swal.fire({

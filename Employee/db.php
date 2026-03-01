@@ -14,5 +14,8 @@ if ($conn->connect_error) {
     // Log error instead and set connection to null
     error_log("Database connection failed: " . $conn->connect_error);
     $conn = null;
+} else {
+    // Use Philippines time (UTC+8) for NOW(), CURRENT_TIMESTAMP, etc.
+    $conn->query("SET time_zone = '+08:00'");
 }
 ?>

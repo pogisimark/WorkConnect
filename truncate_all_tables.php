@@ -4,7 +4,16 @@ date_default_timezone_set('Asia/Manila');
 
 // Truncate All Tables Script for WorkConnect
 // WARNING: This will delete ALL data from ALL tables!
-// Use this only for testing/development purposes
+// Use this only for testing/development purposes.
+//
+// Expected tables (28) - must match setup_complete_database.php:
+//   Core (5): employee_users, admin_accounts, jobseeker, company_users, skill_registry
+//   Utility (3): notifications, password_resets, company_password_resets
+//   Feature (11): job_postings, user_preferences, job_applications_extended, follow_up_requests,
+//                 admin_company_follow_up, resume_templates, resumes, application_analytics,
+//                 application_timeline, analytics_insights, monthly_analytics
+//   Announcement (5): announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks
+//   Resume new (4): resumes_new, resume_work_experience, resume_education, resume_certifications
 
 $host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
@@ -141,11 +150,11 @@ if (!$confirmed) {
         }
     }
     
-    // Expected tables from setup_complete_database.php (26+ tables)
+    // Expected tables from setup_complete_database.php (28 tables)
     $expected_tables = [
         'employee_users', 'admin_accounts', 'jobseeker', 'company_users', 'skill_registry',
         'notifications', 'password_resets', 'company_password_resets',
-        'job_postings', 'user_preferences', 'job_applications_extended', 'follow_up_requests', 'resume_templates', 
+        'job_postings', 'user_preferences', 'job_applications_extended', 'follow_up_requests', 'admin_company_follow_up', 'resume_templates',
         'resumes', 'application_analytics', 'application_timeline', 'analytics_insights', 'monthly_analytics',
         'announcements', 'announcement_attachments', 'announcement_tags', 'announcement_views', 'announcement_clicks',
         'resumes_new', 'resume_work_experience', 'resume_education', 'resume_certifications'

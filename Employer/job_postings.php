@@ -922,12 +922,13 @@ include 'session_protect.php';
             <a href="job_postings.php" class="active"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
             <a href="announcement.php"> ANNOUNCEMENTS</a>
-            <a href="logout.php" class="logout"> Logout</a>
+            <a href="#" class="logout"> Logout</a>
             
         </div>
 
@@ -1095,7 +1096,7 @@ include 'session_protect.php';
                     <p class="page-subtitle">Manage and track your job postings</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <div class="export-dropdown">
+                    <!--div class="export-dropdown">
                         <button class="export-btn" onclick="toggleExportDropdown()">
                             <i class="fas fa-download"></i> Export
                             <i class="fas fa-chevron-down"></i>
@@ -1108,7 +1109,7 @@ include 'session_protect.php';
                                 <i class="fas fa-file-pdf"></i> Export as PDF
                             </a>
                         </div>
-                    </div>
+                    </div-->
                 </div>
             </div>
 
@@ -1378,6 +1379,18 @@ include 'session_protect.php';
         </div>
     </div>
 
+    <!-- Logout Modal -->
+    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+        <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:16px;"></div>
+            <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>
+            <p style="color:#666;margin-bottom:24px;font-size:1rem;">Are you sure you want to logout from your account?</p>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button id="confirmLogoutBtn" style="background:#f44336;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Yes, Logout</button>
+                <button id="cancelLogoutBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:8px;padding:12px 24px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.2s ease;">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Global variables
@@ -2188,16 +2201,41 @@ include 'session_protect.php';
             }, 1000);
         }
         
+        // Logout: show modal instead of navigating
+        document.querySelectorAll('.logout').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.getElementById('logoutModal').style.display = 'flex';
+            });
+        });
+        document.getElementById('confirmLogoutBtn').onclick = function() {
+            const confirmBtn = document.getElementById('confirmLogoutBtn');
+            const cancelBtn = document.getElementById('cancelLogoutBtn');
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            confirmBtn.innerHTML = '<div style="display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;"></div>Logging out...';
+            const style = document.createElement('style');
+            style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+            document.head.appendChild(style);
+            setTimeout(function() { window.location.href = 'logout.php'; }, 1000);
+        };
+        document.getElementById('cancelLogoutBtn').onclick = function() {
+            document.getElementById('logoutModal').style.display = 'none';
+        };
+
         // Close modals when clicking outside
         window.onclick = function(event) {
             const jobModal = document.getElementById('jobModal');
             const viewModal = document.getElementById('viewModal');
-            
+            const logoutModal = document.getElementById('logoutModal');
             if (event.target === jobModal) {
                 closeModal();
             }
             if (event.target === viewModal) {
                 closeViewModal();
+            }
+            if (event.target === logoutModal) {
+                logoutModal.style.display = 'none';
             }
         }
         

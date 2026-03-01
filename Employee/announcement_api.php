@@ -22,6 +22,11 @@ try {
             }
             break;
             
+        case 'check':
+            // Lightweight poll: return count and latest id so jobseeker can detect new announcements
+            checkNewAnnouncements();
+            break;
+            
         case 'test':
             // Simple test endpoint to verify API is working
             echo json_encode([
@@ -42,6 +47,19 @@ try {
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
+    ]);
+}
+
+function checkNewAnnouncements() {
+    global $conn;
+    $stmt = $conn->prepare("SELECT COUNT(*) as cnt, COALESCE(MAX(id), 0) as latest_id FROM announcements WHERE status = 'published' AND (expiration_date IS NULL OR expiration_date >= CURDATE())");
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    echo json_encode([
+        'success' => true,
+        'count' => (int) ($row['cnt'] ?? 0),
+        'latest_id' => (int) ($row['latest_id'] ?? 0)
     ]);
 }
 
