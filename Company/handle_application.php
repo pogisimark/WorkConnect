@@ -78,11 +78,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         
         $jobseeker = $result->fetch_assoc();
-        $jobseeker_email = $jobseeker['email'];
+        $jobseeker_email = trim($jobseeker['email'] ?? '');
         $jobseeker_name = trim(($jobseeker['firstname'] ?? '') . ' ' . ($jobseeker['middlename'] && $jobseeker['middlename'] !== 'n/a' ? $jobseeker['middlename'] . ' ' : '') . ($jobseeker['surname'] ?? ''));
         if (empty($jobseeker_name)) {
             $jobseeker_name = 'Applicant';
         }
+        $jobseeker_email_valid = !empty($jobseeker_email) && filter_var($jobseeker_email, FILTER_VALIDATE_EMAIL);
         $stmt->close();
     
     // Get job details
@@ -239,40 +240,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </html>
             ";
             
-            // Send email
+            // Send email only if jobseeker has a valid email address
             $email_sent = false;
-            if ($phpmailer_available && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-                try {
-                    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                    $mail->isSMTP();
-                    $mail->Host = SMTP_HOST;
-                    $mail->SMTPAuth = true;
-                    $mail->Username = SMTP_USERNAME;
-                    $mail->Password = SMTP_PASSWORD;
-                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = SMTP_PORT;
-                    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-                    $mail->addAddress($jobseeker_email);
-                    $mail->isHTML(true);
-                    $mail->CharSet = 'UTF-8';
-                    $mail->Subject = $subject;
-                    $mail->Body = $message;
-                    $mail->send();
-                    $email_sent = true;
-                } catch (\Exception $e) {
-                    error_log("Email sending failed: " . $e->getMessage());
+            if ($jobseeker_email_valid) {
+                if ($phpmailer_available && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+                    try {
+                        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                        $mail->isSMTP();
+                        $mail->Host = SMTP_HOST;
+                        $mail->SMTPAuth = true;
+                        $mail->Username = SMTP_USERNAME;
+                        $mail->Password = SMTP_PASSWORD;
+                        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = SMTP_PORT;
+                        $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                        $mail->addAddress($jobseeker_email);
+                        $mail->isHTML(true);
+                        $mail->CharSet = 'UTF-8';
+                        $mail->Subject = $subject;
+                        $mail->Body = $message;
+                        $mail->send();
+                        $email_sent = true;
+                    } catch (\Exception $e) {
+                        error_log("Accept email failed (jobseeker_id=$jobseeker_id): " . $e->getMessage());
+                    }
+                } else {
+                    $headers = "MIME-Version: 1.0" . "\r\n";
+                    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                    $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+                    $email_sent = @mail($jobseeker_email, $subject, $message, $headers);
                 }
-            } else {
-                // Fallback to PHP mail()
-                $headers = "MIME-Version: 1.0" . "\r\n";
-                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
-                $email_sent = mail($jobseeker_email, $subject, $message, $headers);
             }
             
             $response = [
                 'success' => true,
-                'message' => $email_sent ? 'Application accepted and email sent successfully.' : 'Application accepted. Email notification may not have been sent.'
+                'message' => $email_sent ? 'Application accepted and email sent successfully.' : ($jobseeker_email_valid ? 'Application accepted. Email notification may not have been sent.' : 'Application accepted. Jobseeker has no valid email; notification not sent.')
             ];
         } else {
             $error_msg = $stmt->error ? $stmt->error : 'Failed to update application status';
@@ -417,40 +419,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </html>
             ";
             
-            // Send email
+            // Send email only if jobseeker has a valid email address
             $email_sent = false;
-            if ($phpmailer_available && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-                try {
-                    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                    $mail->isSMTP();
-                    $mail->Host = SMTP_HOST;
-                    $mail->SMTPAuth = true;
-                    $mail->Username = SMTP_USERNAME;
-                    $mail->Password = SMTP_PASSWORD;
-                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = SMTP_PORT;
-                    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-                    $mail->addAddress($jobseeker_email);
-                    $mail->isHTML(true);
-                    $mail->CharSet = 'UTF-8';
-                    $mail->Subject = $subject;
-                    $mail->Body = $message;
-                    $mail->send();
-                    $email_sent = true;
-                } catch (\Exception $e) {
-                    error_log("Email sending failed: " . $e->getMessage());
+            if ($jobseeker_email_valid) {
+                if ($phpmailer_available && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+                    try {
+                        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                        $mail->isSMTP();
+                        $mail->Host = SMTP_HOST;
+                        $mail->SMTPAuth = true;
+                        $mail->Username = SMTP_USERNAME;
+                        $mail->Password = SMTP_PASSWORD;
+                        $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = SMTP_PORT;
+                        $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                        $mail->addAddress($jobseeker_email);
+                        $mail->isHTML(true);
+                        $mail->CharSet = 'UTF-8';
+                        $mail->Subject = $subject;
+                        $mail->Body = $message;
+                        $mail->send();
+                        $email_sent = true;
+                    } catch (\Exception $e) {
+                        error_log("Reject email failed (jobseeker_id=$jobseeker_id): " . $e->getMessage());
+                    }
+                } else {
+                    $headers = "MIME-Version: 1.0" . "\r\n";
+                    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                    $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+                    $email_sent = @mail($jobseeker_email, $subject, $message, $headers);
                 }
-            } else {
-                // Fallback to PHP mail()
-                $headers = "MIME-Version: 1.0" . "\r\n";
-                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
-                $email_sent = mail($jobseeker_email, $subject, $message, $headers);
             }
             
             $response = [
                 'success' => true,
-                'message' => $email_sent ? 'Application rejected and email sent successfully.' : 'Application rejected. Email notification may not have been sent.'
+                'message' => $email_sent ? 'Application rejected and email sent successfully.' : ($jobseeker_email_valid ? 'Application rejected. Email notification may not have been sent.' : 'Application rejected. Jobseeker has no valid email; notification not sent.')
             ];
         } else {
             $error_msg = $stmt->error ? $stmt->error : 'Failed to update application status';

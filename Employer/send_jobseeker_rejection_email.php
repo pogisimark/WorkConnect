@@ -44,10 +44,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     if ($result->num_rows > 0) {
         $jobseeker = $result->fetch_assoc();
-        $jobseeker_email = $jobseeker['email'];
+        $jobseeker_email = trim($jobseeker['email'] ?? '');
         $jobseeker_name = trim(($jobseeker['firstname'] ?? '') . ' ' . ($jobseeker['middlename'] && $jobseeker['middlename'] !== 'n/a' ? $jobseeker['middlename'] . ' ' : '') . ($jobseeker['surname'] ?? ''));
         if (empty($jobseeker_name)) {
             $jobseeker_name = 'Applicant';
+        }
+        if (empty($jobseeker_email) || !filter_var($jobseeker_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Jobseeker has no valid email address. Cannot send rejection notification.']);
+            $conn->close();
+            exit;
         }
         
         $subject = "Update on Your Job Application - WorkConnect";

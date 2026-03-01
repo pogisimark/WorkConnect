@@ -44,8 +44,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     if ($result->num_rows > 0) {
         $jobseeker = $result->fetch_assoc();
-        $jobseeker_email = $jobseeker['email'];
+        $jobseeker_email = trim($jobseeker['email'] ?? '');
         $jobseeker_name = $jobseeker['firstname'] . ' ' . $jobseeker['surname'];
+        if (empty($jobseeker_email) || !filter_var($jobseeker_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Jobseeker has no valid email address. Cannot send notification.']);
+            $conn->close();
+            exit;
+        }
         
         $subject = "WorkConnect - Your Application Has Been Forwarded to " . $company_name;
         

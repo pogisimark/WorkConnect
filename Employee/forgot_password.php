@@ -1,6 +1,13 @@
 <?php
 require_once 'db.php';
 
+$phpmailer_available = false;
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    require_once __DIR__ . '/../Employer/email_config.php';
+    $phpmailer_available = class_exists('PHPMailer\PHPMailer\PHPMailer');
+}
+
 // Set content type to JSON
 header('Content-Type: application/json');
 
@@ -57,14 +64,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </html>
             ";
             
-            $headers = "MIME-Version: 1.0" . "\r\n";
-            $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-            $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
-            
-            if (mail($email, $subject, $message, $headers)) {
-                echo json_encode(['success' => true, 'message' => 'Password reset link has been sent to your email.']);
+            if ($phpmailer_available) {
+                try {
+                    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                    $mail->isSMTP();
+                    $mail->Host       = SMTP_HOST;
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = SMTP_USERNAME;
+                    $mail->Password   = SMTP_PASSWORD;
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = SMTP_PORT;
+                    $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+                    $mail->addAddress($email);
+                    $mail->isHTML(true);
+                    $mail->CharSet = 'UTF-8';
+                    $mail->Subject = $subject;
+                    $mail->Body    = $message;
+                    $mail->send();
+                    echo json_encode(['success' => true, 'message' => 'Password reset link has been sent to your email.']);
+                } catch (\Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again later.']);
+                }
             } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again later.']);
+                $headers = "MIME-Version: 1.0" . "\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                $headers .= "From: WorkConnect <noreply@workconnect.com>" . "\r\n";
+                if (mail($email, $subject, $message, $headers)) {
+                    echo json_encode(['success' => true, 'message' => 'Password reset link has been sent to your email.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to send email. Please try again later.']);
+                }
             }
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to process reset request. Please try again.']);
