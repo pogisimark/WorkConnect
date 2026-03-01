@@ -6,7 +6,7 @@
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
 define('SMTP_USERNAME', 'mitch00030@gmail.com'); // Replace with your Gmail address
-define('SMTP_PASSWORD', 'wcxs kopt wdks vwce'); // Replace with your Gmail App Password
+define('SMTP_PASSWORD', 'ireo dqak xhqa vzmn'); // Replace with your Gmail App Password
 define('SMTP_FROM_EMAIL', 'mitch00030@gmail.com'); // Replace with your Gmail address
 define('SMTP_FROM_NAME', 'WorkConnect');
 
