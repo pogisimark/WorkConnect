@@ -79,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form method="POST" action="">
             <div class="form-group">
                 <label for="company_name">Company Name</label>
-                <input type="text" id="company_name" name="company_name" required 
+                <input type="text" id="company_name" name="company_name" maxlength="40" required 
                        value="<?php echo htmlspecialchars($company_name ?? ''); ?>">
             </div>
             

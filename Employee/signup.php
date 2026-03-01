@@ -81,12 +81,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="form-row">
                 <div class="form-group">
                     <label for="firstname">First Name</label>
-                    <input type="text" id="firstname" name="firstname" required 
+                    <input type="text" id="firstname" name="firstname" maxlength="40" required 
                            value="<?php echo htmlspecialchars($firstname ?? ''); ?>">
                 </div>
                 <div class="form-group">
                     <label for="lastname">Last Name</label>
-                    <input type="text" id="lastname" name="lastname" required 
+                    <input type="text" id="lastname" name="lastname" maxlength="40" required 
                            value="<?php echo htmlspecialchars($lastname ?? ''); ?>">
                 </div>
             </div>

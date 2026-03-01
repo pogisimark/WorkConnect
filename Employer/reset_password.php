@@ -376,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label for="new_password">New Password</label>
                 <div class="password-wrapper">
-                    <input type="password" id="new_password" name="new_password" required minlength="6">
+                    <input type="password" id="new_password" name="new_password" maxlength="30" required minlength="6">
                     <button type="button" class="password-toggle" id="toggleNewPassword" aria-label="Show password">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -386,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label for="confirm_password">Confirm New Password</label>
                 <div class="password-wrapper">
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                    <input type="password" id="confirm_password" name="confirm_password" maxlength="30" required minlength="6">
                     <button type="button" class="password-toggle" id="toggleConfirmPassword" aria-label="Show password">
                         <i class="fas fa-eye"></i>
                     </button>

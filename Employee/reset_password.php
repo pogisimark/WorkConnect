@@ -102,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
                 <div class="form-group">
                     <label for="password">New Password</label>
                     <div class="password-input-container">
-                        <input type="password" id="password" name="password" required>
+                        <input type="password" id="password" name="password" maxlength="30" required>
                         <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
                     </div>
                     <div class="password-requirements">Minimum 8 characters, 1 capital letter, 1 number</div>
@@ -111,7 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>
                     <div class="password-input-container">
-                        <input type="password" id="confirm_password" name="confirm_password" required>
+                        <input type="password" id="confirm_password" name="confirm_password" maxlength="30" required>
                         <i class="fas fa-eye password-toggle" onclick="toggleConfirmPassword()"></i>
                     </div>
                 </div>
