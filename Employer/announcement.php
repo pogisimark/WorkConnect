@@ -116,6 +116,11 @@
             box-shadow: 0 2px 8px rgba(35,58,139,0.15);
         }
         
+        /* SweetAlert z-index fix - ensure validation/alerts appear above create announcement modal (z-index 2000) */
+        .swal2-container {
+            z-index: 99999 !important;
+        }
+        
         /* Hide hamburger menu on desktop */
         .hamburger-menu {
             display: none;
@@ -834,6 +839,7 @@
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php"> SKILL REGISTRY</a>
+            <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
@@ -1927,7 +1933,24 @@ function uploadFiles(files) {
     });
 }
 
-// Update files list
+// Normalize file object (handles both upload response and API response)
+function normalizeFile(file) {
+    const path = file.path || file.file_path || '';
+    const name = file.name || file.file_name || '';
+    const type = (file.type || file.file_type || '').toLowerCase();
+    const size = file.size || file.file_size || 0;
+    let sizeFormatted = file.size_formatted;
+    if (!sizeFormatted && size) {
+        sizeFormatted = size >= 1024 * 1024 ? (size / (1024 * 1024)).toFixed(2) + ' MB' : (size / 1024).toFixed(2) + ' KB';
+    }
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const isImage = /^(jpe?g|png|gif|webp)$/i.test(ext) || /^image\//.test(type);
+    const isPdf = ext === 'pdf' || type === 'application/pdf';
+    const previewUrl = path ? '../' + path : '';
+    return { ...file, path, name, type, size, size_formatted: sizeFormatted, isImage, isPdf, previewUrl };
+}
+
+// Update files list with visual previews
 function updateFilesList() {
     const filesList = document.getElementById('filesList');
     const uploadedFilesDiv = document.getElementById('uploadedFiles');
@@ -1938,17 +1961,30 @@ function updateFilesList() {
     }
     
     uploadedFilesDiv.style.display = 'block';
-    filesList.innerHTML = uploadedFiles.map(file => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 4px; margin-bottom: 8px;">
-            <div>
-                <div style="font-weight: 600; color: #333;">${file.name}</div>
-                <div style="font-size: 12px; color: #666;">${file.size_formatted}</div>
+    filesList.innerHTML = uploadedFiles.map(file => {
+        const f = normalizeFile(file);
+        let previewHtml = '';
+        if (f.isImage && f.previewUrl) {
+            previewHtml = `<img src="${f.previewUrl}" alt="${f.name}" style="width:100%;height:120px;object-fit:contain;background:#f0f0f0;border-radius:6px;" onerror="this.parentElement.innerHTML='<div style=\\'height:120px;display:flex;align-items:center;justify-content:center;background:#e0e0e0;border-radius:6px;color:#666;font-size:12px;\\'>No preview</div>'">`;
+        } else if (f.isPdf && f.previewUrl) {
+            previewHtml = `<object data="${f.previewUrl}#page=1" type="application/pdf" style="width:100%;height:120px;border-radius:6px;background:#f5f5f5;"><div style="height:120px;display:flex;align-items:center;justify-content:center;background:#e3f2fd;border-radius:6px;color:#1976d2;font-size:14px;font-weight:600;">PDF: ${f.name}</div></object>`;
+        } else {
+            previewHtml = `<div style="height:120px;display:flex;align-items:center;justify-content:center;background:#e3f2fd;border-radius:6px;color:#1976d2;font-size:14px;font-weight:600;"><span style="margin-right:8px;">📄</span>${f.name}</div>`;
+        }
+        return `
+        <div style="flex:0 0 auto;width:140px;margin:0 12px 12px 0;background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+            <div style="padding:6px;min-height:120px;max-height:120px;overflow:hidden;">${previewHtml}</div>
+            <div style="padding:8px;border-top:1px solid #eee;">
+                <div style="font-weight:600;color:#333;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${f.name}">${f.name}</div>
+                <div style="font-size:11px;color:#666;margin-top:2px;">${f.size_formatted || ''}</div>
+                <button onclick="removeFile(${file.id})" style="margin-top:6px;width:100%;background:#f44336;color:#fff;border:none;padding:6px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;">Remove</button>
             </div>
-            <button onclick="removeFile(${file.id})" style="background: #f44336; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                Remove
-            </button>
         </div>
-    `).join('');
+        `;
+    }).join('');
+    filesList.style.display = 'flex';
+    filesList.style.flexWrap = 'wrap';
+    filesList.style.gap = '12px';
 }
 
 // Remove file

@@ -260,6 +260,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referred Jobseekers - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -730,10 +731,6 @@ $conn->close();
         }
         
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-            
             .main-content {
                 margin-left: 0;
                 padding: 15px;
@@ -762,6 +759,9 @@ $conn->close();
 <body>
     <div class="dashboard-header">
         <div class="logo-brand">
+            <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
+                <span></span><span></span><span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="brand">WorkConnect</span>
         </div>
@@ -1409,6 +1409,53 @@ $conn->close();
                 rejectionModal.style.display = 'none';
             }
         }
+
+        // Hamburger menu & slide-out sidebar (mobile)
+        document.addEventListener('DOMContentLoaded', function() {
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.querySelector('.sidebar.desktop-nav');
+            if (!hamburgerMenu || !sidebar) return;
+            // Create backdrop for mobile (reliable click-to-close)
+            let backdrop = document.getElementById('sidebarBackdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'sidebarBackdrop';
+                backdrop.className = 'sidebar-backdrop';
+                backdrop.setAttribute('aria-hidden', 'true');
+                document.body.appendChild(backdrop);
+            }
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                hamburgerMenu.classList.remove('active');
+                backdrop.classList.remove('active');
+            }
+            function openSidebar() {
+                sidebar.classList.add('active');
+                hamburgerMenu.classList.add('active');
+                if (window.innerWidth <= 768) backdrop.classList.add('active');
+            }
+            function toggleSidebar() {
+                if (sidebar.classList.contains('active')) closeSidebar();
+                else openSidebar();
+            }
+            hamburgerMenu.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSidebar();
+            });
+            hamburgerMenu.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                toggleSidebar();
+            }, { passive: false });
+            backdrop.addEventListener('click', closeSidebar);
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                    if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target) && e.target !== backdrop) {
+                        closeSidebar();
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>

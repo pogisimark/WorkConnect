@@ -28,11 +28,17 @@ $input = json_decode(file_get_contents('php://input'), true);
 $message = isset($input['message']) ? trim($conn->real_escape_string($input['message'])) : '';
 $message = $message === '' ? null : $message;
 
-// Re-check eligibility: Pending application (7-day restriction disabled for testing; re-enable by uncommenting AND below)
+// Message is required
+if ($message === null || $message === '') {
+    echo json_encode(['success' => false, 'message' => 'Please enter a message before submitting your follow-up request.']);
+    exit;
+}
+
+// Re-check eligibility: Pending or Referred application (disabled when Rejected or Accepted)
 $sql = "SELECT j.id AS jobseeker_id
         FROM jobseeker j
         WHERE j.user_id = ?
-        AND (j.application_status IS NULL OR j.application_status = '' OR j.application_status = 'Pending')
+        AND (j.application_status IS NULL OR j.application_status = '' OR j.application_status = 'Pending' OR j.application_status = 'Referred')
         /* AND COALESCE(j.submission_date, j.created_at) <= DATE_SUB(CURDATE(), INTERVAL 7 DAY) */
         ORDER BY j.id DESC
         LIMIT 1";
@@ -43,7 +49,7 @@ $result = $stmt->get_result();
 $stmt->close();
 
 if ($result->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'You have no pending application.']);
+    echo json_encode(['success' => false, 'message' => 'You have no pending or referred application. Follow-up requests are only available when your application status is Pending or Referred.']);
     exit;
 }
 

@@ -231,6 +231,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Dashboard - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -609,10 +610,6 @@ $conn->close();
         }
         
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-            
             .main-content {
                 margin-left: 0;
                 padding: 15px;
@@ -622,11 +619,88 @@ $conn->close();
                 padding: 15px;
             }
         }
+        
+        /* Hamburger menu - hidden on desktop, shown on mobile */
+        .hamburger-menu {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 12px;
+            z-index: 1001;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .hamburger-menu span {
+            display: block;
+            width: 24px;
+            height: 3px;
+            background: #fff;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: flex !important;
+            }
+            /* Mobile: slide-out sidebar */
+            .sidebar.desktop-nav {
+                position: fixed !important;
+                top: 80px !important;
+                left: -250px !important;
+                bottom: 0 !important;
+                right: auto !important;
+                width: 250px !important;
+                height: calc(100vh - 80px) !important;
+                background: #f8f9fa !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 20px 0 !important;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.15) !important;
+                z-index: 998 !important;
+                transition: left 0.3s ease !important;
+            }
+            .sidebar.desktop-nav.active {
+                left: 0 !important;
+            }
+            /* Backdrop when sidebar is open */
+            .dashboard-container:has(.sidebar.desktop-nav.active)::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 997;
+                pointer-events: auto;
+            }
+        }
+        @media (min-width: 769px) {
+            .hamburger-menu {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="dashboard-header">
         <div class="logo-brand">
+            <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
+                <span></span><span></span><span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="brand">WorkConnect</span>
         </div>
@@ -926,6 +1000,26 @@ $conn->close();
     </div>
 
     <script>
+        // Hamburger menu & slide-out sidebar (mobile)
+        document.addEventListener('DOMContentLoaded', function() {
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.querySelector('.sidebar.desktop-nav');
+            if (hamburgerMenu && sidebar) {
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            }
+        });
+
         // Profile dropdown toggle
         function toggleProfileMenu() {
             const dropdown = document.getElementById('profileDropdown');

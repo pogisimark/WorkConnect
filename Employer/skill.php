@@ -1203,9 +1203,12 @@
     max-width: 320px;
 }
 
-    /* SweetAlert z-index fix */
+    /* SweetAlert z-index fix - ensure validation/alerts appear above add modal (z-index 2000) */
+    .swal2-container {
+        z-index: 99999 !important;
+    }
     .swal-high-zindex {
-        z-index: 9999 !important;
+        z-index: 99999 !important;
     }
     
     /* Mobile touch improvements */
@@ -1305,7 +1308,8 @@
             <a href="job.php"> JOBSEEKERS</a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
-            <a href="#"class="active"> SKILL REGISTRY</a>
+            <a href="skill.php" class="active"> SKILL REGISTRY</a>
+            <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
@@ -1359,7 +1363,7 @@
                         </div>
                         <div>
                             <label>Age:</label>
-                            <input type="number" name="age" min="0" max="120" placeholder="Age" />
+                            <input type="number" name="age" id="addAgeInput" min="0" max="120" placeholder="Auto-calculated" readonly style="background:#e9ecef;cursor:not-allowed;" />
                         </div>
                     </div>
                     <div class="row">
@@ -2398,6 +2402,19 @@ function fetchBarangayTable(barangay) {
     }
 }
 
+// Auto-calculate age from Date of Birth
+document.querySelector('#addSkillForm input[name="dob"]').addEventListener('change', function() {
+    const dobInput = this;
+    const ageInput = document.getElementById('addAgeInput');
+    if (!dobInput.value || !ageInput) return;
+    const dob = new Date(dobInput.value);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    ageInput.value = age >= 0 && age <= 120 ? age : '';
+});
+
 // Handle education dropdown change
 document.getElementById('educationSelect').addEventListener('change', function() {
     const otherInput = document.getElementById('educationOther');
@@ -2427,6 +2444,66 @@ document.getElementById('addSkillForm').addEventListener('submit', function(e) {
     }
     
     const data = Object.fromEntries(formData.entries());
+    
+    // Client-side validation: required fields
+    const surveyDate = (data.survey_date || '').trim();
+    const printedName = (data.printed_name || '').trim();
+    const dob = (data.dob || '').trim();
+    const sex = (data.sex || '').trim();
+    const marital = (data.marital || '').trim();
+    const contact = (data.contact || '').trim();
+    const address = (data.address || '').trim();
+    const education = (data.education || '').trim();
+    const ftjs = (data.ftjs || '').trim();
+    const covid = (data.covid || '').trim();
+    const skills = (data.skills || '').trim();
+    
+    if (!surveyDate) {
+        Swal.fire({ title: 'Validation Error', text: 'Please enter the Date of Survey.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!printedName) {
+        Swal.fire({ title: 'Validation Error', text: 'Please enter the Full Name.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!dob) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select the Date of Birth.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!sex) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select Sex.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!marital) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select Marital Status.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!contact) {
+        Swal.fire({ title: 'Validation Error', text: 'Please enter Contact Number.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!address) {
+        Swal.fire({ title: 'Validation Error', text: 'Please enter Address.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!education) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select Educational Attainment.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!ftjs) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select First-Time Jobseeker (Yes/No).', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    if (!covid) {
+        Swal.fire({ title: 'Validation Error', text: 'Please select COVID-19 Displaced Worker (Yes/No).', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    const skillsList = skills.split(',').map(s => s.trim()).filter(s => s);
+    if (skillsList.length === 0) {
+        Swal.fire({ title: 'Validation Error', text: 'Please enter at least one skill.', icon: 'warning', confirmButtonColor: '#233a8b', customClass: { popup: 'swal-high-zindex' } });
+        return;
+    }
+    
     // Check quota: only 15 per barangay per month
     if (window.currentBarangayMonthCount >= 15) {
         Swal.fire({
@@ -2466,6 +2543,8 @@ document.getElementById('addSkillForm').addEventListener('submit', function(e) {
         if (resp.success) {
             // Clear all form fields after successful add
             form.reset();
+            document.getElementById('educationOther').style.display = 'none';
+            document.getElementById('addAgeInput').value = '';
             // Set city and barangay fields back to fixed values
             addCityInput.value = 'Norzagaray';
             addBarangayInput.value = currentBarangay;
@@ -2491,7 +2570,7 @@ document.getElementById('addSkillForm').addEventListener('submit', function(e) {
         } else {
             Swal.fire({
                 title: 'Error!',
-                text: 'Failed to save the entry. Please try again.',
+                text: resp.msg || 'Failed to save the entry. Please try again.',
                 icon: 'error',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#dc3545',

@@ -412,7 +412,7 @@ if ($isIframe) {
     <div class="layout">
         <div class="sidebar">
             <a href="dashboard.php">📊 Dashboard</a>
-            <a href="resume_builder.php">📝 Resume Builder</a>
+            <!--<a href="resume_builder.php">📝 Resume Builder</a>-->
             <a href="recommended_jobs.php">💼 Recommended Jobs</a>
             <a href="peso.html">🏛️ PESO</a>
             <a href="about.html">ℹ️ About</a>

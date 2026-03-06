@@ -213,7 +213,7 @@ function createAnnouncement() {
         
         $conn->commit();
         
-        // Send notifications if published
+        // Send in-app notifications and emails if published
         if ($status === 'published') {
             try {
                 include '../Employee/create_notification.php';
@@ -221,6 +221,13 @@ function createAnnouncement() {
                 error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
             } catch (Exception $e) {
                 error_log("Failed to send announcement notifications: " . $e->getMessage());
+            }
+            try {
+                include 'send_announcement_emails.php';
+                $email_result = sendAnnouncementEmailsToJobseekers($title, $description);
+                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
+            } catch (Exception $e) {
+                error_log("Failed to send announcement emails: " . $e->getMessage());
             }
         }
         
@@ -450,6 +457,24 @@ function updateAnnouncement() {
         
         $conn->commit();
         
+        // Send in-app notifications and emails if published
+        if ($status === 'published') {
+            try {
+                include '../Employee/create_notification.php';
+                $notification_result = createAnnouncementNotification($title, $description);
+                error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
+            } catch (Exception $e) {
+                error_log("Failed to send announcement notifications: " . $e->getMessage());
+            }
+            try {
+                include 'send_announcement_emails.php';
+                $email_result = sendAnnouncementEmailsToJobseekers($title, $description);
+                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
+            } catch (Exception $e) {
+                error_log("Failed to send announcement emails: " . $e->getMessage());
+            }
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => 'Announcement updated successfully'
@@ -542,7 +567,7 @@ function changeStatus() {
         throw new Exception('Failed to update status');
     }
     
-    // Send notifications if status changed to published
+    // Send in-app notifications and emails if status changed to published
     if ($status === 'published') {
         try {
             // Get announcement details
@@ -555,9 +580,13 @@ function changeStatus() {
                 include '../Employee/create_notification.php';
                 $notification_result = createAnnouncementNotification($announcement['title'], $announcement['description']);
                 error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
+                
+                include 'send_announcement_emails.php';
+                $email_result = sendAnnouncementEmailsToJobseekers($announcement['title'], $announcement['description']);
+                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
             }
         } catch (Exception $e) {
-            error_log("Failed to send announcement notifications: " . $e->getMessage());
+            error_log("Failed to send announcement notifications/emails: " . $e->getMessage());
         }
     }
     

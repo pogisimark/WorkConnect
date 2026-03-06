@@ -185,6 +185,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Postings - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -710,10 +711,6 @@ $conn->close();
         }
         
         @media (max-width: 768px) {
-            .sidebar {
-                display: none;
-            }
-            
             .main-content {
                 margin-left: 0;
                 padding: 15px;
@@ -747,6 +744,9 @@ $conn->close();
 <body>
     <div class="dashboard-header">
         <div class="logo-brand">
+            <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
+                <span></span><span></span><span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="brand">WorkConnect</span>
         </div>
@@ -1208,6 +1208,24 @@ $conn->close();
         document.addEventListener('DOMContentLoaded', function() {
             initializeSalaryFormatting();
             autoHideAlerts();
+            
+            // Hamburger menu & slide-out sidebar (mobile)
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.querySelector('.sidebar.desktop-nav');
+            if (hamburgerMenu && sidebar) {
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            }
         });
         
         // Handle form submission

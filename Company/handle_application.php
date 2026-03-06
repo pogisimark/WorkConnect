@@ -58,8 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $job_title = $conn->real_escape_string($input['job_title'] ?? 'the position');
         $company_name = $_SESSION['company_name'] ?? 'the company';
         
-        // Get jobseeker information
-        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email FROM jobseeker WHERE id = ?");
+        // Get jobseeker information (include user_id for in-app notifications)
+        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email, user_id FROM jobseeker WHERE id = ?");
         if (!$stmt) {
             ob_clean();
             echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
@@ -124,8 +124,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt_jobseeker->close();
             }
             
-            // Send acceptance email
-            $subject = "Congratulations! Your Application Has Been Accepted - WorkConnect";
+            // Send acceptance email - professional congratulatory message
+            $subject = "Congratulations! You Have Been Accepted - " . htmlspecialchars($company_name) . " - WorkConnect";
             
             $message = "
             <!DOCTYPE html>
@@ -200,12 +200,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <body>
                 <div class='email-wrapper'>
                     <div class='header'>
-                        <h1>🎉 Application Accepted!</h1>
+                        <h1>🎉 Congratulations!</h1>
                     </div>
                     <div class='content'>
                         <div class='success-icon'>✓</div>
-                        <h2 style='color: #1a3876; margin-bottom: 20px;'>Congratulations, " . htmlspecialchars($jobseeker_name) . "!</h2>
-                        <p style='margin-bottom: 20px; font-size: 16px;'>We are pleased to inform you that your application for the position has been <strong style='color: #4caf50;'>ACCEPTED</strong> by " . htmlspecialchars($company_name) . ".</p>
+                        <h2 style='color: #1a3876; margin-bottom: 20px;'>Dear " . htmlspecialchars($jobseeker_name) . ",</h2>
+                        <p style='margin-bottom: 20px; font-size: 16px;'>We are delighted to inform you that <strong style='color: #4caf50;'>" . htmlspecialchars($company_name) . "</strong> has accepted your application. Congratulations! You have been selected for the position you applied for.</p>
                         <div class='job-details'>
                             <h3>Job Position Details</h3>
                             <div class='detail-item'><strong>Position:</strong> " . htmlspecialchars($job_title) . "</div>";
@@ -228,8 +228,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             $message .= "
                         </div>
-                        <p style='margin-top: 30px; font-size: 16px;'>The company will contact you soon regarding the next steps in the hiring process.</p>
-                        <p style='margin-top: 15px; color: #666;'>We wish you the best of luck in your new role!</p>
+                        <p style='margin-top: 30px; font-size: 16px;'>The company will contact you shortly regarding the next steps in the hiring process, including onboarding details and your start date. Please ensure your contact information is up to date.</p>
+                        <p style='margin-top: 15px; font-size: 16px;'>We congratulate you on this achievement and wish you every success in your new role with " . htmlspecialchars($company_name) . ".</p>
                     </div>
                     <div class='footer'>
                         <p><strong>WorkConnect</strong></p>

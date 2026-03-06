@@ -84,19 +84,67 @@ $conn->close();
             }
         }
         
+        /* Hamburger menu - hidden on desktop, shown on mobile */
+        .hamburger-menu {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 12px;
+            z-index: 1001;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .hamburger-menu span {
+            display: block;
+            width: 24px;
+            height: 3px;
+            background: #fff;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        @media (min-width: 769px) {
+            .hamburger-menu {
+                display: none !important;
+            }
+        }
+        
     /* Mobile-first responsive design */
     @media (max-width: 768px) {
         .dashboard-header {
             padding: 10px 15px;
-            flex-direction: column;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
             gap: 10px;
             height: auto;
-            min-height: 80px;
+            min-height: 56px;
         }
         
         .logo-brand {
-            justify-content: center;
-            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .hamburger-menu {
+            display: flex !important;
+            flex-shrink: 0;
         }
         
         .logo {
@@ -109,9 +157,9 @@ $conn->close();
         }
         
         .user-info {
-            width: 100%;
-            justify-content: space-between;
-            gap: 10px;
+            flex-shrink: 0;
+            justify-content: flex-end;
+            gap: 8px;
         }
         
         .user-profile {
@@ -569,7 +617,7 @@ $conn->close();
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 6px 8px;
+            padding: 6px 4px;
             font-size: 0.7rem;
             white-space: nowrap;
             border-radius: 8px;
@@ -578,8 +626,8 @@ $conn->close();
             color: #666;
             text-decoration: none;
             min-height: 44px;
-            width: 100%;
-            max-width: 60px;
+            flex: 1;
+            min-width: 0;
             transition: all 0.3s ease;
             cursor: pointer;
         }
@@ -591,9 +639,10 @@ $conn->close();
         }
         
         .mobile-nav-item[data-section="dashboard"]:before { content: '📊'; }
-        .mobile-nav-item[data-section="jobs"]:before { content: '🎯'; }
-        .mobile-nav-item[data-section="resume"]:before { content: '📄'; }
-        .mobile-nav-item[data-section="analytics"]:before { content: '📈'; }
+        .mobile-nav-item[data-section="recommended_jobs"]:before { content: '💼'; }
+        .mobile-nav-item[data-section="apply"]:before { content: '📋'; }
+        .mobile-nav-item[data-section="follow_up"]:before { content: '💬'; }
+        .mobile-nav-item[data-section="announcements"]:before { content: '📢'; }
         .mobile-nav-item[data-section="profile"]:before { content: '👤'; }
         
         .mobile-nav-item.active {
@@ -892,11 +941,15 @@ $conn->close();
             width: 180px;
         }
         
-        /* Notification dropdown mobile positioning */
+        /* Notification dropdown mobile - full width, no overflow */
         .notification-dropdown {
-            right: 10px;
-            width: 300px;
-            max-height: 300px;
+            position: fixed !important;
+            left: 12px !important;
+            right: 12px !important;
+            top: 56px !important;
+            width: auto !important;
+            max-width: none !important;
+            max-height: 70vh !important;
         }
         
         /* Hide desktop-specific elements */
@@ -942,9 +995,8 @@ $conn->close();
         }
         
         .mobile-nav-item {
-            padding: 4px 6px;
+            padding: 4px 2px;
             font-size: 0.65rem;
-            max-width: 50px;
         }
         
         .mobile-nav-item:before {
@@ -1114,16 +1166,22 @@ $conn->close();
         background-color: rgba(255, 255, 255, 0.1);
     }
     
+    .notification-bell {
+        color: inherit;
+        flex-shrink: 0;
+    }
+    
     .notification-badge {
         position: absolute;
-        top: 0;
-        right: 0;
+        top: -2px;
+        right: -2px;
         background: #f44336;
         color: white;
-        border-radius: 50%;
-        width: 20px;
+        border-radius: 10px;
+        min-width: 20px;
         height: 20px;
-        font-size: 12px;
+        padding: 0 6px;
+        font-size: 11px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1132,15 +1190,17 @@ $conn->close();
     
     .notification-dropdown {
         position: absolute;
-        top: 60px;
-        right: 20px;
-        width: 350px;
+        top: calc(100% + 8px);
+        right: 0;
+        width: min(350px, calc(100vw - 24px));
         background: white;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
         max-height: 400px;
-        overflow-y: auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
     .notification-header {
@@ -1157,18 +1217,30 @@ $conn->close();
     }
     
     .mark-all-read {
-        background: #1976d2;
+        background: #1a3876;
         color: white;
         border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
+        padding: 6px 12px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 12px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    
+    .mark-all-read:hover {
+        background: #152d5c;
+    }
+    
+    .mark-all-read:disabled {
+        background: #ccc;
+        cursor: not-allowed;
     }
     
     .notification-list {
         max-height: 300px;
         overflow-y: auto;
+        min-height: 60px;
     }
     
     .notification-item {
@@ -1183,8 +1255,9 @@ $conn->close();
     }
     
     .notification-item.unread {
-        background-color: #e3f2fd;
-        border-left: 4px solid #1976d2;
+        background-color: #e8f0fe;
+        border-left: 4px solid #1a3876;
+        padding-left: 19px;
     }
     
     .notification-title {
@@ -1205,9 +1278,17 @@ $conn->close();
     }
     
     .no-notifications {
-        padding: 20px;
+        padding: 24px 20px;
         text-align: center;
-        color: #666;
+        color: #888;
+        font-size: 14px;
+    }
+    
+    .notification-loading {
+        padding: 24px;
+        text-align: center;
+        color: #888;
+        font-size: 14px;
     }
     
     /* Fixed layout styles */
@@ -1318,6 +1399,8 @@ $conn->close();
         z-index: 999;
         background: #f8f9fa;
         border-right: 1px solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
     }
     
     /* Hide mobile sidebar on desktop */
@@ -1342,10 +1425,86 @@ $conn->close();
         }
     }
     
-    /* Hide desktop sidebar on mobile */
+    /* Mobile: slide-out sidebar (like Employer) - hide bottom nav */
     @media (max-width: 768px) {
-        .sidebar.desktop-nav {
+        /* Hide bottom nav - use slide-out sidebar instead */
+        .mobile-bottom-nav {
             display: none !important;
+        }
+        
+        /* Slide-out sidebar: hidden by default, slides in when .active */
+        .sidebar.desktop-nav {
+            display: flex !important;
+            flex-direction: column !important;
+            position: fixed !important;
+            top: 56px !important;
+            left: -200px !important;
+            width: 200px !important;
+            height: calc(100vh - 56px) !important;
+            background: #e3eaff !important;
+            z-index: 999 !important;
+            transition: left 0.3s ease !important;
+            padding: 20px 0 0 16px !important;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.15) !important;
+            overflow-y: auto !important;
+            border-radius: 0 !important;
+        }
+        
+        .sidebar.desktop-nav.active {
+            left: 0 !important;
+        }
+        
+        .sidebar-nav {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 !important;
+            padding: 0 !important;
+        }
+        
+        .sidebar-nav li {
+            margin: 0 0 4px 0 !important;
+        }
+        
+        .sidebar-nav li:last-child {
+            margin-top: auto !important;
+            margin-bottom: 20px !important;
+        }
+        
+        .sidebar-nav a {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+            padding: 12px 16px !important;
+            margin: 0 !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+            border-left: 3px solid transparent !important;
+        }
+        
+        .sidebar-nav a:hover {
+            background: #d1dbfa !important;
+            color: #1a3876 !important;
+            border-left-color: #1a3876 !important;
+            padding-left: 20px !important;
+            transform: translateX(2px) !important;
+            box-shadow: 0 2px 8px rgba(26, 56, 118, 0.15) !important;
+        }
+        
+        .sidebar-nav a:before {
+            display: none !important;
+        }
+        
+        /* Notification dropdown: full-width on mobile to prevent overlap */
+        .notification-dropdown {
+            position: fixed !important;
+            left: 12px !important;
+            right: 12px !important;
+            top: 56px !important;
+            width: auto !important;
+            max-width: none !important;
+            max-height: 70vh !important;
         }
         
         /* Override any desktop styles that might affect mobile */
@@ -1356,8 +1515,8 @@ $conn->close();
             max-width: 100% !important;
             left: 0 !important;
             right: 0 !important;
-                height: auto !important; /* Allow mobile content to flow naturally */
-                overflow: visible !important; /* Allow content to expand naturally */
+            height: auto !important;
+            overflow: visible !important;
         }
         
         .dashboard-container {
@@ -1365,13 +1524,9 @@ $conn->close();
             margin-right: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-                height: auto !important; /* Allow mobile container to flow naturally */
-                overflow: visible !important; /* Allow content to expand naturally */
-            }
-            
-            /* Show mobile bottom navigation only on mobile */
-            .mobile-bottom-nav {
-                display: flex !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding-bottom: 24px !important;
         }
     }
     
@@ -1908,6 +2063,9 @@ $conn->close();
 <body>
     <div class="dashboard-header">
         <div class="logo-brand">
+            <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
+                <span></span><span></span><span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="brand">WorkConnect</span>
         </div>
@@ -1920,8 +2078,18 @@ $conn->close();
             </div>
             <div class="notification-container">
                 <div class="notification-icon" onclick="toggleNotifications()">
-                    🔔
+                    <svg class="notification-bell" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                     <span id="notificationBadge" class="notification-badge" style="display:none;">0</span>
+                </div>
+                <!-- Notification Dropdown (inside container for proper positioning) -->
+                <div id="notificationDropdown" class="notification-dropdown" style="display:none;">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <button type="button" onclick="markAllAsRead()" class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div id="notificationList" class="notification-list">
+                        <div class="notification-loading">Loading...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1934,17 +2102,6 @@ $conn->close();
         </div>
         <div class="profile-dropdown-item logout" onclick="showLogoutModal()">
             🚪 Logout
-        </div>
-    </div>
-
-    <!-- Notification Dropdown -->
-    <div id="notificationDropdown" class="notification-dropdown" style="display:none;">
-        <div class="notification-header">
-            <h3>Notifications</h3>
-            <button onclick="markAllAsRead()" class="mark-all-read">Mark all as read</button>
-        </div>
-        <div id="notificationList" class="notification-list">
-            <!-- Notifications will be loaded here -->
         </div>
     </div>
 
@@ -2139,7 +2296,7 @@ $conn->close();
                 </div>
             </div>
 
-            <!-- Resume Builder Section -->
+            <!-- Resume Builder Section - DISABLED
             <div id="resume-section" class="content-section" style="display: none;"> 
                 <h2 class="section-title">Resume Builder</h2>
                 <div id="resume-container">
@@ -2150,6 +2307,7 @@ $conn->close();
                     <iframe id="resume-iframe" src="resume_builder.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes"></iframe>
                 </div>
             </div>
+            -->
 
             <!-- Follow-up Request Section -->
             <div id="follow_up-section" class="content-section" style="display: none;">
@@ -2269,9 +2427,9 @@ $conn->close();
     <div class="mobile-bottom-nav">
         <div class="mobile-nav-item active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard</div>
         <div class="mobile-nav-item" data-section="recommended_jobs" onclick="showSection('recommended_jobs')">Jobs</div>
-        <div class="mobile-nav-item" data-section="resume" onclick="showSection('resume')">Resume</div>
+        <div class="mobile-nav-item" data-section="apply" onclick="showSection('apply')">NSRP</div>
         <div class="mobile-nav-item" data-section="follow_up" onclick="showSection('follow_up')">Follow-up</div>
-        <div class="mobile-nav-item" data-section="announcements" onclick="showSection('announcements')">📢</div>
+        <div class="mobile-nav-item" data-section="announcements" onclick="showSection('announcements')">News</div>
         <div class="mobile-nav-item" data-section="profile" onclick="showSection('profile')">Profile</div>
     </div>
 
@@ -2280,7 +2438,7 @@ $conn->close();
         // Handle URL hash changes (for direct links)
         function handleHashChange() {
             const hash = window.location.hash.substring(1); // Remove the #
-            if (hash && ['dashboard', 'recommended_jobs', 'resume', 'apply', 'follow_up', 'announcements', 'profile'].includes(hash)) {
+            if (hash && ['dashboard', 'recommended_jobs', 'apply', 'follow_up', 'announcements', 'profile'].includes(hash)) {
                 showSection(hash);
             }
         }
@@ -2386,6 +2544,13 @@ $conn->close();
         
         // Auto-hide loading indicator when apply section is shown
         function showSection(section) {
+            // Close mobile slide-out sidebar when navigating
+            if (window.innerWidth <= 768) {
+                const sidebar = document.querySelector('.sidebar.desktop-nav');
+                const hamburger = document.getElementById('hamburgerMenu');
+                if (sidebar) sidebar.classList.remove('active');
+                if (hamburger) hamburger.classList.remove('active');
+            }
             // Update URL hash
             window.location.hash = section;
             
@@ -2459,7 +2624,7 @@ $conn->close();
                         return;
                     }
                     if (!data.eligible) {
-                        bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'You can request a follow-up once your application has been pending for at least 7 days.') + '</p>';
+                        bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'You have no pending or referred application. Follow-up requests are only available when your application status is Pending or Referred.') + '</p>';
                         return;
                     }
                     var requests = data.requests || [];
@@ -2468,8 +2633,11 @@ $conn->close();
                         html += '<p style="color: #856404; background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">You have a pending follow-up request. You will be notified when admin responds.</p>';
                     }
                     if (requests.length > 0) {
+                        var answeredCount = requests.filter(function(r) { return r.status !== 'pending'; }).length;
                         html += '<h3 style="color: #233a8b; margin: 0 0 12px 0; font-size: 1.1rem;">Past requests</h3>';
-                        html += '<div class="bulk-actions-fu" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="fuSelectAll"> Select all</label><button type="button" class="btn-delete-selected-fu" id="fuDeleteSelected" disabled style="background:#d32f2f;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:0.9rem;">Delete selected</button></div>';
+                        if (answeredCount > 0) {
+                            html += '<div class="bulk-actions-fu" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="fuSelectAll"> Select all</label><button type="button" class="btn-delete-selected-fu" id="fuDeleteSelected" disabled style="background:#d32f2f;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:0.9rem;">Delete selected</button></div>';
+                        }
                         html += '<div style="margin-bottom: 24px;" id="follow_up_cards_container">';
                         function formatPhTime(isoStr) {
                             if (!isoStr) return '';
@@ -2490,14 +2658,20 @@ $conn->close();
                                 html += '<p style="color: #666; margin-bottom: 6px; font-size: 0.9rem;">Admin response:</p><div style="background: #e8f5e9; padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem;">' + resp + '</div>';
                                 if (req.responded_at) html += '<p style="font-size: 0.8rem; color: #666; margin: 0;">Responded: ' + formatPhTime(req.responded_at) + ' <span style="color:#888;font-size:0.75rem;">(PH time)</span></p>';
                             }
-                            html += '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="fu-card-checkbox" value="' + req.id + '"> Select</label><button type="button" class="btn-delete-fu" data-id="' + req.id + '" style="background:#f44336;color:#fff;padding:6px 12px;border-radius:6px;border:none;font-size:0.85rem;cursor:pointer;">Delete</button></div>';
+                            html += '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+                            if (isPending) {
+                                html += '<span style="font-size:0.85rem;color:#999;">Delete available after admin responds.</span>';
+                            } else {
+                                html += '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="fu-card-checkbox" value="' + req.id + '" data-answered="1"> Select</label><button type="button" class="btn-delete-fu" data-id="' + req.id + '" style="background:#f44336;color:#fff;padding:6px 12px;border-radius:6px;border:none;font-size:0.85rem;cursor:pointer;">Delete</button>';
+                            }
+                            html += '</div>';
                             html += '</div>';
                         });
                         html += '</div>';
                     }
                     if (!data.already_pending) {
-                        html += '<p style="color: #333; margin-bottom: 15px;">You have a pending application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>';
-                        html += '<textarea id="follow_up_message" placeholder="Optional: Add a short message for admin..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>';
+                        html += '<p style="color: #333; margin-bottom: 15px;">You have a pending or referred application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>';
+                        html += '<textarea id="follow_up_message" placeholder="Add a message for admin (required)..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>';
                         html += '<button type="button" class="apply-now-btn" id="submit_follow_up_btn">Submit follow-up request</button>';
                     }
                     bodyEl.innerHTML = html;
@@ -2557,8 +2731,12 @@ $conn->close();
         function submitFollowUpRequest() {
             const btn = document.getElementById('submit_follow_up_btn');
             const messageEl = document.getElementById('follow_up_message');
-            if (btn) btn.disabled = true;
             const message = messageEl ? messageEl.value.trim() : '';
+            if (!message) {
+                Swal.fire({ title: 'Message Required', text: 'Please enter a message before submitting your follow-up request.', icon: 'warning' });
+                return;
+            }
+            if (btn) btn.disabled = true;
             fetch('submit_follow_up_request.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2663,13 +2841,22 @@ $conn->close();
             }
         }
         
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         function loadNotifications() {
+            const notificationList = document.getElementById('notificationList');
+            const badge = document.getElementById('notificationBadge');
+            const markAllBtn = document.querySelector('.mark-all-read');
+            
+            notificationList.innerHTML = '<div class="notification-loading">Loading...</div>';
+            
             fetch('get_notifications.php')
                 .then(response => response.json())
                 .then(data => {
-                    const notificationList = document.getElementById('notificationList');
-                    const badge = document.getElementById('notificationBadge');
-                    
                     if (data.notifications && data.notifications.length > 0) {
                         let unreadCount = 0;
                         notificationList.innerHTML = '';
@@ -2680,27 +2867,31 @@ $conn->close();
                             const notificationItem = document.createElement('div');
                             notificationItem.className = `notification-item ${!notification.is_read ? 'unread' : ''}`;
                             notificationItem.innerHTML = `
-                                <div class="notification-title">${notification.title}</div>
-                                <div class="notification-message">${notification.message}</div>
-                                <div class="notification-time">${notification.created_at}</div>
+                                <div class="notification-title">${escapeHtml(notification.title || '')}</div>
+                                <div class="notification-message">${escapeHtml(notification.message || '')}</div>
+                                <div class="notification-time">${escapeHtml(notification.created_at || '')}</div>
                             `;
                             notificationItem.onclick = () => markAsRead(notification.id);
                             notificationList.appendChild(notificationItem);
                         });
                         
                         if (unreadCount > 0) {
-                            badge.textContent = unreadCount;
+                            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
                             badge.style.display = 'flex';
+                            if (markAllBtn) { markAllBtn.disabled = false; markAllBtn.style.display = ''; }
                         } else {
                             badge.style.display = 'none';
+                            if (markAllBtn) { markAllBtn.disabled = true; markAllBtn.style.display = 'none'; }
                         }
                     } else {
-                        notificationList.innerHTML = '<div class="no-notifications">No notifications</div>';
+                        notificationList.innerHTML = '<div class="no-notifications">No notifications yet</div>';
                         badge.style.display = 'none';
+                        if (markAllBtn) { markAllBtn.disabled = true; markAllBtn.style.display = 'none'; }
                     }
                 })
                 .catch(error => {
                     console.error('Error loading notifications:', error);
+                    notificationList.innerHTML = '<div class="no-notifications" style="color:#c62828;">Failed to load. Try again.</div>';
                 });
         }
         
@@ -2740,7 +2931,25 @@ $conn->close();
             loadNotifications();
             // Check for new notifications every 30 seconds
             setInterval(loadNotifications, 30000);
-            
+
+            // Hamburger menu & slide-out sidebar (mobile)
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.querySelector('.sidebar.desktop-nav');
+            if (hamburgerMenu && sidebar) {
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            }
+
             // Enhance mobile iframe when page loads
             enhanceMobileIframe();
             

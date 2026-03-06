@@ -1,0 +1,101 @@
+/* Company Sidebar - Hamburger + Mobile Slide-out (same as Employee) */
+
+/* Hamburger menu - hidden on desktop, shown on mobile */
+.hamburger-menu {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    margin-right: 12px;
+    z-index: 1001;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+}
+.hamburger-menu span {
+    display: block;
+    width: 24px;
+    height: 3px;
+    background: #fff;
+    margin: 3px 0;
+    transition: 0.3s;
+    border-radius: 2px;
+}
+.hamburger-menu.active span:nth-child(1) {
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+.hamburger-menu.active span:nth-child(2) {
+    opacity: 0;
+}
+.hamburger-menu.active span:nth-child(3) {
+    transform: rotate(45deg) translate(-5px, -6px);
+}
+
+@media (max-width: 768px) {
+    .hamburger-menu {
+        display: flex !important;
+    }
+    /* Mobile: slide-out sidebar */
+    .sidebar.desktop-nav {
+        position: fixed !important;
+        top: 70px !important;
+        left: -250px !important;
+        bottom: 0 !important;
+        right: auto !important;
+        width: 250px !important;
+        height: calc(100vh - 80px) !important;
+        background: #f8f9fa !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 20px 0 !important;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.15) !important;
+        z-index: 998 !important;
+        transition: left 0.3s ease !important;
+    }
+    .sidebar.desktop-nav.active {
+        left: 0 !important;
+    }
+    /* Backdrop when sidebar is open (CSS fallback) */
+    .dashboard-container:has(.sidebar.desktop-nav.active)::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 997;
+        pointer-events: auto;
+    }
+}
+
+/* JS-controlled backdrop (more reliable on mobile) */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 997;
+    cursor: pointer;
+}
+.sidebar-backdrop.active {
+    display: block;
+}
+@media (min-width: 769px) {
+    .sidebar-backdrop {
+        display: none !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .hamburger-menu {
+        display: none !important;
+    }
+}

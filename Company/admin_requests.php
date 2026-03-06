@@ -41,6 +41,7 @@ function formatDate($d) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Requests - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -91,12 +92,15 @@ function formatDate($d) {
         .bulk-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
         .status-filter-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         #statusFilterAr { padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; font-size: 0.9rem; cursor: pointer; min-width: 140px; }
-        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; padding: 15px; } }
+        @media (max-width: 768px) { .main-content { margin-left: 0; padding: 15px; } }
     </style>
 </head>
 <body>
     <div class="dashboard-header">
         <div class="logo-brand">
+            <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
+                <span></span><span></span><span></span>
+            </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="brand">WorkConnect</span>
         </div>
@@ -208,6 +212,26 @@ function formatDate($d) {
                 if (result.isConfirmed) window.location.href = 'logout.php';
             });
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            var hamburgerMenu = document.getElementById('hamburgerMenu');
+            var sidebar = document.querySelector('.sidebar.desktop-nav');
+            if (hamburgerMenu && sidebar) {
+                hamburgerMenu.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    sidebar.classList.toggle('active');
+                    hamburgerMenu.classList.toggle('active');
+                });
+                document.addEventListener('click', function(e) {
+                    if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                        if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+                            sidebar.classList.remove('active');
+                            hamburgerMenu.classList.remove('active');
+                        }
+                    }
+                });
+            }
+        });
         function filterByStatus(v) {
             document.querySelectorAll('.ar-card').forEach(function(c) { c.style.display = (v === 'all' || c.getAttribute('data-status') === v) ? '' : 'none'; });
             updateArState();

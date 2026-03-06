@@ -1,5 +1,6 @@
 <?php
 // Resume Builder for Employee Dashboard - NEW VERSION WITH SPECIFIC COLUMNS
+// DISABLED: Resume builder feature is no longer active. Redirect to dashboard.
 require_once 'session_check.php';
 require_once 'db.php';
 
@@ -9,6 +10,11 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Resume builder disabled - redirect to dashboard
+header("Location: dashboard.php");
+exit();
+
+/* RESUME BUILDER CODE BELOW - COMMENTED OUT / INACTIVE
 $userId = $_SESSION['user_id'];
 $success_message = '';
 $error_message = '';
@@ -3636,3 +3642,5 @@ $conn->close();
     </script>
 </body>
 </html>
+*/
+*/

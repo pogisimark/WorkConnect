@@ -137,40 +137,47 @@ if ($result->num_rows > 0) {
     // Check status
     $isPending = ($statusLower === 'pending');
     $isRejected = ($statusLower === 'rejected');
+    $isReferred = ($statusLower === 'referred');
     
-    // Allow editing only if status is 'Pending' (not 'Accepted' or 'Rejected')
-    // Pending: Can edit and save (update only, no status change)
-    // Rejected: Cannot edit, can only resubmit after cooldown (status changes to Pending)
-    // Accepted: Cannot edit or resubmit
+    // Edit/Submit rules:
+    // - New form: Submit button, no duplicate check when creating
+    // - Pending: Can edit, Save button (update only), no duplicate check
+    // - Referred: Cannot edit, form locked (view only)
+    // - Accepted: Cannot edit, form locked (view only)
+    // - Rejected: Can edit, Re-submit button locked 24hrs then enabled, no duplicate check when resubmitting
     $canEditNRSP = false;
     $canSubmitNRSP = true;
     
     if ($statusLower === 'accepted') {
         $canEditNRSP = false;
         $canSubmitNRSP = false;
-        $autoLoadForm = true; // Auto-load form data for accepted applications (pre-fill for display)
+        $autoLoadForm = true;
+    } elseif ($isReferred) {
+        $canEditNRSP = false;
+        $canSubmitNRSP = false;
+        $autoLoadForm = true;
     } elseif ($isPending) {
-        $canEditNRSP = true; // Can edit pending forms
-        $canSubmitNRSP = true; // Can save (update) pending forms
-        $autoLoadForm = true; // Auto-load form data
+        $canEditNRSP = true;
+        $canSubmitNRSP = true;
+        $autoLoadForm = true;
     } elseif ($isRejected) {
-        $canEditNRSP = false; // Cannot edit rejected forms
+        $canEditNRSP = true; // Can edit when rejected (or leave as is)
         $rejectionDate = !empty($existingNRSP['updated_at']) ? strtotime($existingNRSP['updated_at']) : strtotime($existingNRSP['created_at']);
         $currentTime = time();
         $timeSinceRejection = $currentTime - $rejectionDate;
         $cooldownPeriod = 24 * 60 * 60; // 24 hours in seconds
         
         if ($timeSinceRejection < $cooldownPeriod) {
-            $canSubmitNRSP = false; // Cannot resubmit during cooldown
+            $canSubmitNRSP = false;
             $cooldownRemaining = $cooldownPeriod - $timeSinceRejection;
         } else {
-            $canSubmitNRSP = true; // Can resubmit after cooldown
+            $canSubmitNRSP = true;
         }
-        $autoLoadForm = true; // Auto-load form data for rejected applications
+        $autoLoadForm = true;
     } else {
-        // No status or empty - treat as new form
         $canEditNRSP = true;
         $canSubmitNRSP = true;
+        $autoLoadForm = true; // Always auto-populate when existing NRSP
     }
 }
 $stmt->close();
@@ -2829,8 +2836,8 @@ $conn->close();
                 <?php 
                   if ($isPending) {
                     echo 'Save';
-                  } elseif ($isRejected && $cooldownRemaining === null) {
-                    echo 'Resubmit';
+                  } elseif ($isRejected) {
+                    echo 'Re-submit';
                   } else {
                     echo 'Submit';
                   }
@@ -2845,6 +2852,7 @@ $conn->close();
       <script>
         const NRSP_STATUS = <?php echo json_encode($nrspStatus); ?>;
         const CAN_SUBMIT_NRSP = <?php echo json_encode($canSubmitNRSP); ?>;
+        const CAN_EDIT_NRSP = <?php echo json_encode($canEditNRSP); ?>;
         const IS_PENDING = <?php echo json_encode($isPending); ?>;
         const IS_REJECTED = <?php echo json_encode($isRejected); ?>;
         const AUTO_LOAD_FORM = <?php echo json_encode($autoLoadForm); ?>;
@@ -2870,6 +2878,8 @@ $conn->close();
                   $statusClass = 'accepted';
                 } elseif ($statusLower === 'rejected') {
                   $statusClass = 'rejected';
+                } elseif ($statusLower === 'referred') {
+                  $statusClass = 'referred';
                 } else {
                   $statusClass = 'pending';
                 }
@@ -2906,21 +2916,11 @@ $conn->close();
         </div>
         <?php endif; ?>
         
-        <?php if (!$autoLoadForm && $canEditNRSP): ?>
-          <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
-            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
-              <i class="fas fa-info-circle"></i> 
-              Your NRSP form is still under review. You can edit it until it's accepted and sent to a company.
-            </p>
-            <button type="button" class="btn-edit-nrsp" onclick="loadExistingNRSPForm()" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #233a8b 0%, #1a2d6b 100%); color: white; padding: 12px 24px; border: none; border-radius: 5px; font-weight: 500; cursor: pointer; transition: all 0.3s;">
-              <i class="fas fa-edit"></i> Edit Existing NRSP Form
-            </button>
-          </div>
-        <?php elseif (!$canEditNRSP && !$isRejected): ?>
+        <?php if (!$canEditNRSP && !$isRejected): ?>
           <div style="padding-top: 15px; border-top: 1px solid #e0e0e0;">
             <div style="margin-bottom: 15px; color: #856404; font-size: 0.9rem; background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107;">
               <i class="fas fa-lock"></i> 
-              <strong>Form Locked:</strong> Your NRSP form has been accepted and sent to companies. 
+              <strong>Form Locked:</strong> Your NRSP form has been accepted or referred to companies. 
               Editing is no longer allowed to maintain data integrity.
             </div>
           </div>
@@ -2939,10 +2939,9 @@ $conn->close();
           background: #f8d7da;
           color: #721c24;
         }
-        .btn-edit-nrsp:hover {
-          background: linear-gradient(135deg, #1a2d6b 0%, #0f1f4d 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(35, 58, 139, 0.3);
+        .status-badge.status-referred {
+          background: #cce5ff;
+          color: #004085;
         }
       </style>
       <?php endif; ?>
@@ -5656,12 +5655,11 @@ $conn->close();
       submitBtn.textContent = 'Save';
       submitBtn.title = 'Save your changes. The form will remain in pending status.';
     } else if (typeof IS_REJECTED !== 'undefined' && IS_REJECTED) {
+      submitBtn.textContent = 'Re-submit';
       if (typeof COOLDOWN_REMAINING !== 'undefined' && COOLDOWN_REMAINING !== null && COOLDOWN_REMAINING > 0) {
-        submitBtn.textContent = 'Resubmit';
         submitBtn.disabled = true;
         submitBtn.title = 'You cannot resubmit your form until the cooldown period expires.';
       } else {
-        submitBtn.textContent = 'Resubmit';
         submitBtn.title = 'Resubmit your form. Status will change to Pending.';
       }
     } else {
@@ -6528,6 +6526,19 @@ $conn->close();
             });
           }
         });
+        
+        // If form is locked (Accepted/Referred), disable all inputs
+        if (typeof CAN_EDIT_NRSP !== 'undefined' && !CAN_EDIT_NRSP) {
+          const form = document.getElementById('jobseekerForm');
+          if (form) {
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+              el.disabled = true;
+            });
+            form.querySelectorAll('.back-btn, .next-btn').forEach(btn => {
+              if (btn.type !== 'submit') btn.disabled = true;
+            });
+          }
+        }
         
         // Show success message only if not auto-loading
         if (!autoLoad) {

@@ -39,6 +39,20 @@ if (empty($ids)) {
     exit;
 }
 
+// Only allow deleting requests that have been answered by admin (status != 'pending')
+$placeholders = implode(',', array_fill(0, count($ids), '?'));
+$checkStmt = $conn->prepare("SELECT id FROM follow_up_requests WHERE jobseeker_id = ? AND id IN ($placeholders) AND status = 'pending'");
+$types = 'i' . str_repeat('i', count($ids));
+$params = array_merge([$jobseeker_id], $ids);
+$checkStmt->bind_param($types, ...$params);
+$checkStmt->execute();
+$pendingResult = $checkStmt->get_result();
+$checkStmt->close();
+if ($pendingResult->num_rows > 0) {
+    echo json_encode(['success' => false, 'message' => 'You cannot delete a follow-up request that is still awaiting admin response.']);
+    exit;
+}
+
 // Hide for jobseeker only (admin still sees the request)
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
 $stmt = $conn->prepare("UPDATE follow_up_requests SET hidden_by_jobseeker = 1 WHERE jobseeker_id = ? AND id IN ($placeholders)");

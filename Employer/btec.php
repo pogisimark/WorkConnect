@@ -1080,6 +1080,7 @@
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
             <a href="skill.php"> SKILL REGISTRY</a>
+            <a href="companies_list.php"> COMPANIES</a>
             <a href="#" class="active"> BTEC MONTHLY REPORT</a>
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>

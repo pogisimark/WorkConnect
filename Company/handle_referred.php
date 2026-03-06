@@ -94,8 +94,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $company_address = (in_array('address', $company_columns) && isset($company_data['address'])) ? $company_data['address'] : '';
         $company_website = (in_array('website', $company_columns) && isset($company_data['website'])) ? $company_data['website'] : '';
         
-        // Get jobseeker information
-        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email, application_status FROM jobseeker WHERE id = ?");
+        // Get jobseeker information (include user_id for in-app notifications)
+        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email, application_status, user_id FROM jobseeker WHERE id = ?");
         if (!$stmt) {
             ob_clean();
             echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
@@ -195,7 +195,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt->close();
                 
                 // Send acceptance email
-                $subject = "Congratulations! You've Been Hired - " . htmlspecialchars($company_name);
+                $subject = "Congratulations! Your Referral Has Been Considered - WorkConnect";
                 
                 // Build company contact information section
                 $company_contact_html = "";
@@ -300,16 +300,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <body>
                     <div class='email-wrapper'>
                         <div class='header'>
-                            <h1>🎉 Congratulations! You've Been Hired!</h1>
+                            <h1>🎉 Congratulations!</h1>
                         </div>
                         <div class='content'>
                             <div class='success-icon'>✓</div>
                             <h2 style='color: #1a3876; margin-bottom: 20px;'>Dear " . htmlspecialchars($jobseeker_name) . ",</h2>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>We are thrilled to inform you that <strong style='color: #4caf50;'>" . htmlspecialchars($company_name) . "</strong> has accepted your application and would like to offer you a position!</p>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>Congratulations on this achievement! The company has recognized your skills and qualifications, and they are excited to welcome you to their team.</p>
-                            <p style='margin-top: 30px; font-size: 16px;'>The company will contact you soon regarding the next steps in the hiring process, including onboarding details, start date, and any other relevant information.</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>Congratulations! We are pleased to inform you that <strong style='color: #4caf50;'>" . htmlspecialchars($company_name) . "</strong> has considered your referral and is interested in your profile.</p>
+                            <p style='margin-bottom: 20px; font-size: 16px;'>The company will call or email you shortly for more details regarding the next steps. Please ensure your contact information is up to date and check your email and phone regularly.</p>
                             " . $company_contact_html . "
-                            <p style='margin-top: 30px; font-size: 16px;'>We wish you the best of luck in your new role and a successful career with " . htmlspecialchars($company_name) . "!</p>
+                            <p style='margin-top: 30px; font-size: 16px;'>We wish you the best of luck and look forward to hearing about your success!</p>
                             <p style='margin-top: 15px; color: #666;'>Best regards,<br><strong>The WorkConnect Team</strong></p>
                         </div>
                         <div class='footer'>
