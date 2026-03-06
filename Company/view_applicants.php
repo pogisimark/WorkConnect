@@ -482,6 +482,9 @@ $conn->close();
             font-size: 0.9rem;
             font-weight: 600;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .btn-view {
@@ -652,6 +655,19 @@ $conn->close();
             .applicant-header {
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .applicant-actions {
+                flex-direction: column;
+            }
+            
+            .applicant-actions .btn {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 10px 20px;
             }
             
             .detail-row {

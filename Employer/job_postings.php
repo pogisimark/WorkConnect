@@ -32,7 +32,7 @@ include 'session_protect.php';
             top: 0;
             left: 0;
             width: 100%;
-            max-width: 100vw;
+            max-width: 100%;
             z-index: 1000;
             box-shadow: 0 2px 8px rgba(35,58,139,0.10);
             box-sizing: border-box;
@@ -356,6 +356,8 @@ include 'session_protect.php';
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            box-sizing: border-box;
+            max-width: 100%;
         }
         
         .search-bar {
@@ -372,12 +374,14 @@ include 'session_protect.php';
         }
         
         .search-bar input {
-            width: 95.5%;
+            width: 100%;
+            max-width: 100%;
             padding: 12px 40px 12px 40px;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.3s;
+            box-sizing: border-box;
         }
         
         .search-bar input:focus {
@@ -799,24 +803,116 @@ include 'session_protect.php';
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
+            .header {
+                min-height: 56px;
+            }
+            
+            /* Hamburger Menu Button */
             .hamburger-menu {
-                display: flex;
+                display: block !important;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 8px;
+                margin-right: 12px;
+                z-index: 1001;
+            }
+            
+            .hamburger-menu span {
+                display: block;
+                width: 25px;
+                height: 3px;
+                background: #fff;
+                margin: 5px 0;
+                transition: 0.3s;
+                border-radius: 2px;
+            }
+            
+            .hamburger-menu.active span:nth-child(1) {
+                transform: rotate(-45deg) translate(-5px, 6px);
+            }
+            
+            .hamburger-menu.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger-menu.active span:nth-child(3) {
+                transform: rotate(45deg) translate(-5px, -6px);
             }
             
             .layout {
                 flex-direction: column;
+                padding-top: 60px;
+                width: 100%;
+                max-width: 100%;
+                overflow-x: hidden;
             }
             
+            /* Mobile Sidebar - Hidden by default, slides in when active */
             .sidebar {
-                position: relative;
-                width: 100%;
-                height: auto;
-                padding: 20px;
+                position: fixed !important;
+                top: 56px !important;
+                left: -240px !important;
+                width: 240px !important;
+                height: calc(100vh - 56px) !important;
+                background: #e3eaff !important;
+                z-index: 999 !important;
+                transition: left 0.3s ease !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 20px 0 0 24px !important;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
+            }
+            
+            .sidebar.active {
+                left: 0 !important;
+            }
+            
+            .sidebar a {
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+                margin-bottom: 8px;
+                gap: 12px;
             }
             
             .main-content {
                 margin-left: 0;
-                padding: 20px;
+                padding: 12px 16px;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
+                box-sizing: border-box;
+            }
+            
+            .filters-section {
+                width: 100%;
+                max-width: 100%;
+                padding: 16px;
+                box-sizing: border-box;
+            }
+            
+            .search-bar {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .search-bar input {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+                padding: 12px 36px 12px 40px;
+            }
+            
+            .table-scroll-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                max-width: 100%;
+            }
+            
+            .jobs-table {
+                min-width: 700px;
             }
             
             .form-row {
@@ -858,17 +954,26 @@ include 'session_protect.php';
         }
         
         @media (max-width: 480px) {
+            .main-content {
+                padding: 12px;
+            }
+            
+            .filters-section {
+                padding: 12px;
+            }
+            
             .stats-grid {
                 grid-template-columns: 1fr;
             }
             
             .jobs-table {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
+                min-width: 550px;
             }
             
             .jobs-table th,
             .jobs-table td {
-                padding: 12px 8px;
+                padding: 10px 6px;
             }
             
             .bulk-buttons {
@@ -1222,6 +1327,7 @@ include 'session_protect.php';
                         </div>
                     </div>
                     
+                    <div class="table-scroll-wrapper">
                     <table class="jobs-table">
                         <thead>
                             <tr>
@@ -1291,6 +1397,7 @@ include 'session_protect.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -1405,7 +1512,42 @@ include 'session_protect.php';
             updateJobCounts();
             initializeBulkActions();
             autoHideAlerts();
+            initializeHamburgerMenu();
         });
+        
+        // Hamburger menu - mobile sidebar toggle (matches Employer Dashboard)
+        function initializeHamburgerMenu() {
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.querySelector('.sidebar');
+            if (!hamburgerMenu || !sidebar) return;
+            
+            function checkScreenSize() {
+                if (window.innerWidth <= 768) {
+                    hamburgerMenu.style.display = 'block';
+                } else {
+                    hamburgerMenu.style.display = 'none';
+                    sidebar.classList.remove('active');
+                    hamburgerMenu.classList.remove('active');
+                }
+            }
+            
+            checkScreenSize();
+            window.addEventListener('resize', checkScreenSize);
+            
+            hamburgerMenu.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                hamburgerMenu.classList.toggle('active');
+            });
+            
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                    if (!sidebar.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+                        sidebar.classList.remove('active');
+                        hamburgerMenu.classList.remove('active');
+                    }
+                }
+            });
+        }
         
         // Auto-hide success and error alerts after 5 seconds
         function autoHideAlerts() {
