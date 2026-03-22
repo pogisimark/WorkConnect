@@ -36,9 +36,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $jobseeker = $result->fetch_assoc();
         
         // Simple email content (text version for better compatibility)
-        $subject = "New Jobseeker Application - " . $jobseeker['firstname'] . " " . $jobseeker['surname'];
+        $subject = "New Jobseeker Referral - " . $jobseeker['firstname'] . " " . $jobseeker['surname'];
         
-        $message = "NEW JOBSEEKER APPLICATION\n";
+        $message = "NEW JOBSEEKER REFERRAL\n";
         $message .= "========================\n\n";
         $message .= "Jobseeker: " . $jobseeker['firstname'] . " " . $jobseeker['surname'] . "\n";
         $message .= "Age: " . $jobseeker['age'] . "\n";

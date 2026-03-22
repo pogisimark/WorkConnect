@@ -27,6 +27,17 @@ if ($check && $check->num_rows > 0) {
     while ($row = $res->fetch_assoc()) $requests[] = $row;
     $stmt->close();
 }
+require_once __DIR__ . '/admin_requests_badge_helper.php';
+$pending_admin_requests_count = 0;
+foreach ($requests as $row) {
+    if (($row['status'] ?? '') === 'pending') {
+        $pending_admin_requests_count++;
+    }
+}
+require_once __DIR__ . '/referred_pending_badge_helper.php';
+$referred_pending_sidebar_count = company_referred_pending_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/view_applicants_badge_helper.php';
+$pending_applicants_sidebar_count = company_pending_applicants_count_for_sidebar($conn, $company_id);
 $conn->close();
 
 function formatDate($d) {
@@ -44,6 +55,7 @@ function formatDate($d) {
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
         body { margin: 0; padding: 0; }
         .user-info { display: flex; align-items: center; gap: 15px; }
@@ -62,7 +74,7 @@ function formatDate($d) {
         .sidebar { background: #f8f9fa; width: 250px; height: calc(100vh - 80px); position: fixed; left: 0; top: 80px; padding: 20px 0; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
         .sidebar-nav { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; height: 100%; }
         .sidebar-nav li { margin: 0; }
-        .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 15px 25px; color: #333; text-decoration: none; font-weight: 500; transition: all 0.3s; border-left: 3px solid transparent; }
+        .sidebar-nav a { display: flex; align-items: center; flex-wrap: nowrap; gap: 10px; padding: 15px 25px; color: #333; text-decoration: none; font-weight: 500; transition: all 0.3s; border-left: 3px solid transparent; }
         .sidebar-nav a i { font-size: 18px; width: 20px; text-align: center; }
         .sidebar-nav a:hover { background: #e9ecef; border-left-color: #1a3876; }
         .sidebar-nav a.active { background: #1a3876; color: white; border-left-color: #ffcb05; }
@@ -82,7 +94,12 @@ function formatDate($d) {
         .card-actions-ar .left { display: flex; align-items: center; gap: 8px; }
         .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
         .btn-primary { background: #1976d2; color: #fff; }
-        .btn-primary:hover { background: #1565c0; }
+        .btn-primary:hover:not(:disabled) { background: #1565c0; }
+        #respondSubmitBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 150px; }
+        #respondSubmitBtn:disabled { opacity: 0.92; cursor: wait; }
+        .ar-respond-spin { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: arRespondSpin 0.65s linear infinite; flex-shrink: 0; }
+        #respondSubmitBtn.is-loading .ar-respond-spin { display: inline-block; }
+        @keyframes arRespondSpin { to { transform: rotate(360deg); } }
         .btn-delete { background: #f44336; color: #fff; padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.85rem; cursor: pointer; }
         .btn-delete:hover { background: #d32f2f; }
         .modal { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1100; justify-content: center; align-items: center; }
@@ -92,6 +109,18 @@ function formatDate($d) {
         .bulk-actions { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
         .status-filter-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
         #statusFilterAr { padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; font-size: 0.9rem; cursor: pointer; min-width: 140px; }
+        .admin-req-pending-pill { display: inline-flex; align-items: center; margin-left: 12px; font-size: 0.85rem; font-weight: 700; background: #fff3e0; color: #e65100; padding: 6px 14px; border-radius: 999px; vertical-align: middle; border: 1px solid #ffcc80; }
+        /* Keep pending-count badge visible on active Admin Requests link (same row as text) */
+        .sidebar-nav a.active .company-admin-req-badge {
+            display: inline-flex !important;
+            align-self: center !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            background: #f44336 !important;
+            color: #fff !important;
+            margin-left: 8px !important;
+            margin-top: 0 !important;
+        }
         @media (max-width: 768px) { .main-content { margin-left: 0; padding: 15px; } }
     </style>
 </head>
@@ -129,15 +158,19 @@ function formatDate($d) {
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
-                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
-                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
-                <li><a href="admin_requests.php" class="active"><i class="fas fa-envelope"></i> Admin Requests</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants<?php echo company_pending_applicants_badge_html($pending_applicants_sidebar_count); ?></a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred<?php echo company_referred_pending_badge_html($referred_pending_sidebar_count); ?></a></li>
+                <li><a href="admin_requests.php" class="active"><i class="fas fa-envelope"></i> Admin Requests<?php echo company_admin_requests_badge_html($pending_admin_requests_count); ?></a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </div>
         <div class="main-content">
-        <h1 style="color: #1a3876; margin: 0 0 8px 0;"><i class="fas fa-envelope"></i> Requests from Admin</h1>
+        <h1 style="color: #1a3876; margin: 0 0 8px 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;"><i class="fas fa-envelope"></i> Requests from Admin
+            <?php if ($pending_admin_requests_count > 0): ?>
+                <span class="admin-req-pending-pill" title="You have not responded to these yet"><?php echo (int) $pending_admin_requests_count; ?> not responded</span>
+            <?php endif; ?>
+        </h1>
         <p style="color: #666; margin: 0 0 24px 0;">Follow-up requests sent by the admin. You can respond below.</p>
 
         <?php if (empty($requests)): ?>
@@ -188,8 +221,11 @@ function formatDate($d) {
             <h3 style="margin: 0 0 12px 0;">Respond to admin request</h3>
             <textarea id="respondText" placeholder="Type your response..."></textarea>
             <div style="margin-top: 16px; display: flex; gap: 10px;">
-                <button type="button" class="btn btn-primary" id="respondSubmitBtn">Send response</button>
-                <button type="button" class="btn" style="background: #e0e0e0; color: #333;" onclick="closeRespondModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="respondSubmitBtn">
+                    <span class="ar-respond-spin" id="arRespondSpinner" aria-hidden="true"></span>
+                    <span id="arRespondBtnLabel">Send response</span>
+                </button>
+                <button type="button" class="btn" id="arRespondCancelBtn" style="background: #e0e0e0; color: #333;" onclick="closeRespondModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -206,12 +242,6 @@ function formatDate($d) {
                 if (dropdown && dropdown.style.display === 'block') dropdown.style.display = 'none';
             }
         };
-        function showLogoutModal() {
-            document.getElementById('profileDropdown').style.display = 'none';
-            Swal.fire({ title: 'Logout?', text: 'Are you sure you want to logout?', icon: 'question', showCancelButton: true, confirmButtonColor: '#1a3876', cancelButtonColor: '#666', confirmButtonText: 'Yes, Logout', cancelButtonText: 'Cancel', reverseButtons: true }).then(function(result) {
-                if (result.isConfirmed) window.location.href = 'logout.php';
-            });
-        }
         document.addEventListener('DOMContentLoaded', function() {
             var hamburgerMenu = document.getElementById('hamburgerMenu');
             var sidebar = document.querySelector('.sidebar.desktop-nav');
@@ -250,40 +280,91 @@ function formatDate($d) {
             updateArState();
         });
         document.querySelectorAll('.ar-checkbox').forEach(function(cb) { cb.addEventListener('change', updateArState); });
+        function showArDeleteLoading(count) {
+            Swal.fire({
+                title: 'Removing...',
+                text: count > 1 ? ('Removing ' + count + ' requests…') : 'Removing request…',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function () { Swal.showLoading(); }
+            });
+        }
+        function runDeleteAdminRequests(ids) {
+            showArDeleteLoading(ids.length);
+            fetch('delete_admin_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) })
+                .then(function (res) { return res.json(); })
+                .then(function (d) {
+                    Swal.close();
+                    if (d.success) {
+                        Swal.fire({ title: 'Done', text: d.message, icon: 'success', confirmButtonColor: '#1a3876' }).then(function () { location.reload(); });
+                    } else {
+                        Swal.fire({ title: 'Error', text: d.message || 'Could not remove.', icon: 'error', confirmButtonColor: '#1a3876' });
+                    }
+                })
+                .catch(function () {
+                    Swal.close();
+                    Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error', confirmButtonColor: '#1a3876' });
+                });
+        }
         document.getElementById('deleteSelectedAr').addEventListener('click', function() {
             var ids = []; document.querySelectorAll('.ar-checkbox:checked').forEach(function(cb) { ids.push(parseInt(cb.value, 10)); });
             if (ids.length === 0) return;
             Swal.fire({ title: 'Remove from list?', text: 'Remove ' + ids.length + ' request(s)?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Remove' }).then(function(r) {
                 if (!r.isConfirmed) return;
-                fetch('delete_admin_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) })
-                    .then(function(res) { return res.json(); })
-                    .then(function(d) { if (d.success) { Swal.fire({ title: 'Done', text: d.message, icon: 'success' }); location.reload(); } else Swal.fire({ title: 'Error', text: d.message, icon: 'error' }); });
+                runDeleteAdminRequests(ids);
             });
         });
         function deleteOne(id) {
             Swal.fire({ title: 'Remove this request?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Remove' }).then(function(r) {
                 if (!r.isConfirmed) return;
-                fetch('delete_admin_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
-                    .then(function(res) { return res.json(); })
-                    .then(function(d) { if (d.success) { Swal.fire({ title: 'Done', text: d.message, icon: 'success' }); location.reload(); } else Swal.fire({ title: 'Error', text: d.message, icon: 'error' }); });
+                runDeleteAdminRequests([id]);
             });
         }
-        function openRespondModal(id) { document.getElementById('respondRequestId').value = id; document.getElementById('respondText').value = ''; document.getElementById('respondModal').classList.add('show'); }
-        function closeRespondModal() { document.getElementById('respondModal').classList.remove('show'); }
+        function setArRespondLoading(loading) {
+            var btn = document.getElementById('respondSubmitBtn');
+            var cancel = document.getElementById('arRespondCancelBtn');
+            var label = document.getElementById('arRespondBtnLabel');
+            if (!btn) return;
+            if (loading) {
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+                if (label) label.textContent = 'Sending...';
+                if (cancel) cancel.disabled = true;
+            } else {
+                btn.classList.remove('is-loading');
+                btn.disabled = false;
+                if (label) label.textContent = 'Send response';
+                if (cancel) cancel.disabled = false;
+            }
+        }
+        function openRespondModal(id) {
+            document.getElementById('respondRequestId').value = id;
+            document.getElementById('respondText').value = '';
+            setArRespondLoading(false);
+            document.getElementById('respondModal').classList.add('show');
+        }
+        function closeRespondModal() {
+            setArRespondLoading(false);
+            document.getElementById('respondModal').classList.remove('show');
+        }
         document.getElementById('respondSubmitBtn').onclick = function() {
             var id = document.getElementById('respondRequestId').value;
             var text = document.getElementById('respondText').value.trim();
             if (!text) { Swal.fire({ title: 'Error', text: 'Please enter a response.', icon: 'warning' }); return; }
-            this.disabled = true;
+            setArRespondLoading(true);
             fetch('respond_to_admin_request.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request_id: id, response: text }) })
                 .then(function(r) { return r.json(); })
                 .then(function(d) {
-                    document.getElementById('respondSubmitBtn').disabled = false;
+                    setArRespondLoading(false);
                     closeRespondModal();
                     if (d.success) { Swal.fire({ title: 'Sent', text: d.message, icon: 'success' }).then(function() { location.reload(); }); }
                     else Swal.fire({ title: 'Error', text: d.message || 'Failed.', icon: 'error' });
                 })
-                .catch(function() { document.getElementById('respondSubmitBtn').disabled = false; });
+                .catch(function() {
+                    setArRespondLoading(false);
+                    Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error' });
+                });
         };
     </script>
 </body>

@@ -2,6 +2,7 @@
 date_default_timezone_set('Asia/Manila');
 require_once 'session_check.php';
 require_once 'db.php';
+require_once __DIR__ . '/../Employer/admin_company_follow_up_badge.php';
 
 header('Content-Type: application/json');
 
@@ -27,7 +28,9 @@ if ($request_id <= 0 || $response_text === '') {
     exit;
 }
 
-$stmt = $conn->prepare("UPDATE admin_company_follow_up SET company_response = ?, status = 'answered', responded_at = NOW() WHERE id = ? AND company_id = ? AND status = 'pending'");
+acfu_ensure_admin_response_read_column($conn);
+
+$stmt = $conn->prepare("UPDATE admin_company_follow_up SET company_response = ?, status = 'answered', responded_at = NOW(), admin_response_read_at = NULL WHERE id = ? AND company_id = ? AND status = 'pending'");
 $stmt->bind_param("sii", $response_text, $request_id, $company_id);
 $stmt->execute();
 if ($stmt->affected_rows === 0) {

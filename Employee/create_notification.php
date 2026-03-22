@@ -45,8 +45,8 @@ function createNotification($user_id, $title, $message, $type = 'info') {
 function createAnnouncementNotification($announcement_title, $announcement_description) {
     global $conn;
     
-    // Get all user IDs
-    $stmt = $conn->prepare("SELECT user_id FROM jobseeker");
+    // Send to all employee accounts, not only users with jobseeker rows.
+    $stmt = $conn->prepare("SELECT id AS user_id FROM employee_users");
     $stmt->execute();
     $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     

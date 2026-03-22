@@ -62,8 +62,6 @@ class JobMatchingAlgorithm {
         $skillResult = $this->calculateSkillMatch($jobSeeker, $jobPosting);
         $locationResult = $this->calculateLocationMatch($jobSeeker, $jobPosting);
         $occupationResult = $this->calculateOccupationMatch($jobSeeker, $jobPosting);
-        $experienceScore = $this->calculateExperienceMatch($jobSeeker, $jobPosting);
-        $salaryScore = $this->calculateSalaryMatch($jobSeeker, $jobPosting);
         $jobTypeScore = $this->calculateJobTypeMatch($jobSeeker, $jobPosting);
         
         // Extract scores and details
@@ -73,43 +71,24 @@ class JobMatchingAlgorithm {
         $matchedSkills = is_array($skillResult) ? ($skillResult['matched_skills'] ?? []) : [];
         $matchedLocations = is_array($locationResult) ? ($locationResult['matched_locations'] ?? []) : [];
         $matchedOccupations = is_array($occupationResult) ? ($occupationResult['matched_occupations'] ?? []) : [];
+        $locationDistanceKm = is_array($locationResult) ? ($locationResult['distance_km'] ?? null) : null;
         
         // Skill match metadata (used by UI)
         $totalSkills = is_array($skillResult) ? (int)($skillResult['total_skills'] ?? 0) : 0;
         $matchedSkillCount = is_array($skillResult) ? (int)($skillResult['matched_count'] ?? count($matchedSkills)) : 0;
-        
-        // Check if skills are missing (n/a case)
-        $hasSkills = $totalSkills > 0;
-        
-        // Weighted average of all scores
-        // Adjust weights if skills are missing to prevent low total scores
-        if (!$hasSkills) {
-            // If no skills, redistribute weights to other factors
-            $weights = [
-                'skills' => 0.00,        // No weight if no skills
-                'occupation' => 0.35,   // Increased importance
-                'location' => 0.30,      // Increased importance
-                'experience' => 0.20,   // Increased importance
-                'salary' => 0.10,       // Increased importance
-                'job_type' => 0.05      // Same
-            ];
-        } else {
-            // Normal weights when skills are available
-            $weights = [
-                'skills' => 0.30,        // Most important factor
-                'occupation' => 0.25,   // Important - preferred job match
-                'location' => 0.20,      // Important for practical reasons
-                'experience' => 0.15,   // Important for qualification
-                'salary' => 0.05,       // Nice to have
-                'job_type' => 0.05      // Nice to have match
-            ];
-        }
-        
+
+        // Final score rule:
+        // weighted sum of 4 criteria only:
+        // skills 40%, occupation 30%, location 20%, job type 10%
+        $weights = [
+            'skills' => 0.40,
+            'occupation' => 0.30,
+            'location' => 0.20,
+            'job_type' => 0.10
+        ];
         $totalScore = ($skillScore * $weights['skills']) +
                      ($occupationScore * $weights['occupation']) +
                      ($locationScore * $weights['location']) +
-                     ($experienceScore * $weights['experience']) +
-                     ($salaryScore * $weights['salary']) +
                      ($jobTypeScore * $weights['job_type']);
         
         return [
@@ -117,14 +96,16 @@ class JobMatchingAlgorithm {
             'skill_score' => round($skillScore, 2),
             'location_score' => round($locationScore, 2),
             'occupation_score' => round($occupationScore, 2),
-            'experience_score' => round($experienceScore, 2),
-            'salary_score' => round($salaryScore, 2),
+            // Kept for backward compatibility with any existing UI expectations.
+            'experience_score' => 0,
+            'salary_score' => 0,
             'job_type_score' => round($jobTypeScore, 2),
             'matched_skills' => $matchedSkills,
             'total_skills' => $totalSkills,
             'matched_count' => $matchedSkillCount,
             'matched_locations' => $matchedLocations,
             'matched_occupations' => $matchedOccupations,
+            'location_distance_km' => $locationDistanceKm,
             'weights' => $weights
         ];
     }
@@ -138,22 +119,22 @@ class JobMatchingAlgorithm {
         $jobSeekerSkills = [];
         
         // Add training skills from text fields
-        if (!empty($jobSeeker['training_skills_1']) && strtolower(trim($jobSeeker['training_skills_1'])) !== 'n/a') {
-            $skills1 = array_map('trim', explode(',', $jobSeeker['training_skills_1']));
+        if (!$this->isNullLike($jobSeeker['training_skills_1'] ?? '')) {
+            $skills1 = $this->splitPreferenceValues($jobSeeker['training_skills_1']);
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills1);
         }
-        if (!empty($jobSeeker['training_skills_2']) && strtolower(trim($jobSeeker['training_skills_2'])) !== 'n/a') {
-            $skills2 = array_map('trim', explode(',', $jobSeeker['training_skills_2']));
+        if (!$this->isNullLike($jobSeeker['training_skills_2'] ?? '')) {
+            $skills2 = $this->splitPreferenceValues($jobSeeker['training_skills_2']);
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills2);
         }
-        if (!empty($jobSeeker['training_skills_3']) && strtolower(trim($jobSeeker['training_skills_3'])) !== 'n/a') {
-            $skills3 = array_map('trim', explode(',', $jobSeeker['training_skills_3']));
+        if (!$this->isNullLike($jobSeeker['training_skills_3'] ?? '')) {
+            $skills3 = $this->splitPreferenceValues($jobSeeker['training_skills_3']);
             $jobSeekerSkills = array_merge($jobSeekerSkills, $skills3);
         }
         
         // Add skill_others (comma-separated)
-        if (!empty($jobSeeker['skill_others']) && strtolower(trim($jobSeeker['skill_others'])) !== 'n/a') {
-            $others = array_map('trim', explode(',', $jobSeeker['skill_others']));
+        if (!$this->isNullLike($jobSeeker['skill_others'] ?? '')) {
+            $others = $this->splitPreferenceValues($jobSeeker['skill_others']);
             $jobSeekerSkills = array_merge($jobSeekerSkills, $others);
         }
         
@@ -194,11 +175,11 @@ class JobMatchingAlgorithm {
         
         // Remove empty values and normalize
         $jobSeekerSkills = array_filter($jobSeekerSkills, function($skill) {
-            $skill = trim($skill);
-            return !empty($skill) && strtolower($skill) !== 'n/a';
+            $skill = trim((string)$skill);
+            return !$this->isNullLike($skill);
         });
-        $jobSeekerSkills = array_unique(array_map('trim', $jobSeekerSkills));
-        
+        $jobSeekerSkills = array_values(array_unique(array_map('trim', $jobSeekerSkills)));
+
         $jobRequirements = strtolower($jobPosting['requirements'] . ' ' . $jobPosting['description'] . ' ' . $jobPosting['title']);
         
         // If no skills or only "n/a", return 0% score
@@ -583,18 +564,36 @@ class JobMatchingAlgorithm {
         foreach ($jobSeekerSkills as $skill) {
             $skillLower = strtolower(trim($skill));
             if (empty($skillLower)) continue;
+            $skillVariants = $this->expandSkillVariants($skillLower);
             
             $isMatched = false;
+
+            // 0. Semantic-first fallback:
+            // Always allow exact/variant hits in title/requirements before category gating.
+            // This prevents false negatives like "driving" vs "driver".
+            foreach ($skillVariants as $variant) {
+                $variantPattern = '/\b' . preg_quote($variant, '/') . '\b/i';
+                if (preg_match($variantPattern, $jobRequirements) || preg_match($variantPattern, $jobTitle)) {
+                    $matchedSkills[] = $skill;
+                    $isMatched = true;
+                    break;
+                }
+            }
+            if ($isMatched) {
+                continue;
+            }
             
             // Check if skill is relevant to the job category
             $skillIsRelevant = false;
             if ($detectedCategory) {
                 // Check if this skill is relevant to the detected job category
                 foreach ($skillRelevanceMap as $relevantSkill => $relevantCategories) {
-                    if (strpos($skillLower, $relevantSkill) !== false || strpos($relevantSkill, $skillLower) !== false) {
-                        if (in_array($detectedCategory, $relevantCategories)) {
-                            $skillIsRelevant = true;
-                            break;
+                    foreach ($skillVariants as $variant) {
+                        if (strpos($variant, $relevantSkill) !== false || strpos($relevantSkill, $variant) !== false) {
+                            if (in_array($detectedCategory, $relevantCategories)) {
+                                $skillIsRelevant = true;
+                                break 2;
+                            }
                         }
                     }
                 }
@@ -615,9 +614,15 @@ class JobMatchingAlgorithm {
             if (!$detectedCategory || $skillIsRelevant) {
                 foreach ($skillToKeywordsMap as $mappedSkill => $keywords) {
                     // Check if user skill matches the mapped skill (exact match, contains, or is contained)
-                    $skillMatches = ($skillLower === $mappedSkill) || 
-                                   strpos($skillLower, $mappedSkill) !== false || 
-                                   strpos($mappedSkill, $skillLower) !== false;
+                    $skillMatches = false;
+                    foreach ($skillVariants as $variant) {
+                        if (($variant === $mappedSkill) ||
+                            strpos($variant, $mappedSkill) !== false ||
+                            strpos($mappedSkill, $variant) !== false) {
+                            $skillMatches = true;
+                            break;
+                        }
+                    }
                     
                     if ($skillMatches) {
                         // Check if any related keyword appears in job requirements or title
@@ -656,57 +661,24 @@ class JobMatchingAlgorithm {
             }
         }
         
-        // Calculate percentage with enhanced scoring
+        // AI semantic pass for all skills (non-exact matching support)
+        $aiSkillResult = AIJobMatcher::matchSkillsWithAI(
+            $jobSeekerSkills,
+            (string)($jobPosting['title'] ?? ''),
+            (string)($jobPosting['description'] ?? ''),
+            (string)($jobPosting['requirements'] ?? ''),
+            (string)($jobPosting['industry'] ?? '')
+        );
+        if (!empty($aiSkillResult['matched_skills'])) {
+            $matchedSkills = array_values(array_unique(array_merge($matchedSkills, $aiSkillResult['matched_skills'])));
+        }
+
+        // Calculate percentage
         $matchedCount = count($matchedSkills);
-        $skillMatchPercentage = ($matchedCount / $totalSkills) * 100;
-        
-        // Enhanced scoring algorithm that considers:
-        // 1. Percentage of skills matched
-        // 2. Quality of matches (direct vs keyword-based)
-        // 3. Relevance to job type
-        
-        // Base score from percentage of matched skills
-        $baseScore = $skillMatchPercentage;
-        
-        // Boost score if multiple skills matched (shows stronger fit)
         if ($matchedCount > 0) {
-            $matchRatio = $matchedCount / max($totalSkills, 1);
-            
-            // If at least 50% of skills match, give bonus
-            if ($matchRatio >= 0.5) {
-                $baseScore = min(100, $baseScore * 1.2); // 20% boost
-            }
-            
-            // If all skills match, give maximum score
-            if ($matchRatio >= 1.0) {
-                $baseScore = 100;
-            }
-            
-            // If only 1 skill matches but it's highly relevant, give decent score
-            if ($matchedCount == 1 && $totalSkills >= 3) {
-                $baseScore = max($baseScore, 30); // Minimum 30% for single relevant match
-            }
-        }
-        
-        // Apply curve for better distribution: 
-        // - 0-30% matches: 0-40 score
-        // - 30-60% matches: 40-70 score  
-        // - 60-100% matches: 70-100 score
-        if ($skillMatchPercentage <= 30) {
-            $score = ($skillMatchPercentage / 30) * 40;
-        } elseif ($skillMatchPercentage <= 60) {
-            $score = 40 + ((($skillMatchPercentage - 30) / 30) * 30);
+            $finalScore = 100; // requested: any strong skill match => 100%
         } else {
-            $score = 70 + ((($skillMatchPercentage - 60) / 40) * 30);
-        }
-        
-        // Apply the base score boost
-        $finalScore = max($score, $baseScore);
-        $finalScore = min(100, $finalScore); // Cap at 100
-        
-        // If we have matches but score is too low, ensure minimum visibility
-        if ($matchedCount > 0 && $finalScore < 20) {
-            $finalScore = 20; // Minimum 20% for any match
+            $finalScore = (float)($aiSkillResult['score'] ?? 0); // considerable semantic match => lower
         }
         
         return [
@@ -725,13 +697,13 @@ class JobMatchingAlgorithm {
         // Get preferred locations from NRSP form: local1, local2, local3
         $preferredLocations = [];
         
-        if (!empty($jobSeeker['local1'])) {
+        if (!$this->isNullLike($jobSeeker['local1'] ?? '')) {
             $preferredLocations[] = trim($jobSeeker['local1']);
         }
-        if (!empty($jobSeeker['local2'])) {
+        if (!$this->isNullLike($jobSeeker['local2'] ?? '')) {
             $preferredLocations[] = trim($jobSeeker['local2']);
         }
-        if (!empty($jobSeeker['local3'])) {
+        if (!$this->isNullLike($jobSeeker['local3'] ?? '')) {
             $preferredLocations[] = trim($jobSeeker['local3']);
         }
         
@@ -746,11 +718,34 @@ class JobMatchingAlgorithm {
             }
         }
         
-        $jobLocation = $jobPosting['location'];
+        $jobLocation = trim((string)($jobPosting['location'] ?? ''));
         
         if (empty($preferredLocations)) {
             return ['score' => 70, 'matched_locations' => []]; // Default score if no location preferences
         }
+
+        // Expand "City, Province" into multiple matchable variants to leverage dropdown data.
+        $expandedLocations = [];
+        foreach ($preferredLocations as $location) {
+            $location = trim((string)$location);
+            if ($this->isNullLike($location)) {
+                continue;
+            }
+            $expandedLocations[] = $location;
+            $parts = array_values(array_filter(array_map('trim', explode(',', $location))));
+            if (count($parts) >= 2) {
+                $city = $parts[0];
+                $province = $parts[count($parts) - 1];
+                if (!$this->isNullLike($city)) {
+                    $expandedLocations[] = $city;
+                }
+                if (!$this->isNullLike($province)) {
+                    $expandedLocations[] = $province;
+                }
+                $expandedLocations[] = $city . ', ' . $province;
+            }
+        }
+        $preferredLocations = array_values(array_unique(array_filter($expandedLocations)));
         
         // Use AI-powered location matching with proximity
         return AIJobMatcher::matchLocationWithProximity($preferredLocations, $jobLocation);
@@ -766,13 +761,13 @@ class JobMatchingAlgorithm {
         // Get preferred occupations from NRSP form
         $preferredOccupations = [];
         
-        if (!empty($jobSeeker['occupation1'])) {
+        if (!$this->isNullLike($jobSeeker['occupation1'] ?? '')) {
             $preferredOccupations[] = trim($jobSeeker['occupation1']);
         }
-        if (!empty($jobSeeker['occupation2'])) {
+        if (!$this->isNullLike($jobSeeker['occupation2'] ?? '')) {
             $preferredOccupations[] = trim($jobSeeker['occupation2']);
         }
-        if (!empty($jobSeeker['occupation3'])) {
+        if (!$this->isNullLike($jobSeeker['occupation3'] ?? '')) {
             $preferredOccupations[] = trim($jobSeeker['occupation3']);
         }
         
@@ -783,13 +778,20 @@ class JobMatchingAlgorithm {
             return ['score' => 50, 'matched_occupations' => []]; // Default score if no occupation preferences
         }
         
+        // Expand equivalent/synonym occupation variants before AI matching.
+        $expandedOccupations = [];
+        foreach ($preferredOccupations as $occupation) {
+            $expandedOccupations = array_merge($expandedOccupations, $this->expandOccupationVariants($occupation));
+        }
+        $expandedOccupations = array_values(array_unique(array_filter($expandedOccupations)));
+
         // Use AI-powered occupation matching (handles "any" and semantic similarity)
-        $result = AIJobMatcher::matchOccupationWithAI($preferredOccupations, $jobTitle);
+        $result = AIJobMatcher::matchOccupationWithAI($expandedOccupations, $jobTitle);
         
-        // Also check job description for additional matches
-        foreach ($preferredOccupations as $prefOcc) {
+        // Also check job description for additional consideration
+        foreach ($expandedOccupations as $prefOcc) {
             $prefOcc = trim($prefOcc);
-            if (empty($prefOcc) || strtolower($prefOcc) === 'n/a') {
+            if ($this->isNullLike($prefOcc)) {
                 continue;
             }
             
@@ -797,8 +799,8 @@ class JobMatchingAlgorithm {
             if (!in_array($prefOcc, $result['matched_occupations']) && 
                 strpos($jobDescription, strtolower($prefOcc)) !== false) {
                 $result['matched_occupations'][] = $prefOcc;
-                if ($result['score'] < 70) {
-                    $result['score'] = 70; // Boost score if found in description
+                if ($result['score'] < 60) {
+                    $result['score'] = 60; // considerable relationship
                 }
             }
         }
@@ -917,22 +919,17 @@ class JobMatchingAlgorithm {
         $jobType = $jobPosting['job_type'];
         
         if (empty($preferredJobTypes)) {
-            return 80; // Default score if no job type preferences
+            return 0; // No selected preference => no match score
         }
         
         // Check for exact match
         foreach ($preferredJobTypes as $preferredType) {
             if (strtolower($preferredType) === strtolower($jobType)) {
-                return 100; // Perfect match
+                return 100; // exact preference match
             }
         }
-        
-        // If user selected both fulltime and parttime, give partial score for any job type
-        if (count($preferredJobTypes) >= 2) {
-            return 75; // User is flexible, give good score
-        }
-        
-        return 50; // No job type match
+
+        return 0; // requested: either 0 or 100
     }
     
     /**
@@ -940,20 +937,28 @@ class JobMatchingAlgorithm {
      * Only returns jobs that meet minimum compatibility threshold (default 50%)
      */
     public function getRecommendedJobs($userId, $limit = 20, $minScore = 50) {
-        // Get all active jobs
+        // Only jobs tied to a real company account (same rule as Employer/job_postings.php).
+        // Rows with company_id NULL are legacy seed/demo and must not appear in recommendations.
+        $companyFilter = '';
+        $colCheck = @$this->conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+        if ($colCheck && $colCheck->num_rows > 0) {
+            $companyFilter = ' AND jp.company_id IS NOT NULL';
+        }
+
         $stmt = $this->conn->prepare("
             SELECT jp.*, 
                    COALESCE(jae.compatibility_score, 0) as compatibility_score,
                    jae.applied_date,
+                   jae.status AS my_application_status,
                    CASE WHEN jae.id IS NOT NULL THEN 1 ELSE 0 END as already_applied
             FROM job_postings jp
             LEFT JOIN job_applications_extended jae ON jp.id = jae.job_posting_id AND jae.jobseeker_id = (
                 SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1
             )
-            WHERE jp.status = 'Active'
+            WHERE jp.status = 'Active'" . $companyFilter . "
             ORDER BY jp.created_at DESC
         ");
-        
+
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -1136,6 +1141,87 @@ class JobMatchingAlgorithm {
         
         // Default: allow the match if it passed exclusion checks
         return true;
+    }
+
+    private function isNullLike($value) {
+        $v = strtolower(trim((string)$value));
+        return $v === '' || $v === 'n/a' || $v === 'na' || $v === 'null' || $v === 'none';
+    }
+
+    private function splitPreferenceValues($text) {
+        $parts = preg_split('/[,\/\|;]+/', (string)$text);
+        if (!is_array($parts)) return [];
+        return array_values(array_filter(array_map('trim', $parts), function($item) {
+            return !$this->isNullLike($item);
+        }));
+    }
+
+    private function expandOccupationVariants($occupation) {
+        $raw = trim((string)$occupation);
+        if ($this->isNullLike($raw)) return [];
+        $variants = [$raw];
+        $lower = strtolower($raw);
+
+        if ($lower === 'any') {
+            return ['any'];
+        }
+
+        $map = [
+            'web developer' => ['web developer', 'website developer', 'frontend developer', 'back-end developer'],
+            'software developer' => ['software developer', 'software engineer', 'programmer'],
+            'service crew' => ['service crew', 'food service crew', 'crew member'],
+            'driver' => ['driver', 'delivery driver', 'truck driver', 'van driver'],
+            'cashier' => ['cashier', 'retail cashier', 'store cashier']
+        ];
+        foreach ($map as $key => $equivalents) {
+            if (strpos($lower, $key) !== false) {
+                $variants = array_merge($variants, $equivalents);
+            }
+        }
+
+        return array_values(array_unique($variants));
+    }
+
+    private function expandSkillVariants($skill) {
+        $raw = strtolower(trim((string)$skill));
+        if ($this->isNullLike($raw)) return [];
+
+        $variants = [$raw];
+
+        // Normalize punctuation variants
+        $compact = preg_replace('/[^a-z0-9\s]/', ' ', $raw);
+        $compact = preg_replace('/\s+/', ' ', trim((string)$compact));
+        if (!$this->isNullLike($compact)) {
+            $variants[] = $compact;
+        }
+
+        // Common verb/noun/role variants for better skill matching
+        $map = [
+            'driving' => ['driver', 'drive', 'delivery driver', 'truck driver', 'van driver', 'rider'],
+            'driver' => ['driving', 'drive', 'delivery driver', 'truck driver', 'van driver', 'rider'],
+            'painting job' => ['painting', 'painter', 'paint'],
+            'painter' => ['painting', 'paint'],
+            'computer literacy' => ['computer', 'computer skills', 'it'],
+            'communication skills' => ['communication', 'customer service']
+        ];
+
+        foreach ($map as $key => $synonyms) {
+            if (strpos($raw, $key) !== false) {
+                $variants = array_merge($variants, $synonyms);
+            }
+        }
+
+        // Lightweight stemming forms
+        if (preg_match('/ing$/', $raw)) {
+            $variants[] = preg_replace('/ing$/', '', $raw);
+            $variants[] = preg_replace('/ing$/', 'er', $raw); // driving -> driver
+        } elseif (preg_match('/er$/', $raw)) {
+            $variants[] = preg_replace('/er$/', 'ing', $raw); // driver -> driving
+        }
+
+        return array_values(array_unique(array_filter(array_map('trim', $variants), function($v) {
+            return $v !== '';
+        })));
     }
     
     /**

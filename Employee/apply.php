@@ -3,7 +3,7 @@
 date_default_timezone_set('Asia/Manila');
 
 // Start session and check if user is logged in
-session_start();
+require_once 'session_init.php';
 
 // Check if user is logged in, if not redirect to login
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
@@ -448,7 +448,7 @@ function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
             
             <div class='footer'>
                 <p><strong>WorkConnect</strong></p>
-                <p>Department of Labor and Employment</p>
+                <p>Public Employment Service Office</p>
                 <p>National Skills Registration Program</p>
                 <div class='copyright'>
                     <p>This is an automated message. Please do not reply to this email.</p>
@@ -1053,6 +1053,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 $message = 'Registration saved successfully!';
             }
+
+            // Create in-app notification for the submitter.
+            $checkTypeColumn = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
+            $hasTypeColumn = $checkTypeColumn && $checkTypeColumn->num_rows > 0;
+            $notifTitle = $isResubmit ? 'NRSP Form Resubmitted' : ($isUpdate ? 'NRSP Form Updated' : 'NRSP Form Submitted');
+            $notifMessage = $isResubmit
+                ? 'Your NRSP form has been resubmitted and is now pending review.'
+                : ($isUpdate ? 'Your NRSP form changes were saved successfully.' : 'Your NRSP form was submitted successfully and is pending review.');
+            if ($hasTypeColumn) {
+                $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'nrsp')");
+                if ($notifStmt) {
+                    $notifStmt->bind_param("iss", $user_id, $notifTitle, $notifMessage);
+                    $notifStmt->execute();
+                    $notifStmt->close();
+                }
+            } else {
+                $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+                if ($notifStmt) {
+                    $notifStmt->bind_param("iss", $user_id, $notifTitle, $notifMessage);
+                    $notifStmt->execute();
+                    $notifStmt->close();
+                }
+            }
             sendJsonResponse(true, $message);
         } else {
             // Rollback on error
@@ -1079,16 +1102,95 @@ $conn->close();
   <meta charset="UTF-8">
   <title>WorkConnect - Job Application Form</title>
   <link rel="stylesheet" href="../assets/css/Employee-apply.css">
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script>
+    // Render alerts on the parent dashboard when loaded in iframe.
+    (function () {
+      if (window.self === window.top) return;
+      const localFire = Swal.fire.bind(Swal);
+      Swal.fire = function () {
+        try {
+          if (window.top && typeof window.top.showGlobalSwal === 'function') {
+            return window.top.showGlobalSwal.apply(window.top, arguments);
+          }
+        } catch (e) {
+          // Fall back to local modal when parent access is unavailable.
+        }
+        return localFire.apply(Swal, arguments);
+      };
+    })();
+  </script>
   
   <style>
+    /* Make searchable selects visually consistent with existing inputs */
+    .ts-wrapper.single .ts-control,
+    .ts-wrapper.single .ts-control input {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      color: #333 !important;
+    }
+    .ts-wrapper.single .ts-control {
+      min-height: 34px !important;
+      border: 1px solid #ccc !important;
+      border-radius: 3px !important;
+      box-shadow: none !important;
+      padding: 6px 10px !important;
+    }
+    .ts-wrapper.single.input-active .ts-control {
+      border-color: #1976d2 !important;
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.12) !important;
+    }
+    .ts-dropdown {
+      font-size: 14px !important;
+      border: 1px solid #ccc !important;
+      border-radius: 3px !important;
+    }
+    .ts-dropdown .option {
+      padding: 8px 10px !important;
+    }
+    .pref-section-title {
+      font-weight: 700;
+    }
+    .stacked-pref-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .stacked-pref-inputs input,
+    .stacked-pref-inputs select,
+    .stacked-pref-inputs .ts-wrapper {
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    .local-location-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 1fr;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 4px;
+      width: 100%;
+    }
+    .local-location-index {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      font-weight: 600;
+    }
+
     <?php if ($isIframe): ?>
-    /* Iframe-specific styles */
+    /* Iframe-specific styles — parent dashboard scrolls; no inner vertical scroll on body */
     body {
       margin: 0;
       padding: 0;
       background: #fff;
       overflow-x: hidden;
+      overflow-y: visible;
+    }
+    html {
+      overflow-y: visible;
     }
     
     .progress-indicator {
@@ -1196,6 +1298,23 @@ $conn->close();
     
     #section2_2 .form-group input[type="text"] {
       margin-bottom: 8px !important;
+    }
+
+    /* Keep Course/Strand dropdown same look/width as Level dropdown */
+    #section2_3 #courseField .ts-wrapper {
+      width: 100% !important;
+      display: block !important;
+    }
+    #section2_3 #courseField .ts-control {
+      width: 100% !important;
+      min-height: 34px !important;
+      border: 1px solid #ccc !important;
+      border-radius: 3px !important;
+      box-sizing: border-box !important;
+    }
+    #section2_3 #courseField .ts-control input {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
     }
     
     /* Specific CSS for Eligibility section only */
@@ -2303,22 +2422,28 @@ $conn->close();
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="street">House no./Street/Village<span class="required-asterisk">*</span></label>
-                <input type="text" id="street" name="street" pattern=".{2,50}" maxlength="50">
+                <label for="province">Province<span class="required-asterisk">*</span></label>
+                <select id="province" name="province" required>
+                  <option value="" selected disabled hidden>Select Province</option>
+                </select>
               </div>
               <div class="form-group">
-                <label for="barangay">Barangay<span class="required-asterisk">*</span></label>
-                <input type="text" id="barangay" name="barangay" pattern=".{2,40}" maxlength="40">
+                <label for="municipality">Municipality/City<span class="required-asterisk">*</span></label>
+                <select id="municipality" name="municipality" required>
+                  <option value="" selected disabled hidden>Select Municipality/City</option>
+                </select>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="municipality">Municipality/City<span class="required-asterisk">*</span></label>
-                <input type="text" id="municipality" name="municipality" pattern=".{2,40}" maxlength="40">
+                <label for="barangay">Barangay<span class="required-asterisk">*</span></label>
+                <select id="barangay" name="barangay" required>
+                  <option value="" selected disabled hidden>Select Barangay</option>
+                </select>
               </div>
               <div class="form-group">
-                <label for="province">Province<span class="required-asterisk">*</span></label>
-                <input type="text" id="province" name="province" pattern=".{2,40}" maxlength="40">
+                <label for="street">House no./Street/Village<span class="required-asterisk">*</span></label>
+                <input type="text" id="street" name="street" pattern=".{2,50}" maxlength="50">
               </div>
             </div>
             <div class="form-row">
@@ -2399,7 +2524,7 @@ $conn->close();
               <label><input type="checkbox" name="unemployed_type_local" value="local" disabled> Local Contract</label>
               <label><input type="checkbox" name="unemployed_type_resigned" value="resigned" disabled> Resigned</label>
               <label><input type="checkbox" name="unemployed_type_finished" value="finished" disabled> Finished contract (OFW)</label>
-              <label><input type="checkbox" name="unemployed_type_public" value="public" disabled> Public Contract</label>
+              <!-- <label><input type="checkbox" name="unemployed_type_public" value="public" disabled> Public Contract</label> -->
               <label><input type="checkbox" name="unemployed_type_retired" value="retired" disabled> Retired</label>
               <label><input type="checkbox" name="unemployed_type_terminated" value="terminated" disabled> Terminated/Laid off (local)</label>
               <label for="terminated_country" style="display: none;">If terminated/laid off, country:</label>
@@ -2513,29 +2638,70 @@ $conn->close();
             <fieldset>
               <legend>III. JOB PREFERENCE</legend>
             <div class="form-row">
-              <label>PREFERRED OCCUPATION<span class="required-asterisk">*</span></label>
+              <label class="pref-section-title">PREFERRED OCCUPATION<span class="required-asterisk">*</span></label>
               <label><input type="checkbox" name="fulltime"> Full-time</label>
               <label><input type="checkbox" name="parttime"> Part-time</label>
             </div>
-            <div class="form-row">
-              <input type="text" name="occupation1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
-              <input type="text" name="occupation2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="occupation3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+            <div class="form-row stacked-pref-inputs">
+              <select id="occupation1" name="occupation1" required>
+                <option value="" selected disabled hidden>1. Select preferred occupation</option>
+              </select>
+              <select id="occupation2" name="occupation2">
+                <option value="" selected disabled hidden>2. Select preferred occupation (optional)</option>
+              </select>
+              <select id="occupation3" name="occupation3">
+                <option value="" selected disabled hidden>3. Select preferred occupation (optional)</option>
+              </select>
             </div>
             <div class="form-row">
-              <label>PREFERRED WORK LOCATION</label>
+              <label class="pref-section-title">PREFERRED WORK LOCATION</label>
             </div>
             <div class="form-row">
-              <label>Local (specify cities/municipalities):<span class="required-asterisk">*</span></label>
-              <input type="text" name="local1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
-              <input type="text" name="local2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="local3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <label class="pref-section-title">Local (specify cities/municipalities):<span class="required-asterisk">*</span></label>
+              <div class="local-location-row">
+                <span class="local-location-index">1.</span>
+                <select id="local1_province" class="local-province-select">
+                  <option value="" selected disabled hidden>1. Select province</option>
+                </select>
+                <select id="local1_city" class="local-city-select">
+                  <option value="" selected disabled hidden>1. Select municipality/city</option>
+                </select>
+                <input type="hidden" name="local1" id="local1" required>
+              </div>
+              <div class="local-location-row">
+                <span class="local-location-index">2.</span>
+                <select id="local2_province" class="local-province-select">
+                  <option value="" selected disabled hidden>2. Select province (optional)</option>
+                </select>
+                <select id="local2_city" class="local-city-select">
+                  <option value="" selected disabled hidden>2. Select municipality/city (optional)</option>
+                </select>
+                <input type="hidden" name="local2" id="local2">
+              </div>
+              <div class="local-location-row">
+                <span class="local-location-index">3.</span>
+                <select id="local3_province" class="local-province-select">
+                  <option value="" selected disabled hidden>3. Select province (optional)</option>
+                </select>
+                <select id="local3_city" class="local-city-select">
+                  <option value="" selected disabled hidden>3. Select municipality/city (optional)</option>
+                </select>
+                <input type="hidden" name="local3" id="local3">
+              </div>
             </div>
             <div class="form-row">
-              <label>Overseas (specify countries):<span class="required-asterisk">*</span></label>
-              <input type="text" name="overseas1" placeholder="1." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{2,40}" maxlength="40" required>
-              <input type="text" name="overseas2" placeholder="2." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="overseas3" placeholder="3." pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <label class="pref-section-title">Overseas (specify countries):<span class="required-asterisk">*</span></label>
+            </div>
+            <div class="form-row stacked-pref-inputs">
+              <select id="overseas1" name="overseas1" required>
+                <option value="" selected disabled hidden>1. Select country</option>
+              </select>
+              <select id="overseas2" name="overseas2">
+                <option value="" selected disabled hidden>2. Select country (optional)</option>
+              </select>
+              <select id="overseas3" name="overseas3">
+                <option value="" selected disabled hidden>3. Select country (optional)</option>
+              </select>
             </div>
             </fieldset>
             <div class="form-actions">
@@ -2575,12 +2741,14 @@ $conn->close();
               </div>
               <div class="form-group">
                 <label>Others</label>
-                <input type="text" name="other_language" placeholder="Specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
-                <label class="select-all-label"><input type="checkbox" id="other_select_all" onchange="toggleLanguageGroup('other', this.checked)"> Select All</label>
-                <label><input type="checkbox" name="other_read">Read</label>
-                <label><input type="checkbox" name="other_write">Write</label>
-                <label><input type="checkbox" name="other_speak">Speak</label>
-                <label><input type="checkbox" name="other_understand">Understand</label>
+                <select id="other_language" name="other_language">
+                  <option value="" selected disabled hidden>Specify language/dialect</option>
+                </select>
+                <label class="select-all-label"><input type="checkbox" id="other_select_all" onchange="toggleLanguageGroup('other', this.checked)" disabled> Select All</label>
+                <label><input type="checkbox" name="other_read" disabled>Read</label>
+                <label><input type="checkbox" name="other_write" disabled>Write</label>
+                <label><input type="checkbox" name="other_speak" disabled>Speak</label>
+                <label><input type="checkbox" name="other_understand" disabled>Understand</label>
               </div>
             </div>
             </fieldset>
@@ -2612,7 +2780,9 @@ $conn->close();
             </div>
             <div class="form-row" id="courseField" style="display: none;">
               <label>Course/Strand</label>
-              <input type="text" name="course">
+              <select id="course" name="course">
+                <option value="" selected disabled hidden>Select or type course/strand</option>
+              </select>
             </div>
             <div class="form-row">
               <label>Year Graduated</label>
@@ -2656,21 +2826,21 @@ $conn->close();
               <div class="header">Training Institution</div>
               <div class="header">Skills Acquired</div>
               <div class="header">Certificates Received</div>
-              <input type="text" name="training_course_1" placeholder="Course 1" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_course_1" placeholder="Course 1" pattern=".{0,40}" maxlength="40">
               <input type="text" name="training_hours_1" placeholder="Hours" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="training_institution_1" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_skills_1" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_cert_1" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_course_2" placeholder="Course 2" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_institution_1" placeholder="Institution" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_skills_1" placeholder="Skills" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_cert_1" placeholder="Certificate" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_course_2" placeholder="Course 2" pattern=".{0,40}" maxlength="40">
               <input type="text" name="training_hours_2" placeholder="Hours" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="training_institution_2" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_skills_2" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_cert_2" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_course_3" placeholder="Course 3" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_institution_2" placeholder="Institution" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_skills_2" placeholder="Skills" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_cert_2" placeholder="Certificate" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_course_3" placeholder="Course 3" pattern=".{0,40}" maxlength="40">
               <input type="text" name="training_hours_3" placeholder="Hours" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="training_institution_3" placeholder="Institution" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_skills_3" placeholder="Skills" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
-              <input type="text" name="training_cert_3" placeholder="Certificate" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,40}" maxlength="40">
+              <input type="text" name="training_institution_3" placeholder="Institution" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_skills_3" placeholder="Skills" pattern=".{0,40}" maxlength="40">
+              <input type="text" name="training_cert_3" placeholder="Certificate" pattern=".{0,40}" maxlength="40">
             </div>
             </fieldset>
             <div class="form-actions">
@@ -2686,7 +2856,7 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>Eligibility (Civil Service)</label>
-                <input type="text" name="eligibility_1" placeholder="Eligibility 1" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
+                <input type="text" name="eligibility_1" placeholder="Eligibility 1" pattern=".{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Date Taken</label>
@@ -2695,7 +2865,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="eligibility_2" placeholder="Eligibility 2" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
+                <input type="text" name="eligibility_2" placeholder="Eligibility 2" pattern=".{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <input type="date" name="eligibility_date_2">
@@ -2704,7 +2874,7 @@ $conn->close();
             <div class="form-row">
               <div class="form-group">
                 <label>Professional License (PRC)</label>
-                <input type="text" name="prc_1" placeholder="PRC License 1" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
+                <input type="text" name="prc_1" placeholder="PRC License 1" pattern=".{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <label>Valid Until</label>
@@ -2713,7 +2883,7 @@ $conn->close();
             </div>
             <div class="form-row">
               <div class="form-group">
-                <input type="text" name="prc_2" placeholder="PRC License 2" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="40">
+                <input type="text" name="prc_2" placeholder="PRC License 2" pattern=".{0,40}" maxlength="40">
               </div>
               <div class="form-group">
                 <input type="date" name="prc_valid_2">
@@ -2736,17 +2906,17 @@ $conn->close();
               <div style="font-weight:bold;">Position</div>
               <div style="font-weight:bold;">Number of Months</div>
               <div style="font-weight:bold;">Status</div>
-              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_name_1" placeholder="Company Name" style="width:100%;height:38px;" pattern=".{0,50}" maxlength="50">
               <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
               <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
-              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern=".{0,50}" maxlength="50">
               <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
               <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
-              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern=".{0,50}" maxlength="50">
               <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
@@ -2783,7 +2953,7 @@ $conn->close();
               <label><input type="checkbox" name="skill_painting"> Painting job</label>
             </div>
             <div class="form-row">
-              <label>Others:</label>
+              <label>Others: <span style="font-weight:normal;">(Separate by commas ",")</span></label>
               <input type="text" name="skill_others" placeholder="Others" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]*">
             </div>
           </fieldset>
@@ -3030,9 +3200,839 @@ $conn->close();
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     }, 100);
+    // Tell parent dashboard to resize iframe height to full content (single scrollbar on parent)
+    setTimeout(() => {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'workconnect-resize-apply', source: 'apply' }, '*');
+        }
+      } catch (e) {}
+    }, 160);
+  }
+
+  // Address cascading dropdowns (Province -> Municipality/City -> Barangay)
+  const LOCATION_API_BASE = 'https://psgc.gitlab.io/api';
+  const OCCUPATION_OPTIONS = [
+    'Any',
+    'Accountant','Accounting Clerk','Administrative Aide','Administrative Assistant','Agricultural Technician',
+    'Architect','Auto Mechanic','Baker','Bank Teller','Barber','Bartender','Bookkeeper','Business Analyst',
+    'Call Center Agent','Caregiver','Carpenter','Cashier','Chef','Civil Engineer','Computer Technician',
+    'Construction Worker','Content Creator','Cook','Customer Service Representative','Data Analyst',
+    'Delivery Rider','Dentist','Driver','Electrician','Electronics Technician','Farmer','Financial Advisor',
+    'Food Service Crew','Forklift Operator','Graphic Designer','Hair Stylist','Heavy Equipment Operator',
+    'Hotel Receptionist','HR Assistant','Industrial Engineer','IT Support Specialist','Janitor','Laborer',
+    'Machine Operator','Mason','Medical Technologist','Merchandiser','Motorcycle Mechanic','Nurse',
+    'Office Staff','Operations Supervisor','Painter','Pharmacist','Photographer','Plumber',
+    'Production Operator','Programmer','Project Manager','Quality Assurance Specialist','Receptionist',
+    'Retail Sales Associate','Safety Officer','Sales Clerk','Sales Representative','Security Guard',
+    'Seamstress','Service Crew','Software Developer','Store Manager','Teacher','Technician',
+    'Tourism Officer','Trainer','Truck Driver','Virtual Assistant','Waiter/Waitress','Warehouse Staff',
+    'Web Developer','Welder'
+  ];
+  const COUNTRY_OPTIONS = [
+    'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria',
+    'Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan',
+    'Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia',
+    'Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica',
+    'Croatia','Cuba','Cyprus','Czech Republic','Democratic Republic of the Congo','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador',
+    'Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France',
+    'Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau',
+    'Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland',
+    'Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan',
+    'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar',
+    'Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia',
+    'Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal',
+    'Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan',
+    'Palau','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania',
+    'Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal',
+    'Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea',
+    'South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan',
+    'Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu',
+    'Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela',
+    'Vietnam','Yemen','Zambia','Zimbabwe'
+  ];
+  const LANGUAGE_DIALECT_OPTIONS = [
+    'Aklanon','Arabic','Bicolano','Bisaya/Cebuano','Chavacano','Chinese','English','Filipino',
+    'French','German','Hiligaynon','Ibanag','Ifugao','Ilocano','Ilonggo','Iranun','Itawis',
+    'Japanese','Kapampangan','Kinaray-a','Maguindanaon','Malay','Mandarin','Maranao','Pangasinan',
+    'Portuguese','Sama','Sanskrit','Spanish','Surigaonon','Tagalog','Tausug','Tboli','Waray','Yakan'
+  ];
+  const SHS_STRAND_OPTIONS = [
+    'STEM','ABM','HUMSS','GAS','TVL-Home Economics','TVL-ICT','TVL-Industrial Arts','TVL-Agri-Fishery Arts','Sports','Arts and Design'
+  ];
+  const COURSE_ONLY_OPTIONS = [
+    'BS Accountancy','BS Accounting Information System','BS Accounting Technology','BS Agribusiness','BS Agriculture','BS Architecture',
+    'BS Biology','BS Business Administration','BS Civil Engineering','BS Communication','BS Computer Engineering','BS Computer Science',
+    'BS Criminology','BS Customs Administration','BS Dentistry','BS Early Childhood Education','BS Economics','BS Education',
+    'BS Electrical Engineering','BS Electronics Engineering','BS Elementary Education','BS Entrepreneurship','BS Environmental Science',
+    'BS Fisheries','BS Food Technology','BS Forestry','BS Geodetic Engineering','BS Hospitality Management','BS Hotel and Restaurant Management',
+    'BS Human Resource Management','BS Industrial Engineering','BS Information Systems','BS Information Technology','BS Interior Design',
+    'BS International Studies','BS Journalism','BS Legal Management','BS Management Accounting','BS Marine Biology','BS Marine Engineering',
+    'BS Marine Transportation','BS Marketing Management','BS Mass Communication','BS Mathematics','BS Mechanical Engineering','BS Medical Technology',
+    'BS Midwifery','BS Mining Engineering','BS Nursing','BS Nutrition and Dietetics','BS Occupational Therapy','BS Office Administration',
+    'BS Pharmacy','BS Physical Therapy','BS Physics','BS Political Science','BS Psychology','BS Public Administration','BS Radiologic Technology',
+    'BS Real Estate Management','BS Secondary Education','BS Social Work','BS Sociology','BS Tourism Management','BS Veterinary Medicine',
+    'Master in Public Administration','Master of Arts in Education','Master of Business Administration','Master of Science in Information Technology',
+    'Doctor of Education','Doctor of Philosophy'
+  ];
+  const PH_PROVINCES = [
+    { code: '012800000', name: 'Ilocos Norte' },
+    { code: '012900000', name: 'Ilocos Sur' },
+    { code: '013300000', name: 'La Union' },
+    { code: '015500000', name: 'Pangasinan' },
+    { code: '020900000', name: 'Batanes' },
+    { code: '021500000', name: 'Cagayan' },
+    { code: '023100000', name: 'Isabela' },
+    { code: '025000000', name: 'Nueva Vizcaya' },
+    { code: '025700000', name: 'Quirino' },
+    { code: '030800000', name: 'Bataan' },
+    { code: '031400000', name: 'Bulacan' },
+    { code: '034900000', name: 'Nueva Ecija' },
+    { code: '035400000', name: 'Pampanga' },
+    { code: '036900000', name: 'Tarlac' },
+    { code: '037100000', name: 'Zambales' },
+    { code: '037700000', name: 'Aurora' },
+    { code: '041000000', name: 'Batangas' },
+    { code: '042100000', name: 'Cavite' },
+    { code: '043400000', name: 'Laguna' },
+    { code: '045600000', name: 'Quezon' },
+    { code: '045800000', name: 'Rizal' },
+    { code: '174000000', name: 'Marinduque' },
+    { code: '175100000', name: 'Occidental Mindoro' },
+    { code: '175200000', name: 'Oriental Mindoro' },
+    { code: '175300000', name: 'Palawan' },
+    { code: '175900000', name: 'Romblon' },
+    { code: '050500000', name: 'Albay' },
+    { code: '051600000', name: 'Camarines Norte' },
+    { code: '051700000', name: 'Camarines Sur' },
+    { code: '052000000', name: 'Catanduanes' },
+    { code: '054100000', name: 'Masbate' },
+    { code: '056200000', name: 'Sorsogon' },
+    { code: '060400000', name: 'Aklan' },
+    { code: '060600000', name: 'Antique' },
+    { code: '061900000', name: 'Capiz' },
+    { code: '063000000', name: 'Iloilo' },
+    { code: '064500000', name: 'Negros Occidental' },
+    { code: '067900000', name: 'Guimaras' },
+    { code: '071200000', name: 'Bohol' },
+    { code: '072200000', name: 'Cebu' },
+    { code: '074600000', name: 'Negros Oriental' },
+    { code: '076100000', name: 'Siquijor' },
+    { code: '082600000', name: 'Eastern Samar' },
+    { code: '083700000', name: 'Leyte' },
+    { code: '084800000', name: 'Northern Samar' },
+    { code: '086000000', name: 'Samar' },
+    { code: '086400000', name: 'Southern Leyte' },
+    { code: '087800000', name: 'Biliran' },
+    { code: '097200000', name: 'Zamboanga Del Norte' },
+    { code: '097300000', name: 'Zamboanga Del Sur' },
+    { code: '098300000', name: 'Zamboanga Sibugay' },
+    { code: '101300000', name: 'Bukidnon' },
+    { code: '101800000', name: 'Camiguin' },
+    { code: '103500000', name: 'Lanao Del Norte' },
+    { code: '104200000', name: 'Misamis Occidental' },
+    { code: '104300000', name: 'Misamis Oriental' },
+    { code: '112300000', name: 'Davao Del Norte' },
+    { code: '112400000', name: 'Davao Del Sur' },
+    { code: '112500000', name: 'Davao Oriental' },
+    { code: '118200000', name: 'Davao De Oro' },
+    { code: '118600000', name: 'Davao Occidental' },
+    { code: '124700000', name: 'Cotabato' },
+    { code: '126300000', name: 'South Cotabato' },
+    { code: '126500000', name: 'Sultan Kudarat' },
+    { code: '128000000', name: 'Sarangani' },
+    { code: '140100000', name: 'Abra' },
+    { code: '141100000', name: 'Benguet' },
+    { code: '142700000', name: 'Ifugao' },
+    { code: '143200000', name: 'Kalinga' },
+    { code: '144400000', name: 'Mountain Province' },
+    { code: '148100000', name: 'Apayao' },
+    { code: '160200000', name: 'Agusan Del Norte' },
+    { code: '160300000', name: 'Agusan Del Sur' },
+    { code: '166700000', name: 'Surigao Del Norte' },
+    { code: '166800000', name: 'Surigao Del Sur' },
+    { code: '168500000', name: 'Dinagat Islands' },
+    { code: '150700000', name: 'Basilan' },
+    { code: '153600000', name: 'Lanao Del Sur' },
+    { code: '153800000', name: 'Maguindanao' },
+    { code: '156600000', name: 'Sulu' },
+    { code: '157000000', name: 'Tawi-Tawi' },
+    { code: '130000000', name: 'Metro Manila (NCR)' }
+  ];
+  let addressInitPromise = null;
+  let provinceCityCache = {};
+  let cityBarangayCache = {};
+
+  function normalizeText(value) {
+    return (value || '').toString().trim().toLowerCase();
+  }
+
+  function formatOccupationValue(value) {
+    const cleaned = (value || '')
+      .replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    if (!cleaned) return '';
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  function setOptions(selectEl, options, placeholder) {
+    if (!selectEl) return;
+    const ts = selectEl.tomselect;
+    if (ts) {
+      ts.settings.placeholder = placeholder;
+      ts.clear(true);
+      ts.clearOptions();
+      options.forEach(opt => {
+        ts.addOption({ value: opt.name, text: opt.name, code: opt.code || '' });
+      });
+      ts.setValue('', true);
+      ts.setTextboxValue('');
+      ts.inputState();
+      ts.refreshOptions(false);
+      return;
+    }
+
+    selectEl.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = placeholder;
+    ph.disabled = true;
+    ph.hidden = true;
+    ph.selected = true;
+    selectEl.appendChild(ph);
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.name;
+      option.textContent = opt.name;
+      if (opt.code) option.dataset.code = opt.code;
+      selectEl.appendChild(option);
+    });
+  }
+
+  function ensureSelectValue(selectEl, value) {
+    if (!selectEl || !value) return;
+    const target = normalizeText(value);
+    const existing = Array.from(selectEl.options).find(opt => normalizeText(opt.value) === target || normalizeText(opt.textContent) === target);
+    if (existing) {
+      if (selectEl.tomselect) {
+        selectEl.tomselect.setValue(existing.value, true);
+      } else {
+        selectEl.value = existing.value;
+      }
+      return;
+    }
+    const fallback = document.createElement('option');
+    fallback.value = value;
+    fallback.textContent = value;
+    fallback.dataset.custom = '1';
+    selectEl.appendChild(fallback);
+    if (selectEl.tomselect) {
+      selectEl.tomselect.addOption({ value: value, text: value });
+      selectEl.tomselect.setValue(value, true);
+    } else {
+      selectEl.value = value;
+    }
+  }
+
+  function getSelectedCode(selectEl) {
+    if (!selectEl) return '';
+    const selectedValue = selectEl.value;
+    if (!selectedValue) return '';
+    if (selectEl.tomselect && selectEl.tomselect.options[selectedValue]) {
+      return selectEl.tomselect.options[selectedValue].code || '';
+    }
+    const selected = selectEl.options[selectEl.selectedIndex];
+    return selected ? (selected.dataset.code || '') : '';
+  }
+
+  async function fetchJson(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Location API request failed');
+    return resp.json();
+  }
+
+  async function loadProvinces() {
+    const provinceSelect = document.getElementById('province');
+    if (!provinceSelect) return;
+    const allProvinces = [...PH_PROVINCES].sort((a, b) => a.name.localeCompare(b.name));
+    setOptions(provinceSelect, allProvinces, 'Select Province');
+  }
+
+  async function loadMunicipalitiesByProvinceCode(provinceCode) {
+    const municipalitySelect = document.getElementById('municipality');
+    const barangaySelect = document.getElementById('barangay');
+    if (!municipalitySelect || !barangaySelect) return;
+
+    setOptions(municipalitySelect, [], 'Select Municipality/City');
+    setOptions(barangaySelect, [], 'Select Barangay');
+
+    if (!provinceCode) return;
+    if (!provinceCityCache[provinceCode]) {
+      if (provinceCode === '130000000') {
+        provinceCityCache[provinceCode] = await fetchJson(`${LOCATION_API_BASE}/regions/130000000/cities-municipalities/`);
+      } else {
+        provinceCityCache[provinceCode] = await fetchJson(`${LOCATION_API_BASE}/provinces/${provinceCode}/cities-municipalities/`);
+      }
+    }
+    const cities = provinceCityCache[provinceCode]
+      .map(c => ({ code: c.code, name: c.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setOptions(municipalitySelect, cities, 'Select Municipality/City');
+  }
+
+  async function loadMunicipalitiesByProvinceCodeForSelect(provinceCode, citySelectEl) {
+    if (!citySelectEl) return;
+    setOptions(citySelectEl, [], 'Select Municipality/City');
+    if (!provinceCode) return;
+    if (!provinceCityCache[provinceCode]) {
+      if (provinceCode === '130000000') {
+        provinceCityCache[provinceCode] = await fetchJson(`${LOCATION_API_BASE}/regions/130000000/cities-municipalities/`);
+      } else {
+        provinceCityCache[provinceCode] = await fetchJson(`${LOCATION_API_BASE}/provinces/${provinceCode}/cities-municipalities/`);
+      }
+    }
+    const cities = provinceCityCache[provinceCode]
+      .map(c => ({ code: c.code, name: c.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setOptions(citySelectEl, cities, 'Select Municipality/City');
+  }
+
+  async function loadBarangaysByCityCode(cityCode) {
+    const barangaySelect = document.getElementById('barangay');
+    if (!barangaySelect) return;
+    setOptions(barangaySelect, [], 'Select Barangay');
+    if (!cityCode) return;
+    if (!cityBarangayCache[cityCode]) {
+      cityBarangayCache[cityCode] = await fetchJson(`${LOCATION_API_BASE}/cities-municipalities/${cityCode}/barangays/`);
+    }
+    const barangays = cityBarangayCache[cityCode]
+      .map(b => ({ code: b.code, name: b.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setOptions(barangaySelect, barangays, 'Select Barangay');
+  }
+
+  async function initAddressDropdowns() {
+    if (addressInitPromise) return addressInitPromise;
+    addressInitPromise = (async () => {
+      const provinceSelect = document.getElementById('province');
+      const municipalitySelect = document.getElementById('municipality');
+      const barangaySelect = document.getElementById('barangay');
+      if (!provinceSelect || !municipalitySelect || !barangaySelect) return;
+
+      if (!provinceSelect.tomselect) {
+        new TomSelect(provinceSelect, {
+          create: false,
+          allowEmptyOption: true,
+          placeholder: 'Select Province',
+          closeAfterSelect: true,
+          openOnFocus: true,
+          maxOptions: 10000,
+          searchField: ['text'],
+          sortField: { field: 'text', direction: 'asc' },
+          onItemAdd: function() {
+            this.close();
+            this.setTextboxValue('');
+            this.blur();
+          }
+        });
+      }
+      if (!municipalitySelect.tomselect) {
+        new TomSelect(municipalitySelect, {
+          create: false,
+          allowEmptyOption: true,
+          placeholder: 'Select Municipality/City',
+          closeAfterSelect: true,
+          openOnFocus: true,
+          maxOptions: 10000,
+          searchField: ['text'],
+          sortField: { field: 'text', direction: 'asc' },
+          onItemAdd: function() {
+            this.close();
+            this.setTextboxValue('');
+            this.blur();
+          }
+        });
+      }
+      if (!barangaySelect.tomselect) {
+        new TomSelect(barangaySelect, {
+          create: false,
+          allowEmptyOption: true,
+          placeholder: 'Select Barangay',
+          closeAfterSelect: true,
+          openOnFocus: true,
+          maxOptions: 10000,
+          searchField: ['text'],
+          sortField: { field: 'text', direction: 'asc' },
+          onItemAdd: function() {
+            this.close();
+            this.setTextboxValue('');
+            this.blur();
+          }
+        });
+      }
+
+      await loadProvinces();
+
+      provinceSelect.addEventListener('change', async function () {
+        const provinceCode = getSelectedCode(this);
+        await loadMunicipalitiesByProvinceCode(provinceCode);
+      });
+
+      municipalitySelect.addEventListener('change', async function () {
+        const cityCode = getSelectedCode(this);
+        await loadBarangaysByCityCode(cityCode);
+      });
+    })();
+    return addressInitPromise;
+  }
+
+  function splitLocalValue(value) {
+    const raw = (value || '').trim();
+    if (!raw) return { city: '', province: '' };
+    const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return { city: parts[0], province: parts[parts.length - 1] };
+    }
+    return { city: raw, province: '' };
+  }
+
+  function updateLocalHiddenValue(index) {
+    const provinceSelect = document.getElementById(`local${index}_province`);
+    const citySelect = document.getElementById(`local${index}_city`);
+    const hiddenInput = document.getElementById(`local${index}`);
+    if (!hiddenInput) return;
+
+    const province = provinceSelect ? (provinceSelect.value || '').trim() : '';
+    const city = citySelect ? (citySelect.value || '').trim() : '';
+    if (city && province) {
+      hiddenInput.value = `${city}, ${province}`;
+    } else {
+      hiddenInput.value = '';
+    }
+    syncLocalLocationDuplicateOptions();
+  }
+
+  function refreshTomSelectDisabledOptions(selectEl, disabledValues) {
+    if (!selectEl || !selectEl.tomselect) return;
+    const ts = selectEl.tomselect;
+    const currentValue = (selectEl.value || '').trim();
+    const disabledSet = new Set(disabledValues || []);
+
+    Object.keys(ts.options).forEach((key) => {
+      const isDisabled = disabledSet.has(key) && key !== currentValue;
+      if (ts.options[key].disabled !== isDisabled) {
+        ts.updateOption(key, { ...ts.options[key], disabled: isDisabled });
+      }
+    });
+
+    ts.refreshOptions(false);
+  }
+
+  function syncOccupationDuplicateOptions() {
+    const selects = ['occupation1', 'occupation2', 'occupation3']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    const selectedValues = selects
+      .map((el) => (el.value || '').trim())
+      .filter(Boolean);
+
+    selects.forEach((selectEl) => {
+      const currentValue = (selectEl.value || '').trim();
+      const disabledValues = selectedValues.filter((val) => val !== currentValue);
+      refreshTomSelectDisabledOptions(selectEl, disabledValues);
+    });
+  }
+
+  function syncOverseasDuplicateOptions() {
+    const selects = ['overseas1', 'overseas2', 'overseas3']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+    const selectedValues = selects
+      .map((el) => (el.value || '').trim())
+      .filter(Boolean);
+
+    selects.forEach((selectEl) => {
+      const currentValue = (selectEl.value || '').trim();
+      const disabledValues = selectedValues.filter((val) => val !== currentValue);
+      refreshTomSelectDisabledOptions(selectEl, disabledValues);
+    });
+  }
+
+  function syncLocalLocationDuplicateOptions() {
+    const selectedPairs = [];
+    for (let i = 1; i <= 3; i++) {
+      const hiddenInput = document.getElementById(`local${i}`);
+      const combined = hiddenInput ? (hiddenInput.value || '').trim() : '';
+      if (combined) selectedPairs.push(combined);
+    }
+
+    for (let i = 1; i <= 3; i++) {
+      const provinceSelect = document.getElementById(`local${i}_province`);
+      const citySelect = document.getElementById(`local${i}_city`);
+      if (!provinceSelect || !citySelect || !citySelect.tomselect) continue;
+
+      const province = (provinceSelect.value || '').trim();
+      const currentCombined = province && citySelect.value
+        ? `${citySelect.value.trim()}, ${province}`
+        : '';
+
+      const blockedCities = new Set();
+      selectedPairs.forEach((pair) => {
+        if (!pair || pair === currentCombined) return;
+        const parsed = splitLocalValue(pair);
+        if (province && normalizeText(parsed.province) === normalizeText(province)) {
+          blockedCities.add(parsed.city);
+        }
+      });
+
+      refreshTomSelectDisabledOptions(citySelect, Array.from(blockedCities));
+    }
+  }
+
+  async function initLocalWorkLocationDropdowns() {
+    await initAddressDropdowns();
+    for (let i = 1; i <= 3; i++) {
+      const provinceSelect = document.getElementById(`local${i}_province`);
+      const citySelect = document.getElementById(`local${i}_city`);
+      if (!provinceSelect || !citySelect) continue;
+      const provincePlaceholder = i === 1
+        ? '1. Select province'
+        : `${i}. Select province (optional)`;
+      const cityPlaceholder = i === 1
+        ? '1. Select municipality/city'
+        : `${i}. Select municipality/city (optional)`;
+
+      setOptions(provinceSelect, [...PH_PROVINCES].sort((a, b) => a.name.localeCompare(b.name)), provincePlaceholder);
+      setOptions(citySelect, [], cityPlaceholder);
+
+      if (!provinceSelect.tomselect) {
+        new TomSelect(provinceSelect, {
+          create: false,
+          allowEmptyOption: true,
+          placeholder: provincePlaceholder,
+          closeAfterSelect: true,
+          openOnFocus: true,
+          maxOptions: 10000,
+          searchField: ['text'],
+          sortField: { field: 'text', direction: 'asc' },
+          onChange: async function() {
+            this.close();
+            this.setTextboxValue('');
+            this.blur();
+            const code = getSelectedCode(provinceSelect);
+            await loadMunicipalitiesByProvinceCodeForSelect(code, citySelect);
+            syncLocalLocationDuplicateOptions();
+            updateLocalHiddenValue(i);
+          }
+        });
+      }
+
+      if (!citySelect.tomselect) {
+        new TomSelect(citySelect, {
+          create: function(input) {
+            const city = formatOccupationValue(input);
+            return city ? { value: city, text: city } : false;
+          },
+          createOnBlur: true,
+          allowEmptyOption: true,
+          placeholder: cityPlaceholder,
+          closeAfterSelect: true,
+          openOnFocus: true,
+          maxOptions: 10000,
+          searchField: ['text'],
+          sortField: { field: 'text', direction: 'asc' },
+          onChange: function() {
+            this.close();
+            this.setTextboxValue('');
+            this.blur();
+            updateLocalHiddenValue(i);
+          }
+        });
+      }
+    }
+    syncLocalLocationDuplicateOptions();
+  }
+
+  async function applySavedLocalValues(local1, local2, local3) {
+    await initLocalWorkLocationDropdowns();
+    const values = [local1, local2, local3];
+    for (let i = 1; i <= 3; i++) {
+      const val = values[i - 1] || '';
+      if (!val) continue;
+
+      const provinceSelect = document.getElementById(`local${i}_province`);
+      const citySelect = document.getElementById(`local${i}_city`);
+      const hiddenInput = document.getElementById(`local${i}`);
+      const parts = splitLocalValue(val);
+
+      if (provinceSelect && parts.province) {
+        ensureSelectValue(provinceSelect, parts.province);
+        const provinceCode = getSelectedCode(provinceSelect);
+        await loadMunicipalitiesByProvinceCodeForSelect(provinceCode, citySelect);
+      }
+      if (citySelect && parts.city) {
+        ensureSelectValue(citySelect, parts.city);
+      }
+      if (hiddenInput) {
+        hiddenInput.value = val;
+      }
+    }
+    syncLocalLocationDuplicateOptions();
+  }
+
+  function initOccupationDropdowns() {
+    ['occupation1', 'occupation2', 'occupation3'].forEach((id, index) => {
+      const selectEl = document.getElementById(id);
+      if (!selectEl || selectEl.tomselect) return;
+
+      const ts = new TomSelect(selectEl, {
+        create: function(input) {
+          const formatted = formatOccupationValue(input);
+          return formatted ? { value: formatted, text: formatted } : false;
+        },
+        createOnBlur: true,
+        persist: true,
+        allowEmptyOption: true,
+        closeAfterSelect: true,
+        openOnFocus: true,
+        maxOptions: 10000,
+        placeholder: index === 0
+          ? 'Select preferred occupation'
+          : 'Select preferred occupation (optional)',
+        searchField: ['text'],
+        sortField: { field: 'text', direction: 'asc' },
+        onItemAdd: function(value) {
+          const formatted = formatOccupationValue(value);
+          if (formatted && formatted !== value) {
+            this.removeItem(value, true);
+            this.addOption({ value: formatted, text: formatted });
+            this.setValue(formatted, true);
+          }
+          this.close();
+          this.setTextboxValue('');
+          this.blur();
+          syncOccupationDuplicateOptions();
+        },
+        onChange: function() {
+          syncOccupationDuplicateOptions();
+        }
+      });
+
+      OCCUPATION_OPTIONS.forEach(occupation => {
+        const formatted = formatOccupationValue(occupation);
+        ts.addOption({ value: formatted, text: formatted });
+      });
+      ts.refreshOptions(false);
+    });
+    syncOccupationDuplicateOptions();
+  }
+
+  function initOverseasDropdowns() {
+    ['overseas1', 'overseas2', 'overseas3'].forEach((id, index) => {
+      const selectEl = document.getElementById(id);
+      if (!selectEl || selectEl.tomselect) return;
+
+      const ts = new TomSelect(selectEl, {
+        create: false,
+        allowEmptyOption: true,
+        closeAfterSelect: true,
+        openOnFocus: true,
+        maxOptions: 10000,
+        placeholder: index === 0 ? 'Select country' : 'Select country (optional)',
+        searchField: ['text'],
+        sortField: { field: 'text', direction: 'asc' },
+        onItemAdd: function() {
+          this.close();
+          this.setTextboxValue('');
+          this.blur();
+          syncOverseasDuplicateOptions();
+        },
+        onChange: function() {
+          syncOverseasDuplicateOptions();
+        }
+      });
+
+      COUNTRY_OPTIONS.forEach(country => {
+        ts.addOption({ value: country, text: country });
+      });
+      ts.refreshOptions(false);
+    });
+    syncOverseasDuplicateOptions();
+  }
+
+  function initOtherLanguageDropdown() {
+    const selectEl = document.getElementById('other_language');
+    if (!selectEl || selectEl.tomselect) return;
+
+    const ts = new TomSelect(selectEl, {
+      create: function(input) {
+        const formatted = formatOccupationValue(input);
+        return formatted ? { value: formatted, text: formatted } : false;
+      },
+      createOnBlur: true,
+      persist: true,
+      allowEmptyOption: false,
+      closeAfterSelect: true,
+      openOnFocus: true,
+      maxOptions: 10000,
+      placeholder: 'Specify language/dialect',
+      searchField: ['text'],
+      sortField: { field: 'text', direction: 'asc' },
+      onDropdownOpen: function() {
+        if (this.dropdown_content) {
+          this.dropdown_content.scrollTop = 0;
+        }
+      },
+      onItemAdd: function(value) {
+        const formatted = formatOccupationValue(value);
+        if (formatted && formatted !== value) {
+          this.removeItem(value, true);
+          this.addOption({ value: formatted, text: formatted });
+          this.setValue(formatted, true);
+        }
+        this.close();
+        this.setTextboxValue('');
+        this.blur();
+      },
+      onChange: function() {
+        updateOtherLanguageToggleState();
+      }
+    });
+
+    LANGUAGE_DIALECT_OPTIONS.forEach(item => {
+      const formatted = formatOccupationValue(item);
+      ts.addOption({ value: formatted, text: formatted });
+    });
+    ts.refreshOptions(false);
+    updateOtherLanguageToggleState();
+  }
+
+  function initCourseDropdown() {
+    const courseSelect = document.getElementById('course');
+    if (!courseSelect || courseSelect.tomselect) return;
+
+    function normalizeCourseEntry(value) {
+      return (value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    const ts = new TomSelect(courseSelect, {
+      create: function(input) {
+        const raw = normalizeCourseEntry(input);
+        return raw ? { value: raw, text: raw } : false;
+      },
+      createOnBlur: true,
+      persist: true,
+      allowEmptyOption: false,
+      closeAfterSelect: true,
+      openOnFocus: true,
+      maxOptions: 10000,
+      placeholder: 'Select or type course/strand',
+      searchField: ['text'],
+      sortField: { field: 'text', direction: 'asc' },
+      onDropdownOpen: function() {
+        if (this.dropdown_content) {
+          this.dropdown_content.scrollTop = 0;
+        }
+      },
+      onItemAdd: function(value) {
+        const raw = normalizeCourseEntry(value);
+        if (raw && raw !== value) {
+          this.removeItem(value, true);
+          this.addOption({ value: raw, text: raw });
+          this.setValue(raw, true);
+        }
+        this.close();
+        this.setTextboxValue('');
+        this.blur();
+      }
+    });
+
+    const refreshCourseOptionsByLevel = () => {
+      const levelSelect = document.getElementById('levelSelect');
+      const currentValue = normalizeCourseEntry(ts.getValue());
+      let options = [];
+      const normalizedLevel = levelSelect
+        ? (levelSelect.value || '').replace(/\s+/g, ' ').trim().toLowerCase()
+        : '';
+      if (normalizedLevel === 'secondary (k-12)' || normalizedLevel === 'secondary (k 12)') {
+        options = SHS_STRAND_OPTIONS;
+      } else if (normalizedLevel === 'tertiary' || normalizedLevel === 'graduate studies / post-graduate') {
+        options = COURSE_ONLY_OPTIONS;
+      }
+
+      ts.clearOptions();
+      options.forEach(item => ts.addOption({ value: item, text: item }));
+      if (currentValue) {
+        const inOptions = options.includes(currentValue);
+        if (!inOptions) {
+          // Keep saved/custom values even when not part of predefined options.
+          ts.addOption({ value: currentValue, text: currentValue });
+          ts.setValue(currentValue, true);
+        } else {
+          ts.setValue(currentValue, true);
+        }
+      } else {
+        ts.clear(true);
+      }
+      ts.refreshOptions(false);
+    };
+
+    courseSelect.refreshCourseOptionsByLevel = refreshCourseOptionsByLevel;
+    refreshCourseOptionsByLevel();
+  }
+
+  function updateOtherLanguageToggleState() {
+    const otherLang = document.querySelector('[name="other_language"]');
+    const selectAll = document.getElementById('other_select_all');
+    const otherCheckboxes = [
+      document.querySelector('input[name="other_read"]'),
+      document.querySelector('input[name="other_write"]'),
+      document.querySelector('input[name="other_speak"]'),
+      document.querySelector('input[name="other_understand"]')
+    ];
+    if (!otherLang || !selectAll) return;
+    const hasValue = !!(otherLang.value && otherLang.value.trim());
+    if (!hasValue) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      otherCheckboxes.forEach((checkbox) => {
+        if (!checkbox) return;
+        checkbox.checked = false;
+      });
+    }
+    selectAll.disabled = !hasValue;
+    otherCheckboxes.forEach((checkbox) => {
+      if (!checkbox) return;
+      checkbox.disabled = !hasValue;
+    });
+  }
+
+  async function applySavedAddressValues(province, municipality, barangay) {
+    await initAddressDropdowns();
+    const provinceSelect = document.getElementById('province');
+    const municipalitySelect = document.getElementById('municipality');
+    const barangaySelect = document.getElementById('barangay');
+    if (!provinceSelect || !municipalitySelect || !barangaySelect) return;
+
+    ensureSelectValue(provinceSelect, province);
+    const provinceCode = getSelectedCode(provinceSelect);
+    await loadMunicipalitiesByProvinceCode(provinceCode);
+
+    ensureSelectValue(municipalitySelect, municipality);
+    const cityCode = getSelectedCode(municipalitySelect);
+    await loadBarangaysByCityCode(cityCode);
+
+    ensureSelectValue(barangaySelect, barangay);
   }
   
   function showNextSection() {
+    // Ensure location dropdown data is initialized before first validation step.
+    if (typeof initAddressDropdowns === 'function') {
+      initAddressDropdowns();
+    }
+
     const currentSection = getCurrentSection();
     
     // Check for personal information section validation when moving from section1_1 (personal information section)
@@ -3121,7 +4121,7 @@ $conn->close();
       if (!barangay.value.trim()) {
         Swal.fire({
           title: 'Barangay Required!',
-          text: 'Please enter your barangay.',
+          text: 'Please select your barangay.',
           icon: 'warning',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff9800'
@@ -3132,7 +4132,7 @@ $conn->close();
       if (!municipality.value.trim()) {
         Swal.fire({
           title: 'Municipality/City Required!',
-          text: 'Please enter your municipality/city.',
+          text: 'Please select your municipality/city.',
           icon: 'warning',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff9800'
@@ -3143,7 +4143,7 @@ $conn->close();
       if (!province.value.trim()) {
         Swal.fire({
           title: 'Province Required!',
-          text: 'Please enter your province.',
+          text: 'Please select your province.',
           icon: 'warning',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff9800'
@@ -3452,9 +4452,9 @@ $conn->close();
     if (currentSection === 'section2_1') {
       const fulltime = document.querySelector('input[name="fulltime"]');
       const parttime = document.querySelector('input[name="parttime"]');
-      const occupation1 = document.querySelector('input[name="occupation1"]');
+      const occupation1 = document.querySelector('[name="occupation1"]');
       const local1 = document.querySelector('input[name="local1"]');
-      const overseas1 = document.querySelector('input[name="overseas1"]');
+      const overseas1 = document.querySelector('[name="overseas1"]');
       
       // Check if at least one employment type is selected (full-time or part-time)
       if (!fulltime.checked && !parttime.checked) {
@@ -3491,6 +4491,24 @@ $conn->close();
         });
         return; // Prevent navigation
       }
+
+      // If a province is selected in any local row, municipality/city becomes required in that row.
+      for (let i = 1; i <= 3; i++) {
+        const provinceEl = document.getElementById(`local${i}_province`);
+        const cityEl = document.getElementById(`local${i}_city`);
+        const provinceValue = provinceEl ? (provinceEl.value || '').trim() : '';
+        const cityValue = cityEl ? (cityEl.value || '').trim() : '';
+        if (provinceValue && !cityValue) {
+          Swal.fire({
+            title: 'Municipality/City Required!',
+            text: `Please select the municipality/city for Local preference #${i}.`,
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800'
+          });
+          return; // Prevent navigation
+        }
+      }
       
       // Check if at least one overseas work location is provided
       if (!overseas1.value.trim()) {
@@ -3510,9 +4528,11 @@ $conn->close();
       const inSchoolYes = document.querySelector('input[name="inschool"][value="yes"]');
       const inSchoolNo = document.querySelector('input[name="inschool"][value="no"]');
       const levelSelect = document.getElementById('levelSelect');
+      const courseField = document.querySelector('[name="course"]');
       const yearGraduated = document.querySelector('input[name="year_graduated"]');
       const levelReached = document.getElementById('level_reached');
       const lastAttended = document.getElementById('last_attended');
+      const courseRequiredLevels = ['Secondary (K-12)', 'Tertiary', 'Graduate Studies / Post-graduate'];
       
       // Check if user has selected "Currently in School?" option
       if (!inSchoolYes.checked && !inSchoolNo.checked) {
@@ -3538,6 +4558,16 @@ $conn->close();
           });
           return; // Prevent navigation
         }
+        if (courseRequiredLevels.includes(levelSelect.value) && (!courseField || !courseField.value.trim())) {
+          Swal.fire({
+            title: 'Course/Strand Required!',
+            text: 'Please select or type your course/strand before proceeding.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800'
+          });
+          return; // Prevent navigation
+        }
       }
       
       // If user selected "No" for currently in school
@@ -3546,6 +4576,17 @@ $conn->close();
         const hasLevelAndYear = levelSelect.value && yearGraduated.value.trim();
         // Check if they are undergraduate (Level Reached and Year Last Attended filled)
         const hasLevelReachedAndLastAttended = levelReached.value && lastAttended.value.trim();
+
+        if (levelSelect.value && courseRequiredLevels.includes(levelSelect.value) && (!courseField || !courseField.value.trim())) {
+          Swal.fire({
+            title: 'Course/Strand Required!',
+            text: 'Please select or type your course/strand before proceeding.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800'
+          });
+          return; // Prevent navigation
+        }
         
         if (!hasLevelAndYear && !hasLevelReachedAndLastAttended) {
           Swal.fire({
@@ -3562,12 +4603,11 @@ $conn->close();
     
     // Check for e-signature validation when moving from section3_4 (certification section)
     if (currentSection === 'section3_4') {
-      const esignatureInput = document.getElementById('esignature');
-      if (!esignatureInput.files || esignatureInput.files.length === 0) {
-        // Show SweetAlert warning if no e-signature is uploaded
+      const skillValidation = validateSkills();
+      if (!skillValidation.valid) {
         Swal.fire({
-          title: 'E-Signature Required!',
-          text: 'Please upload your e-signature before proceeding to the next section.',
+          title: 'Validation Required!',
+          text: skillValidation.message,
           icon: 'warning',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff9800'
@@ -3946,9 +4986,9 @@ $conn->close();
   function validateJobPreference() {
     const fulltime = document.querySelector('input[name="fulltime"]');
     const parttime = document.querySelector('input[name="parttime"]');
-    const occupation1 = document.querySelector('input[name="occupation1"]');
+    const occupation1 = document.querySelector('[name="occupation1"]');
     const local1 = document.querySelector('input[name="local1"]');
-    const overseas1 = document.querySelector('input[name="overseas1"]');
+    const overseas1 = document.querySelector('[name="overseas1"]');
     
     if (!fulltime.checked && !parttime.checked) {
       return { valid: false, message: 'Please select at least one employment type (Full-time or Part-time).' };
@@ -3958,6 +4998,15 @@ $conn->close();
     }
     if (!local1.value.trim()) {
       return { valid: false, message: 'Please provide at least one local work location (city/municipality).' };
+    }
+    for (let i = 1; i <= 3; i++) {
+      const provinceEl = document.getElementById(`local${i}_province`);
+      const cityEl = document.getElementById(`local${i}_city`);
+      const provinceValue = provinceEl ? (provinceEl.value || '').trim() : '';
+      const cityValue = cityEl ? (cityEl.value || '').trim() : '';
+      if (provinceValue && !cityValue) {
+        return { valid: false, message: `Please select the municipality/city for Local preference #${i}.` };
+      }
     }
     if (!overseas1.value.trim()) {
       return { valid: false, message: 'Please provide at least one overseas work location (country).' };
@@ -3970,9 +5019,11 @@ $conn->close();
     const inSchoolYes = document.querySelector('input[name="inschool"][value="yes"]');
     const inSchoolNo = document.querySelector('input[name="inschool"][value="no"]');
     const levelSelect = document.getElementById('levelSelect');
+    const courseField = document.querySelector('[name="course"]');
     const yearGraduated = document.querySelector('input[name="year_graduated"]');
     const levelReached = document.getElementById('level_reached');
     const lastAttended = document.getElementById('last_attended');
+    const courseRequiredLevels = ['Secondary (K-12)', 'Tertiary', 'Graduate Studies / Post-graduate'];
     
     if (!inSchoolYes.checked && !inSchoolNo.checked) {
       return { valid: false, message: 'Please select whether you are currently in school or not.' };
@@ -3982,11 +5033,18 @@ $conn->close();
       if (!levelSelect.value) {
         return { valid: false, message: 'Please select your current education level.' };
       }
+      if (courseRequiredLevels.includes(levelSelect.value) && (!courseField || !courseField.value.trim())) {
+        return { valid: false, message: 'Course/Strand is required for the selected education level.' };
+      }
     }
     
     if (inSchoolNo.checked) {
       const hasLevelAndYear = levelSelect.value && yearGraduated.value.trim();
       const hasLevelReachedAndLastAttended = levelReached.value && lastAttended.value.trim();
+
+      if (levelSelect.value && courseRequiredLevels.includes(levelSelect.value) && (!courseField || !courseField.value.trim())) {
+        return { valid: false, message: 'Course/Strand is required for the selected education level.' };
+      }
       
       if (!hasLevelAndYear && !hasLevelReachedAndLastAttended) {
         return { valid: false, message: 'Please provide either your graduation details (Level and Year Graduated) or your undergraduate information (Level Reached and Year Last Attended).' };
@@ -3997,6 +5055,11 @@ $conn->close();
   }
   
   function validateSkills() {
+    const otherSkillsInput = document.querySelector('input[name="skill_others"]');
+    if (!otherSkillsInput || !otherSkillsInput.value.trim()) {
+      return { valid: false, message: 'Please enter at least one skill in the Others field.' };
+    }
+
     const esignatureInput = document.getElementById('esignature');
     const esignaturePreview = document.getElementById('esignaturePreview');
     
@@ -4529,80 +5592,13 @@ $conn->close();
     }
   });
 
-  // Job preference fields validation - only allow letters and Filipino characters
-  // Occupation fields
-  document.querySelector('input[name="occupation1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
+  // Job preference fields validation - occupation values are normalized via TomSelect create/add handlers
 
-  document.querySelector('input[name="occupation2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
+  // Local work location fields now use Province + Municipality/City dropdown pairs and hidden combined values.
 
-  document.querySelector('input[name="occupation3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
+  // Overseas fields now use searchable country dropdowns.
 
-  // Local work location fields
-  document.querySelector('input[name="local1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="local2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="local3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  // Overseas work location fields
-  document.querySelector('input[name="overseas1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="overseas2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="overseas3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  // Other language field validation - only allow letters and Filipino characters
-  document.querySelector('input[name="other_language"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 30) {
-      this.value = this.value.substring(0, 30);
-    }
-  });
+  // Other language field now uses TomSelect dropdown with optional custom entries.
 
   // Year fields validation - only allow numbers
   document.querySelector('input[name="year_graduated"]').addEventListener('input', function() {
@@ -4620,89 +5616,19 @@ $conn->close();
   });
 
   // Technical training fields validation
-  // Text fields (alphabetic only, max 40 characters)
-  document.querySelector('input[name="training_course_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_institution_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_skills_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_cert_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_course_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_institution_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_skills_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_cert_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_course_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_institution_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_skills_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="training_cert_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
+  // Text fields (letters, numbers, and special characters allowed; max 40 characters)
+  [
+    'training_course_1','training_institution_1','training_skills_1','training_cert_1',
+    'training_course_2','training_institution_2','training_skills_2','training_cert_2',
+    'training_course_3','training_institution_3','training_skills_3','training_cert_3'
+  ].forEach(function(fieldName) {
+    const field = document.querySelector(`input[name="${fieldName}"]`);
+    if (!field) return;
+    field.addEventListener('input', function() {
+      if (this.value.length > 40) {
+        this.value = this.value.substring(0, 40);
+      }
+    });
   });
 
   // Hours fields (numeric only, max 10 characters)
@@ -4727,39 +5653,20 @@ $conn->close();
     }
   });
 
-  // Eligibility and PRC fields validation - allow letters, numbers, and parentheses
-  document.querySelector('input[name="eligibility_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="eligibility_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="prc_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="prc_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 40) {
-      this.value = this.value.substring(0, 40);
-    }
+  // Eligibility and PRC fields validation (allow special characters; max 40 chars)
+  ['eligibility_1', 'eligibility_2', 'prc_1', 'prc_2'].forEach(function(fieldName) {
+    const field = document.querySelector(`input[name="${fieldName}"]`);
+    if (!field) return;
+    field.addEventListener('input', function() {
+      if (this.value.length > 40) {
+        this.value = this.value.substring(0, 40);
+      }
+    });
   });
 
   // Work experience fields validation
   // Text fields (alphabetic + numeric + parentheses, max 50 characters)
   document.querySelector('input[name="company_name_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
     if (this.value.length > 50) {
       this.value = this.value.substring(0, 50);
     }
@@ -4787,7 +5694,6 @@ $conn->close();
   });
 
   document.querySelector('input[name="company_name_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
     if (this.value.length > 50) {
       this.value = this.value.substring(0, 50);
     }
@@ -4815,7 +5721,6 @@ $conn->close();
   });
 
   document.querySelector('input[name="company_name_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
     if (this.value.length > 50) {
       this.value = this.value.substring(0, 50);
     }
@@ -4970,18 +5875,11 @@ $conn->close();
   document.getElementById('deployment_country').addEventListener('paste', preventInvalidPaste);
   
   // Job preference fields paste event listeners
-  document.querySelector('input[name="occupation1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="occupation2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="occupation3"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="local1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="local2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="local3"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="overseas1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="overseas2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="overseas3"]').addEventListener('paste', preventInvalidPaste);
+  // occupation fields are select+search (TomSelect), no direct paste handler needed
+  // local1/local2/local3 are hidden combined fields generated from dropdown selections.
+  // overseas fields are select+search (TomSelect), no direct paste handler needed
   
-  // Other language field paste event listener
-  document.querySelector('input[name="other_language"]').addEventListener('paste', preventInvalidPaste);
+  // Other language field now uses TomSelect dropdown with optional custom entries.
   
   // Year fields paste event listeners - only allow numbers
   document.querySelector('input[name="year_graduated"]').addEventListener('paste', function(event) {
@@ -5025,19 +5923,24 @@ $conn->close();
   });
   
   // Technical training fields paste event listeners
-  // Text fields paste event listeners (alphabetic only)
-  document.querySelector('input[name="training_course_1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_institution_1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_skills_1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_cert_1"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_course_2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_institution_2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_skills_2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_cert_2"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_course_3"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_institution_3"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_skills_3"]').addEventListener('paste', preventInvalidPaste);
-  document.querySelector('input[name="training_cert_3"]').addEventListener('paste', preventInvalidPaste);
+  // Text fields paste event listeners (letters, numbers, and special characters allowed)
+  [
+    'training_course_1','training_institution_1','training_skills_1','training_cert_1',
+    'training_course_2','training_institution_2','training_skills_2','training_cert_2',
+    'training_course_3','training_institution_3','training_skills_3','training_cert_3'
+  ].forEach(function(fieldName) {
+    const field = document.querySelector(`input[name="${fieldName}"]`);
+    if (!field) return;
+    field.addEventListener('paste', function(event) {
+      const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+      const currentLen = (this.value || '').length;
+      if (currentLen + pastedText.length > 40) {
+        event.preventDefault();
+        const allowed = Math.max(0, 40 - currentLen);
+        this.value = (this.value || '') + pastedText.substring(0, allowed);
+      }
+    });
+  });
   
   // Hours fields paste event listeners (numeric only)
   document.querySelector('input[name="training_hours_1"]').addEventListener('paste', function(event) {
@@ -5100,103 +6003,26 @@ $conn->close();
     }
   });
   
-  // Eligibility and PRC fields paste event listeners - allow letters, numbers, and parentheses
-  document.querySelector('input[name="eligibility_1"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 40) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="eligibility_2"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 40) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="prc_1"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 40) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 40);
-    }
-  });
-
-  document.querySelector('input[name="prc_2"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 40) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 40);
-    }
+  // Eligibility and PRC fields paste event listeners (allow special characters; max 40 chars)
+  ['eligibility_1', 'eligibility_2', 'prc_1', 'prc_2'].forEach(function(fieldName) {
+    const field = document.querySelector(`input[name="${fieldName}"]`);
+    if (!field) return;
+    field.addEventListener('paste', function(event) {
+      const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+      const currentLen = (this.value || '').length;
+      if (currentLen + pastedText.length > 40) {
+        event.preventDefault();
+        const allowed = Math.max(0, 40 - currentLen);
+        this.value = (this.value || '') + pastedText.substring(0, allowed);
+      }
+    });
   });
   
   // Work experience fields paste event listeners
   // Text fields paste event listeners (alphabetic + numeric + parentheses)
   document.querySelector('input[name="company_name_1"]').addEventListener('paste', function(event) {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
+    if (pastedText.length > 50) {
       event.preventDefault();
       const input = event.target;
       input.value = pastedText.substring(0, 50);
@@ -5265,18 +6091,7 @@ $conn->close();
 
   document.querySelector('input[name="company_name_2"]').addEventListener('paste', function(event) {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
+    if (pastedText.length > 50) {
       event.preventDefault();
       const input = event.target;
       input.value = pastedText.substring(0, 50);
@@ -5345,18 +6160,7 @@ $conn->close();
 
   document.querySelector('input[name="company_name_3"]').addEventListener('paste', function(event) {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
+    if (pastedText.length > 50) {
       event.preventDefault();
       const input = event.target;
       input.value = pastedText.substring(0, 50);
@@ -5586,6 +6390,17 @@ $conn->close();
 
   // Language proficiency "Select All" functionality
   function toggleLanguageGroup(language, checked) {
+    if (language === 'other') {
+      const otherLanguage = document.querySelector('[name="other_language"]');
+      if (!otherLanguage || !otherLanguage.value.trim()) {
+        const otherSelectAll = document.getElementById('other_select_all');
+        if (otherSelectAll) {
+          otherSelectAll.checked = false;
+          otherSelectAll.indeterminate = false;
+        }
+        return;
+      }
+    }
     const checkboxes = [
       document.querySelector(`input[name="${language}_read"]`),
       document.querySelector(`input[name="${language}_write"]`),
@@ -5604,6 +6419,17 @@ $conn->close();
   function updateSelectAllCheckbox(language) {
     const selectAllCheckbox = document.getElementById(`${language}_select_all`);
     if (!selectAllCheckbox) return;
+    if (language === 'other') {
+      const otherLanguage = document.querySelector('[name="other_language"]');
+      const hasOtherLanguage = !!(otherLanguage && otherLanguage.value && otherLanguage.value.trim());
+      if (!hasOtherLanguage) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.disabled = true;
+        return;
+      }
+      selectAllCheckbox.disabled = false;
+    }
     
     const checkboxes = [
       document.querySelector(`input[name="${language}_read"]`),
@@ -5630,6 +6456,14 @@ $conn->close();
       }
     });
   });
+
+  const otherLanguageField = document.querySelector('[name="other_language"]');
+  if (otherLanguageField) {
+    otherLanguageField.addEventListener('change', function() {
+      updateOtherLanguageToggleState();
+      updateSelectAllCheckbox('other');
+    });
+  }
 
   // Initial step
   showStep1();
@@ -6090,7 +6924,7 @@ $conn->close();
   function toggleCourseField() {
     const levelSelect = document.getElementById('levelSelect');
     const courseField = document.getElementById('courseField');
-    const courseInput = courseField.querySelector('input[name="course"]');
+    const courseInput = courseField.querySelector('[name="course"]');
     
     const showCourseOptions = [
       'Secondary (K-12)',
@@ -6101,11 +6935,68 @@ $conn->close();
     if (showCourseOptions.includes(levelSelect.value)) {
       courseField.style.display = '';
       courseInput.disabled = false;
+      if (typeof courseInput.refreshCourseOptionsByLevel === 'function') {
+        courseInput.refreshCourseOptionsByLevel();
+      }
     } else {
       courseField.style.display = 'none';
       courseInput.disabled = true;
-      courseInput.value = '';
+      if (courseInput.tomselect) {
+        courseInput.tomselect.clear(true);
+        courseInput.tomselect.setTextboxValue('');
+      } else {
+        courseInput.value = '';
+      }
     }
+    syncEducationFieldsLocking();
+  }
+
+  function syncEducationFieldsLocking() {
+    const levelSelect = document.getElementById('levelSelect');
+    const yearGraduated = document.querySelector('input[name="year_graduated"]');
+    const levelReached = document.getElementById('level_reached');
+    const lastAttended = document.getElementById('last_attended');
+    if (!levelSelect || !yearGraduated || !levelReached || !lastAttended) return;
+
+    const hasPrimaryPath = !!(levelSelect.value && levelSelect.value.trim());
+    const hasUndergradPath = !!(levelReached.value && levelReached.value.trim());
+
+    if (hasPrimaryPath) {
+      levelReached.value = '';
+      lastAttended.value = '';
+      levelReached.disabled = true;
+      lastAttended.disabled = true;
+      levelSelect.disabled = false;
+      yearGraduated.disabled = false;
+      return;
+    }
+
+    if (hasUndergradPath) {
+      levelSelect.value = '';
+      yearGraduated.value = '';
+      levelSelect.disabled = true;
+      yearGraduated.disabled = true;
+      levelReached.disabled = false;
+      lastAttended.disabled = false;
+      const courseField = document.getElementById('courseField');
+      const courseInput = document.querySelector('[name="course"]');
+      if (courseField) courseField.style.display = 'none';
+      if (courseInput) {
+        courseInput.disabled = true;
+        if (courseInput.tomselect) {
+          courseInput.tomselect.clear(true);
+          courseInput.tomselect.setTextboxValue('');
+        } else {
+          courseInput.value = '';
+        }
+      }
+      return;
+    }
+
+    levelSelect.disabled = false;
+    yearGraduated.disabled = false;
+    levelReached.disabled = false;
+    lastAttended.disabled = false;
   }
 </script>
 
@@ -6131,6 +7022,25 @@ $conn->close();
       userId: userId,
       token: token.substring(0, 10) + '...'
     });
+
+    initAddressDropdowns();
+    initOccupationDropdowns();
+    initLocalWorkLocationDropdowns();
+    initOverseasDropdowns();
+    initOtherLanguageDropdown();
+    initCourseDropdown();
+    const levelSelectEl = document.getElementById('levelSelect');
+    const levelReachedEl = document.getElementById('level_reached');
+    if (levelSelectEl) {
+      levelSelectEl.addEventListener('change', function() {
+        toggleCourseField();
+        syncEducationFieldsLocking();
+      });
+    }
+    if (levelReachedEl) {
+      levelReachedEl.addEventListener('change', syncEducationFieldsLocking);
+    }
+    syncEducationFieldsLocking();
     
   });
   
@@ -6144,6 +7054,12 @@ $conn->close();
   
   // Comprehensive function to populate all form fields
   function populateFormFields(nrsp) {
+    const asDisplayText = (value, fallback = '') => {
+      const normalized = (value === null || value === undefined) ? '' : String(value).trim();
+      if (!normalized || normalized.toLowerCase() === 'null') return fallback;
+      return normalized;
+    };
+
     // Personal Information
     const fields = {
       'surname': nrsp.surname,
@@ -6214,18 +7130,21 @@ $conn->close();
       'prc_valid_1': nrsp.prc_valid_1 || '',
       'prc_2': nrsp.prc_2 || '',
       'prc_valid_2': nrsp.prc_valid_2 || '',
-      'company_name_1': nrsp.company_name_1 || '',
-      'company_address_1': nrsp.company_address_1 || '',
-      'position_1': nrsp.position_1 || '',
-      'months_1': nrsp.months_1 || '',
-      'status_1': nrsp.status_1 || '',
-      'company_name_2': nrsp.company_name_2 || '',
-      'company_address_2': nrsp.company_address_2 || '',
-      'position_2': nrsp.position_2 || '',
-      'months_2': nrsp.months_2 || '',
-      'status_2': nrsp.status_2 || '',
-      'company_name_3': nrsp.company_name_3 || '',
-      'company_address_3': nrsp.company_address_3 || '',
+      'company_name_1': asDisplayText(nrsp.company_name_1, 'n/a'),
+      'company_address_1': asDisplayText(nrsp.company_address_1, 'n/a'),
+      'position_1': asDisplayText(nrsp.position_1, 'n/a'),
+      'months_1': asDisplayText(nrsp.months_1, 'n/a'),
+      'status_1': asDisplayText(nrsp.status_1, 'n/a'),
+      'company_name_2': asDisplayText(nrsp.company_name_2, 'n/a'),
+      'company_address_2': asDisplayText(nrsp.company_address_2, 'n/a'),
+      'position_2': asDisplayText(nrsp.position_2, 'n/a'),
+      'months_2': asDisplayText(nrsp.months_2, 'n/a'),
+      'status_2': asDisplayText(nrsp.status_2, 'n/a'),
+      'company_name_3': asDisplayText(nrsp.company_name_3, 'n/a'),
+      'company_address_3': asDisplayText(nrsp.company_address_3, 'n/a'),
+      'position_3': asDisplayText(nrsp.position_3, 'n/a'),
+      'months_3': asDisplayText(nrsp.months_3, 'n/a'),
+      'status_3': asDisplayText(nrsp.status_3, 'n/a'),
       'skill_others': nrsp.skill_others || ''
     };
     
@@ -6240,6 +7159,65 @@ $conn->close();
         }
       }
     });
+
+    ['occupation1', 'occupation2', 'occupation3'].forEach((fieldName) => {
+      const selectEl = document.getElementById(fieldName);
+      const rawValue = fields[fieldName] || '';
+      const formatted = formatOccupationValue(rawValue);
+      if (!selectEl || !formatted) return;
+      if (selectEl.tomselect) {
+        selectEl.tomselect.addOption({ value: formatted, text: formatted });
+        selectEl.tomselect.setValue(formatted, true);
+      } else {
+        selectEl.value = formatted;
+      }
+    });
+
+    ['overseas1', 'overseas2', 'overseas3'].forEach((fieldName) => {
+      const selectEl = document.getElementById(fieldName);
+      const rawValue = asDisplayText(fields[fieldName], '');
+      if (!selectEl || !rawValue) return;
+      if (selectEl.tomselect) {
+        selectEl.tomselect.addOption({ value: rawValue, text: rawValue });
+        selectEl.tomselect.setValue(rawValue, true);
+      } else {
+        ensureSelectValue(selectEl, rawValue);
+      }
+    });
+
+    const courseSelectEl = document.getElementById('course');
+    const savedCourse = asDisplayText(fields.course, '');
+    if (courseSelectEl && courseSelectEl.tomselect) {
+      if (typeof courseSelectEl.refreshCourseOptionsByLevel === 'function') {
+        courseSelectEl.refreshCourseOptionsByLevel();
+      }
+      if (savedCourse) {
+        courseSelectEl.tomselect.addOption({ value: savedCourse, text: savedCourse });
+        courseSelectEl.tomselect.setValue(savedCourse, true);
+      } else {
+        courseSelectEl.tomselect.clear(true);
+      }
+    } else if (courseSelectEl && savedCourse) {
+      ensureSelectValue(courseSelectEl, savedCourse);
+    }
+
+    const otherLanguageSelect = document.getElementById('other_language');
+    const formattedOtherLanguage = formatOccupationValue(fields.other_language || '');
+    if (otherLanguageSelect && formattedOtherLanguage) {
+      if (otherLanguageSelect.tomselect) {
+        otherLanguageSelect.tomselect.addOption({ value: formattedOtherLanguage, text: formattedOtherLanguage });
+        otherLanguageSelect.tomselect.setValue(formattedOtherLanguage, true);
+      } else {
+        ensureSelectValue(otherLanguageSelect, formattedOtherLanguage);
+      }
+    }
+    updateOtherLanguageToggleState();
+
+    applySavedAddressValues(nrsp.province, nrsp.municipality, nrsp.barangay);
+    applySavedLocalValues(nrsp.local1, nrsp.local2, nrsp.local3);
+    syncOccupationDuplicateOptions();
+    syncOverseasDuplicateOptions();
+    syncLocalLocationDuplicateOptions();
     
     // Populate checkboxes
     const checkboxes = {
@@ -6589,6 +7567,21 @@ $conn->close();
       });
     });
   }
+</script>
+<script>
+(function () {
+  function workconnectNotifyParentApplyResize() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'workconnect-resize-apply', source: 'apply' }, '*');
+      }
+    } catch (e) {}
+  }
+  window.addEventListener('load', function () {
+    workconnectNotifyParentApplyResize();
+    [200, 600, 1400].forEach(function (ms) { setTimeout(workconnectNotifyParentApplyResize, ms); });
+  });
+})();
 </script>
 </body>
 </html>

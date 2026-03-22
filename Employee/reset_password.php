@@ -1,11 +1,12 @@
 <?php
 require_once 'db.php';
 
-$error_message = '';
+$token_error = '';
+$form_error = '';
 $success_message = '';
-$token = $_GET['token'] ?? '';
+$token = $_GET['token'] ?? $_POST['reset_token'] ?? '';
 
-// Verify token
+// Verify token (employee: password_resets + employee_users)
 if (!empty($token)) {
     $stmt = $conn->prepare("SELECT pr.*, eu.id as user_id FROM password_resets pr 
                            JOIN employee_users eu ON pr.user_id = eu.id 
@@ -15,28 +16,27 @@ if (!empty($token)) {
     $result = $stmt->get_result();
     
     if ($result->num_rows === 0) {
-        $error_message = "Invalid or expired reset token.";
+        $token_error = "Invalid or expired reset token.";
     }
     $stmt->close();
 } else {
-    $error_message = "No reset token provided.";
+    $token_error = "No reset token provided.";
 }
 
-// Handle password reset
-if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
+// Handle password reset (only when token is valid on load)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
     $new_password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
     if (empty($new_password) || empty($confirm_password)) {
-        $error_message = "All fields are required.";
+        $form_error = "All fields are required.";
     } elseif ($new_password !== $confirm_password) {
-        $error_message = "Passwords do not match.";
+        $form_error = "Passwords do not match.";
     } elseif (strlen($new_password) < 8) {
-        $error_message = "Password must be at least 8 characters long.";
+        $form_error = "Password must be at least 8 characters long.";
     } elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d).{8,}$/', $new_password)) {
-        $error_message = "Password must be at least 8 characters long, contain at least 1 capital letter and 1 number.";
+        $form_error = "Password must be at least 8 characters long, contain at least 1 capital letter and 1 number.";
     } else {
-        // Get user info
         $stmt = $conn->prepare("SELECT pr.user_id FROM password_resets pr WHERE pr.token = ? AND pr.expires_at > NOW()");
         $stmt->bind_param("s", $token);
         $stmt->execute();
@@ -46,23 +46,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
             $user_data = $result->fetch_assoc();
             $user_id = $user_data['user_id'];
             
-            // Update password
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE employee_users SET password = ? WHERE id = ?");
             $stmt->bind_param("si", $hashed_password, $user_id);
             
             if ($stmt->execute()) {
-                // Delete used token
                 $stmt = $conn->prepare("DELETE FROM password_resets WHERE token = ?");
                 $stmt->bind_param("s", $token);
                 $stmt->execute();
                 
                 $success_message = "Password has been reset successfully. You can now login with your new password.";
             } else {
-                $error_message = "Failed to update password. Please try again.";
+                $form_error = "Failed to update password. Please try again.";
             }
         } else {
-            $error_message = "Invalid or expired reset token.";
+            $form_error = "Invalid or expired reset token.";
         }
         $stmt->close();
     }
@@ -88,21 +86,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
         
         <h2 class="login-title">Reset Password</h2>
         
-        <?php if ($error_message): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
-        <?php endif; ?>
-        
-        <?php if ($success_message): ?>
+        <?php if ($token_error): ?>
+            <div class="error-message"><?php echo htmlspecialchars($token_error); ?></div>
+            <div class="back-to-login">
+                <a href="login.php">← Back to Login</a>
+            </div>
+        <?php elseif ($success_message): ?>
             <div class="success-message"><?php echo htmlspecialchars($success_message); ?></div>
             <div class="back-to-login">
                 <a href="login.php">← Back to Login</a>
             </div>
-        <?php elseif (empty($error_message)): ?>
-            <form method="POST" action="">
+        <?php else: ?>
+            <form method="POST" action="" id="resetPasswordForm">
+                <input type="hidden" name="reset_token" value="<?php echo htmlspecialchars($token); ?>">
                 <div class="form-group">
                     <label for="password">New Password</label>
                     <div class="password-input-container">
-                        <input type="password" id="password" name="password" maxlength="30" required>
+                        <input type="password" id="password" name="password" maxlength="30" required autocomplete="new-password">
                         <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
                     </div>
                     <div class="password-requirements">Minimum 8 characters, 1 capital letter, 1 number</div>
@@ -111,7 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>
                     <div class="password-input-container">
-                        <input type="password" id="confirm_password" name="confirm_password" maxlength="30" required>
+                        <input type="password" id="confirm_password" name="confirm_password" maxlength="30" required autocomplete="new-password">
                         <i class="fas fa-eye password-toggle" onclick="toggleConfirmPassword()"></i>
                     </div>
                 </div>
@@ -126,9 +126,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
     </div>
 
     <script>
+        <?php if (!empty($form_error)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Unable to reset password',
+                text: <?php echo json_encode($form_error, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+                confirmButtonColor: '#1a3876',
+                confirmButtonText: 'OK'
+            });
+        });
+        <?php endif; ?>
+
         function togglePassword() {
             const passwordInput = document.getElementById('password');
-            const toggleIcon = document.querySelector('.password-toggle');
+            const toggleIcon = document.querySelectorAll('.password-toggle')[0];
             
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
@@ -144,7 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
         function toggleConfirmPassword() {
             const passwordInput = document.getElementById('confirm_password');
             const toggleIcons = document.querySelectorAll('.password-toggle');
-            const toggleIcon = toggleIcons[1]; // Second toggle icon
+            const toggleIcon = toggleIcons[1];
             
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
@@ -157,7 +169,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
             }
         }
 
-        // Password validation
         function validatePassword() {
             const password = document.getElementById('password').value;
             const requirements = document.querySelector('.password-requirements');
@@ -187,8 +198,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($error_message)) {
             }
         }
 
-        // Add event listener for password validation
-        document.getElementById('password').addEventListener('input', validatePassword);
+        const pwdEl = document.getElementById('password');
+        if (pwdEl) {
+            pwdEl.addEventListener('input', validatePassword);
+        }
+
+        const resetForm = document.getElementById('resetPasswordForm');
+        if (resetForm) {
+            resetForm.addEventListener('submit', function(e) {
+                const p = document.getElementById('password').value;
+                const c = document.getElementById('confirm_password').value;
+                if (p !== c) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Passwords do not match',
+                        text: 'Please re-enter both fields so they match.',
+                        confirmButtonColor: '#1a3876'
+                    });
+                    return false;
+                }
+            });
+        }
     </script>
 
     <style>

@@ -381,6 +381,23 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Render alerts on the parent dashboard when loaded in iframe.
+        (function () {
+            if (window.self === window.top) return;
+            const localFire = Swal.fire.bind(Swal);
+            Swal.fire = function () {
+                try {
+                    if (window.top && typeof window.top.showGlobalSwal === 'function') {
+                        return window.top.showGlobalSwal.apply(window.top, arguments);
+                    }
+                } catch (e) {
+                    // Fall back to local modal when parent access is unavailable.
+                }
+                return localFire.apply(Swal, arguments);
+            };
+        })();
+    </script>
     <style>
         
         .existing-resumes {

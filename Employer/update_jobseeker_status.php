@@ -23,6 +23,56 @@ if ($conn->connect_error) {
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit;
 }
+require_once __DIR__ . '/referrals_schema.php';
+
+// Email sender setup (server-side guarantee for status updates)
+$phpmailer_available = false;
+if (file_exists('../vendor/autoload.php')) {
+    try {
+        require_once '../vendor/autoload.php';
+        require_once 'email_config.php';
+        $phpmailer_available = class_exists('PHPMailer\PHPMailer\PHPMailer');
+    } catch (Exception $e) {
+        $phpmailer_available = false;
+    } catch (Error $e) {
+        $phpmailer_available = false;
+    }
+}
+
+function sendStatusEmail($to, $subject, $htmlBody, $plainBody, $phpmailer_available) {
+    if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    if ($phpmailer_available && class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        try {
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = SMTP_PORT;
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->addAddress($to);
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = $subject;
+            $mail->Body = $htmlBody;
+            $mail->AltBody = $plainBody;
+            $mail->send();
+            return true;
+        } catch (Exception $e) {
+            error_log("Status email PHPMailer failed: " . $e->getMessage());
+        }
+    }
+
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8\r\n";
+    $headers .= "From: WorkConnect <noreply@workconnect.com>\r\n";
+    return @mail($to, $subject, $htmlBody, $headers);
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $input = json_decode(file_get_contents('php://input'), true);
@@ -96,6 +146,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     
+    $query_result = false;
+    $sql = '';
+    $referrals_payload = null;
+
     // Update application status and rejection reason if provided
     if ($rejection_reason && $status === 'Rejected') {
         // Check if rejection_reason column exists
@@ -107,38 +161,96 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $sql = "UPDATE jobseeker SET application_status = '$status' WHERE id = $jobseeker_id";
         }
-    } elseif (strtolower(trim($status)) === 'referred' && $referred_to_company_id && $has_referred_column) {
-        // Check if jobseeker exists and get current status
-        $check_stmt = $conn->prepare("SELECT id, application_status FROM jobseeker WHERE id = ?");
+        error_log("Executing SQL: $sql");
+        $query_result = $conn->query($sql);
+    } elseif (strtolower(trim($status)) === 'referred') {
+        ensure_jobseeker_referrals_table($conn);
+
+        $company_ids = [];
+        if (!empty($input['referred_company_ids']) && is_array($input['referred_company_ids'])) {
+            foreach ($input['referred_company_ids'] as $x) {
+                $cid = (int)$x;
+                if ($cid > 0 && !in_array($cid, $company_ids, true)) {
+                    $company_ids[] = $cid;
+                }
+            }
+        }
+        if (count($company_ids) === 0 && $referred_to_company_id) {
+            $company_ids[] = $referred_to_company_id;
+        }
+        if (count($company_ids) === 0) {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'Select at least one verified company to refer.']);
+            exit;
+        }
+
+        $verified_ids = [];
+        $evColChk = $conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
+        $hasEmailVerifiedCol = $evColChk && $evColChk->num_rows > 0;
+        $vSql = $hasEmailVerifiedCol
+            ? "SELECT id FROM company_users WHERE id = ? AND COALESCE(email_verified, 0) = 1"
+            : "SELECT id FROM company_users WHERE id = ?";
+        $vstmt = $conn->prepare($vSql);
+        foreach ($company_ids as $cid) {
+            $vstmt->bind_param("i", $cid);
+            $vstmt->execute();
+            $vr = $vstmt->get_result();
+            if ($vr && $vr->num_rows > 0) {
+                $verified_ids[] = $cid;
+            }
+        }
+        $vstmt->close();
+
+        if (count($verified_ids) !== count($company_ids)) {
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'One or more companies are invalid or have not verified their email.']);
+            exit;
+        }
+        $company_ids = $verified_ids;
+
+        $check_stmt = $conn->prepare("SELECT id FROM jobseeker WHERE id = ?");
         $check_stmt->bind_param("i", $jobseeker_id);
         $check_stmt->execute();
         $check_result = $check_stmt->get_result();
-        if ($check_result->num_rows > 0) {
-            $current = $check_result->fetch_assoc();
-            error_log("Jobseeker exists - Current status: " . ($current['application_status'] ?? 'NULL'));
-        } else {
-            error_log("ERROR: Jobseeker with ID $jobseeker_id does not exist!");
+        if ($check_result->num_rows === 0) {
             $check_stmt->close();
             ob_clean();
             echo json_encode(['success' => false, 'message' => 'Jobseeker not found']);
             exit;
         }
         $check_stmt->close();
-        
-        // Update status and referred_to_company_id - always use 'Referred' with capital R
-        $sql = "UPDATE jobseeker SET application_status = 'Referred', referred_to_company_id = $referred_to_company_id WHERE id = $jobseeker_id";
-        error_log("SQL Query: $sql");
-        error_log("Updating jobseeker_id: $jobseeker_id, status: 'Referred', referred_to_company_id: $referred_to_company_id");
+
+        if (!$has_referred_column) {
+            $conn->query("ALTER TABLE jobseeker ADD COLUMN referred_to_company_id INT NULL AFTER application_status");
+            $has_referred_column = true;
+        }
+
+        $first_company = (int)$company_ids[0];
+        $referred_to_company_id = $first_company;
+        $sql = "UPDATE jobseeker SET application_status = 'Referred', referred_to_company_id = $first_company WHERE id = $jobseeker_id";
+        error_log("Executing SQL: $sql");
+        $query_result = $conn->query($sql);
+
+        if ($query_result) {
+            $ins = $conn->prepare("INSERT INTO jobseeker_company_referrals (jobseeker_id, company_id, status) VALUES (?, ?, 'pending') ON DUPLICATE KEY UPDATE status = 'pending', rejection_reason = NULL");
+            foreach ($company_ids as $cid) {
+                $cid = (int)$cid;
+                $ins->bind_param("ii", $jobseeker_id, $cid);
+                $ins->execute();
+            }
+            $ins->close();
+            $referrals_payload = fetch_jobseeker_referrals_for_api($conn, $jobseeker_id);
+        }
     } elseif ($status === 'Referred' && !$referred_to_company_id && $has_referred_column) {
-        // If status is Referred but no company_id provided, just update status (backward compatibility)
         $sql = "UPDATE jobseeker SET application_status = '$status' WHERE id = $jobseeker_id";
         error_log("WARNING: Referred status without company_id - SQL: $sql");
+        error_log("Executing SQL: $sql");
+        $query_result = $conn->query($sql);
     } else {
         $sql = "UPDATE jobseeker SET application_status = '$status' WHERE id = $jobseeker_id";
+        error_log("Executing SQL: $sql");
+        $query_result = $conn->query($sql);
     }
-    
-    error_log("Executing SQL: $sql");
-    $query_result = $conn->query($sql);
     
     if ($query_result === TRUE) {
         $rows_affected = $conn->affected_rows;
@@ -167,29 +279,96 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
         
-        // If rejected with reason, create notification for the jobseeker
-        if ($status === 'Rejected' && $rejection_reason) {
-            // Get jobseeker's user_id
-            $user_sql = "SELECT user_id FROM jobseeker WHERE id = $jobseeker_id";
+        // Create in-app notification for status changes + send email
+        if (in_array($status, ['Referred', 'Accepted', 'Rejected'], true)) {
+            $user_sql = "SELECT user_id, email, firstname, surname FROM jobseeker WHERE id = $jobseeker_id";
             $user_result = $conn->query($user_sql);
             if ($user_result && $user_result->num_rows > 0) {
                 $jobseeker = $user_result->fetch_assoc();
-                $user_id = $jobseeker['user_id'];
-                
-                // Check if notifications table exists before creating notification
+                $user_id = (int)$jobseeker['user_id'];
+                $jobseeker_email = trim($jobseeker['email'] ?? '');
+                $jobseeker_name = trim(($jobseeker['firstname'] ?? '') . ' ' . ($jobseeker['surname'] ?? ''));
+                if ($jobseeker_name === '') {
+                    $jobseeker_name = 'Applicant';
+                }
+
                 $check_table = "SHOW TABLES LIKE 'notifications'";
                 $table_result = $conn->query($check_table);
-                
+                $check_col = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
+                $has_type = $check_col && $check_col->num_rows > 0;
+
                 if ($table_result && $table_result->num_rows > 0) {
-                    // Create notification
-                    $notification_sql = "INSERT INTO notifications (user_id, title, message, is_read, created_at) VALUES ($user_id, 'Application Rejected', 'Your job application has been rejected. Reason: $rejection_reason', 0, NOW())";
-                    $conn->query($notification_sql);
+                    $notifTitle = 'Application Update';
+                    $notifMsg = 'Your application status has been updated.';
+                    if ($status === 'Referred') {
+                        $notifTitle = 'Application Referred';
+                        $refRows = fetch_jobseeker_referrals_for_api($conn, $jobseeker_id);
+                        $names = [];
+                        foreach ($refRows as $rr) {
+                            if (($rr['status'] ?? '') === 'pending') {
+                                $names[] = $rr['company_name'];
+                            }
+                        }
+                        if (count($names) === 0 && !empty($referred_to_company_id)) {
+                            $company_stmt = $conn->prepare("SELECT company_name FROM company_users WHERE id = ?");
+                            if ($company_stmt) {
+                                $company_stmt->bind_param("i", $referred_to_company_id);
+                                $company_stmt->execute();
+                                $company_data = $company_stmt->get_result()->fetch_assoc();
+                                $company_stmt->close();
+                                if (!empty($company_data['company_name'])) {
+                                    $names[] = $company_data['company_name'];
+                                }
+                            }
+                        }
+                        if (count($names) > 1) {
+                            $notifMsg = 'Your application has been referred to these companies for review: ' . implode(', ', $names) . '.';
+                        } elseif (count($names) === 1) {
+                            $notifMsg = 'Your application has been referred to ' . $names[0] . ' for review.';
+                        } else {
+                            $notifMsg = 'Your application has been referred for review.';
+                        }
+                    } elseif ($status === 'Accepted') {
+                        $notifTitle = 'Application Accepted';
+                        $notifMsg = 'Congratulations! Your application has been accepted.';
+                    } elseif ($status === 'Rejected') {
+                        $notifTitle = 'Application Rejected';
+                        $notifMsg = $rejection_reason
+                            ? "Your application has been rejected. Reason: $rejection_reason"
+                            : 'Your application has been rejected.';
+                    }
+
+                    if ($has_type) {
+                        $ins = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'application')");
+                        if ($ins) {
+                            $ins->bind_param("iss", $user_id, $notifTitle, $notifMsg);
+                            $ins->execute();
+                            $ins->close();
+                        }
+                    } else {
+                        $ins = $conn->prepare("INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)");
+                        if ($ins) {
+                            $ins->bind_param("iss", $user_id, $notifTitle, $notifMsg);
+                            $ins->execute();
+                            $ins->close();
+                        }
+                    }
+
+                    // Email parity with in-app notifications
+                    $emailSubject = "WorkConnect Application Update: {$status}";
+                    $emailPlain = "Hi {$jobseeker_name},\n\n{$notifMsg}\n\n- WorkConnect";
+                    $emailHtml = "<p>Hi " . htmlspecialchars($jobseeker_name) . ",</p><p>" . nl2br(htmlspecialchars($notifMsg)) . "</p><p>- WorkConnect</p>";
+                    sendStatusEmail($jobseeker_email, $emailSubject, $emailHtml, $emailPlain, $phpmailer_available);
                 }
             }
         }
         
         ob_clean();
-        echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+        $out = ['success' => true, 'message' => 'Status updated successfully'];
+        if ($referrals_payload !== null) {
+            $out['referrals'] = $referrals_payload;
+        }
+        echo json_encode($out);
     } else {
         ob_clean();
         http_response_code(500);

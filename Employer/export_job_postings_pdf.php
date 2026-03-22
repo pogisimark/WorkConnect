@@ -20,6 +20,12 @@ ob_end_clean();
 require_once 'db.php';
 require_once '../vendor/autoload.php';
 
+$job_postings_company_sql = '';
+$colCheck = @$conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+if ($colCheck && $colCheck->num_rows > 0) {
+    $job_postings_company_sql = ' AND company_id IS NOT NULL';
+}
+
 use TCPDF as TCPDF;
 
 // Helper function to calculate MultiCell height without drawing
@@ -43,7 +49,7 @@ $search = $_GET['search'] ?? '';
 // Build query to get job postings
 $query = "SELECT id, title, company, location, job_type, salary_range, status, industry, description, created_at 
           FROM job_postings 
-          WHERE 1=1";
+          WHERE 1=1" . $job_postings_company_sql;
 $params = [];
 $types = '';
 

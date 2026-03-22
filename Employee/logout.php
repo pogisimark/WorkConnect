@@ -1,6 +1,6 @@
 <?php
 // Destroy session and redirect to login
-session_start();
+require_once 'session_init.php';
 
 // Destroy all session data
 session_destroy();

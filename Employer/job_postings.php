@@ -1,7 +1,12 @@
 <?php 
 // Set timezone to Philippines
 date_default_timezone_set('Asia/Manila');
-include 'session_protect.php'; 
+include 'session_protect.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/db.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+$acfu_unread_count = acfu_get_unread_response_count($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1026,8 +1031,8 @@ include 'session_protect.php';
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php" class="active"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -1044,6 +1049,13 @@ include 'session_protect.php';
             require_once 'db.php';
             $success_message = '';
             $error_message = '';
+
+            // Only list jobs created by companies (exclude seed/demo rows with NULL company_id)
+            $job_postings_where = '';
+            $colCheck = @$conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+            if ($colCheck && $colCheck->num_rows > 0) {
+                $job_postings_where = ' WHERE company_id IS NOT NULL';
+            }
 
             if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (isset($_POST['action'])) {
@@ -1178,8 +1190,8 @@ include 'session_protect.php';
                 }
             }
 
-            // Get all job postings
-            $stmt = $conn->prepare("SELECT * FROM job_postings ORDER BY created_at DESC");
+            // Get all job postings (company-created only when company_id column exists)
+            $stmt = $conn->prepare("SELECT * FROM job_postings" . $job_postings_where . " ORDER BY created_at DESC");
             $stmt->execute();
             $job_postings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
@@ -1189,7 +1201,7 @@ include 'session_protect.php';
                 COUNT(*) as total_jobs,
                 SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) as active_jobs,
                 SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as closed_jobs
-                FROM job_postings";
+                FROM job_postings" . $job_postings_where;
             $stats_result = $conn->query($stats_query);
             $stats = $stats_result->fetch_assoc();
 
@@ -1246,7 +1258,6 @@ include 'session_protect.php';
                         <option value="">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Closed">Closed</option>
-                        <option value="Draft">Draft</option>
                     </select>
                     
                     <select id="typeFilter" class="filter-select">
@@ -1254,7 +1265,6 @@ include 'session_protect.php';
                         <option value="Full-time">Full-time</option>
                         <option value="Part-time">Part-time</option>
                         <option value="Contract">Contract</option>
-                        <option value="Internship">Internship</option>
                     </select>
                     
                     <input type="text" id="industryFilter" class="filter-input" placeholder="Filter by industry...">
@@ -1437,7 +1447,6 @@ include 'session_protect.php';
                                 <option value="Full-time">Full-time</option>
                                 <option value="Part-time">Part-time</option>
                                 <option value="Contract">Contract</option>
-                                <option value="Internship">Internship</option>
                             </select>
                         </div>
                     </div>
@@ -1475,7 +1484,6 @@ include 'session_protect.php';
                         <select id="status" name="status">
                             <option value="Active">Active</option>
                             <option value="Closed">Closed</option>
-                            <option value="Draft">Draft</option>
                         </select>
                     </div>
                 </form>

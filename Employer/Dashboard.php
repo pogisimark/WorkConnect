@@ -1,4 +1,14 @@
-<?php include 'session_protect.php'; ?>
+<?php
+include 'session_protect.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/db.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+$acfu_unread_count = acfu_get_unread_response_count($conn);
+if ($conn) {
+    $conn->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -554,8 +564,8 @@
             <a href="#" class="active"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -616,6 +626,16 @@
                     <div id="placedCount" style="font-size:2.8rem;font-weight:bold;color:#9c27b0;margin-bottom:8px;">...</div>
                     <div style="font-size:1.1rem;color:#555;font-weight:500;">Successfully Placed</div>
                     <div style="font-size:0.9rem;color:#888;margin-top:4px;">Job seekers placed in employment</div>
+                </div>
+
+                <div style="background:linear-gradient(135deg,#e0f2fe,#f0f9ff);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(2,132,199,0.08);border-left:4px solid #0284c7;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                        <div style="font-size:2.5rem;">🏢</div>
+                        <div style="background:#0284c7;color:white;padding:6px 12px;border-radius:20px;font-size:0.85rem;font-weight:600;">VERIFIED</div>
+                    </div>
+                    <div id="companiesCount" style="font-size:2.8rem;font-weight:bold;color:#0284c7;margin-bottom:8px;">...</div>
+                    <div style="font-size:1.1rem;color:#555;font-weight:500;">Verified Companies</div>
+                    <div style="font-size:0.9rem;color:#888;margin-top:4px;">Email-verified employer accounts</div>
                 </div>
             </div>
 
@@ -976,6 +996,8 @@ fetch('dashboard_stats.php')
         document.getElementById('skillsCount').textContent = data.skills_registered || '0';
         document.getElementById('newApplicantsCount').textContent = data.new_applicants || '0';
         document.getElementById('placedCount').textContent = data.placed_jobseekers || '0';
+        const cc = document.getElementById('companiesCount');
+        if (cc) cc.textContent = data.total_companies != null ? data.total_companies : '0';
         
         // Update last backup time
         const lastBackup = new Date();
@@ -991,6 +1013,8 @@ fetch('dashboard_stats.php')
         document.getElementById('skillsCount').textContent = '0';
         document.getElementById('newApplicantsCount').textContent = '0';
         document.getElementById('placedCount').textContent = '0';
+        const ccErr = document.getElementById('companiesCount');
+        if (ccErr) ccErr.textContent = '0';
         document.getElementById('lastBackup').textContent = 'N/A';
     });
 

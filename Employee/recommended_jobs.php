@@ -6,6 +6,7 @@ date_default_timezone_set('Asia/Manila');
 require_once 'session_check.php';
 require_once 'db.php';
 require_once 'job_matching_algorithm.php';
+require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
 
 // Ensure user is authenticated
 if (!isset($_SESSION['user_id'])) {
@@ -19,6 +20,96 @@ $matching = new JobMatchingAlgorithm($conn);
 // Get minimum score from query parameter or use default 50%
 $minScore = isset($_GET['min_score']) ? (int)$_GET['min_score'] : 50;
 
+$success_message = null;
+$error_message = null;
+
+// Handle job application (before heavy page queries; supports AJAX for SweetAlert flow)
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'apply_job') {
+    $isAjaxApply = !empty($_POST['ajax_apply']);
+    $jobId = (int)$_POST['job_id'];
+
+    $stmt = $conn->prepare("SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $jobseeker = $result->fetch_assoc();
+    $stmt->close();
+
+    if ($jobseeker) {
+        $jobseekerId = $jobseeker['id'];
+
+        $stJs = $conn->prepare("SELECT application_status FROM jobseeker WHERE id = ?");
+        $stJs->bind_param("i", $jobseekerId);
+        $stJs->execute();
+        $jsStatus = $stJs->get_result()->fetch_assoc();
+        $stJs->close();
+        if ($jsStatus && strcasecmp(trim($jsStatus['application_status'] ?? ''), 'Accepted') === 0) {
+            if ($isAjaxApply) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'message' => 'You have already been accepted for employment. Other job applications are no longer active.']);
+                $conn->close();
+                exit;
+            }
+            $error_message = 'You have already been accepted for employment. Other job applications are no longer active.';
+        }
+
+        if (!$error_message) {
+            $stmt = $conn->prepare("SELECT id, status FROM job_applications_extended WHERE jobseeker_id = ? AND job_posting_id = ? ORDER BY applied_date DESC, id DESC LIMIT 1");
+            $stmt->bind_param("ii", $jobseekerId, $jobId);
+            $stmt->execute();
+            $existing = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            $compatibility_score = $matching->calculateCompatibilityScore($userId, $jobId);
+
+            if (!$existing) {
+                $stmt = $conn->prepare("INSERT INTO job_applications_extended (jobseeker_id, job_posting_id, status, compatibility_score) VALUES (?, ?, 'Applied', ?)");
+                $stmt->bind_param("iid", $jobseekerId, $jobId, $compatibility_score);
+                if ($stmt->execute()) {
+                    $success_message = "Application submitted successfully!";
+                } else {
+                    $error_message = "Error submitting application: " . $conn->error;
+                }
+                $stmt->close();
+            } elseif (isset($existing['status']) && strcasecmp($existing['status'], 'Rejected') === 0) {
+                $stmt = $conn->prepare("UPDATE job_applications_extended SET status = 'Applied', compatibility_score = ?, applied_date = NOW(), notes = NULL, viewed_date = NULL WHERE id = ?");
+                $stmt->bind_param("di", $compatibility_score, $existing['id']);
+                if ($stmt->execute()) {
+                    $success_message = "Application submitted successfully!";
+                } else {
+                    $error_message = "Error submitting application: " . $conn->error;
+                }
+                $stmt->close();
+            } else {
+                $error_message = "You have already applied for this job.";
+            }
+        }
+    } else {
+        $error_message = "We couldn't find your profile. Please complete your NSRP registration first.";
+    }
+
+    if ($isAjaxApply) {
+        header('Content-Type: application/json; charset=utf-8');
+        if ($success_message) {
+            echo json_encode(['success' => true, 'message' => $success_message]);
+        } else {
+            echo json_encode(['success' => false, 'message' => $error_message ?: 'Unable to submit application.']);
+        }
+        $conn->close();
+        exit;
+    }
+}
+
+// Align job_applications_extended with jobseeker Accepted (fixes stale "Applied" after referral accept)
+$jsRecon = $conn->prepare("SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$jsRecon->bind_param("i", $userId);
+$jsRecon->execute();
+$jsRow = $jsRecon->get_result()->fetch_assoc();
+$jsRecon->close();
+if ($jsRow && !empty($jsRow['id'])) {
+    reconcile_stale_open_applications_for_accepted_jobseeker($conn, (int) $jsRow['id']);
+}
+
 // Get recommended jobs (only jobs with compatibility >= minScore)
 $recommendations = $matching->getRecommendedJobs($userId, 20, $minScore);
 
@@ -29,62 +120,22 @@ $stmt->execute();
 $preferences = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Get NRSP form data from jobseeker table (including all skill fields)
+// Get NRSP form data from jobseeker table (including all skill fields) + application_status (blocks Apply on new jobs when already Accepted)
 $stmt = $conn->prepare("SELECT occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, 
     training_skills_1, training_skills_2, training_skills_3, skill_others,
     skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, 
     skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, 
-    skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting 
+    skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting,
+    application_status
     FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $nrspData = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-// Handle job application
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'apply_job') {
-    $jobId = (int)$_POST['job_id'];
-    
-    // Get jobseeker ID
-    $stmt = $conn->prepare("SELECT id FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $jobseeker = $result->fetch_assoc();
-    $stmt->close();
-    
-    if ($jobseeker) {
-        $jobseekerId = $jobseeker['id'];
-        
-        // Check if already applied
-        $stmt = $conn->prepare("SELECT id FROM job_applications_extended WHERE jobseeker_id = ? AND job_posting_id = ?");
-        $stmt->bind_param("ii", $jobseekerId, $jobId);
-        $stmt->execute();
-        $existing = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        
-        if (!$existing) {
-            // Calculate compatibility score before creating application
-            $compatibility_score = $matching->calculateCompatibilityScore($userId, $jobId);
-            
-            // Insert new application with compatibility score
-            // This is the ONLY place where applications should be created
-            $stmt = $conn->prepare("INSERT INTO job_applications_extended (jobseeker_id, job_posting_id, status, compatibility_score) VALUES (?, ?, 'Applied', ?)");
-            $stmt->bind_param("iid", $jobseekerId, $jobId, $compatibility_score);
-            
-            if ($stmt->execute()) {
-                $success_message = "Application submitted successfully!";
-                // Refresh recommendations
-                $recommendations = $matching->getRecommendedJobs($userId, 20);
-            } else {
-                $error_message = "Error submitting application: " . $conn->error;
-            }
-            $stmt->close();
-        } else {
-            $error_message = "You have already applied for this job.";
-        }
-    }
-}
+/** When Accepted (referral or job), user cannot apply anywhere — stats must not count blank rows as "open". */
+$globallyAcceptedForStats = is_array($nrspData) && !empty($nrspData['application_status'])
+    && strcasecmp(trim((string) $nrspData['application_status']), 'Accepted') === 0;
 
 $conn->close();
 ?>
@@ -98,6 +149,56 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Render alerts on the parent dashboard when loaded in iframe.
+        (function () {
+            if (window.self === window.top) return;
+            const localFire = Swal.fire.bind(Swal);
+            Swal.fire = function () {
+                try {
+                    if (window.top && typeof window.top.showGlobalSwal === 'function') {
+                        return window.top.showGlobalSwal.apply(window.top, arguments);
+                    }
+                } catch (e) {
+                    // Fall back to local modal when parent access is unavailable.
+                }
+                return localFire.apply(Swal, arguments);
+            };
+            // showGlobalSwal opens the modal on the parent, but didOpen callbacks still called
+            // from the iframe must use the parent's Swal for loading/close or the spinner
+            // appears trapped inside the iframe.
+            const topSwal = function () {
+                try {
+                    if (window.top && window.top.Swal) return window.top.Swal;
+                } catch (e) { /* cross-origin */ }
+                return null;
+            };
+            const localShowLoading = Swal.showLoading.bind(Swal);
+            Swal.showLoading = function () {
+                const T = topSwal();
+                if (T && typeof T.showLoading === 'function') {
+                    return T.showLoading.apply(T, arguments);
+                }
+                return localShowLoading.apply(Swal, arguments);
+            };
+            const localHideLoading = Swal.hideLoading && Swal.hideLoading.bind(Swal);
+            Swal.hideLoading = function () {
+                const T = topSwal();
+                if (T && typeof T.hideLoading === 'function') {
+                    return T.hideLoading.apply(T, arguments);
+                }
+                return localHideLoading ? localHideLoading.apply(Swal, arguments) : undefined;
+            };
+            const localClose = Swal.close.bind(Swal);
+            Swal.close = function () {
+                const T = topSwal();
+                if (T && typeof T.close === 'function') {
+                    return T.close.apply(T, arguments);
+                }
+                return localClose.apply(Swal, arguments);
+            };
+        })();
+    </script>
     <style>
         .stats-summary {
             background: white;
@@ -184,6 +285,11 @@ $conn->close();
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
             transition: transform 0.3s, box-shadow 0.3s;
+            /* Fill grid row height so actions can pin to bottom */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
         }
         
         .job-card:hover {
@@ -248,6 +354,10 @@ $conn->close();
         
         .job-card-body {
             padding: 20px;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         
         .job-description {
@@ -285,6 +395,20 @@ $conn->close();
             gap: 10px;
             justify-content: space-between;
             align-items: center;
+            margin-top: auto;
+            flex-shrink: 0;
+            padding-top: 4px;
+        }
+        
+        /* Status pills stay compact (Apply form uses flex:1; badges must not stretch full width) */
+        .job-actions > .applied-badge,
+        .job-actions > .rejected-badge,
+        .job-actions > .accepted-badge,
+        .job-actions > .withdrawn-badge,
+        .job-actions > .not-eligible-badge {
+            flex: 0 0 auto;
+            width: fit-content;
+            max-width: 100%;
         }
         
         .btn-apply {
@@ -325,6 +449,52 @@ $conn->close();
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
+        }
+        
+        .rejected-badge {
+            background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .accepted-badge {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .withdrawn-badge {
+            background: #eceff1;
+            color: #455a64;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border: 1px solid #cfd8dc;
+        }
+        
+        .btn-apply-disabled,
+        .not-eligible-badge {
+            background: #9e9e9e !important;
+            color: #fff !important;
+            cursor: not-allowed !important;
+            opacity: 0.92;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
         }
         
         .no-jobs {
@@ -618,14 +788,14 @@ $conn->close();
         <div class="content-section">
                 <div class="welcome-card">
                     <h1><i class="fas fa-bullseye"></i> Recommended Jobs</h1>
-                    <p>Jobs matched to your NRSP form: skills, preferred occupation, and location</p>
+                    <p>Jobs matched to your NSRP form: skills, preferred occupation, location, and job type preference</p>
                 </div>
                 
                 <?php if ($nrspData): ?>
                 <div class="nrsp-info-card">
-                    <h3><i class="fas fa-file-alt"></i> Your NRSP Form Preferences</h3>
+                    <h3><i class="fas fa-file-alt"></i> Your NSRP Form Preferences</h3>
                     <p style="margin-bottom: 20px; color: #666; font-size: 0.9rem;">
-                        These are the preferences you provided in your NRSP form. 
+                        These are the preferences you provided in your NSRP form. 
                         <strong><i class="fas fa-robot"></i> AI-Powered Matching:</strong> The system intelligently matches jobs even if locations are nearby (e.g., Manila ↔ Makati) 
                         and handles "any" preferences to show all relevant jobs.
                     </p>
@@ -770,12 +940,12 @@ $conn->close();
                 </div>
                 <?php else: ?>
                 <div class="nrsp-info-card" style="border-left-color: #ffc107;">
-                    <h3><i class="fas fa-exclamation-triangle"></i> NRSP Form Not Found</h3>
+                    <h3><i class="fas fa-exclamation-triangle"></i> NSRP Form Not Found</h3>
                     <p style="margin-bottom: 15px; color: #666;">
-                        We couldn't find your NRSP form data. Please complete the NRSP form to get personalized job recommendations.
+                        We couldn't find your NSRP form data. Please complete the NSRP form to get personalized job recommendations.
                     </p>
                     <a href="#" class="btn-update-nrsp" onclick="navigateToNRSPForm(event)">
-                        <i class="fas fa-file-alt"></i> Complete NRSP Form
+                        <i class="fas fa-file-alt"></i> Complete NSRP Form
                     </a>
                 </div>
                 <?php endif; ?>
@@ -816,72 +986,24 @@ $conn->close();
                             <div class="stat-label">Good Match (60-79%)</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number"><?php echo count(array_filter($recommendations, function($job) { return $job['already_applied'] == 1; })); ?></div>
-                            <div class="stat-label">Already Applied</div>
+                            <div class="stat-number"><?php echo count(array_filter($recommendations, function($job) {
+                                $st = isset($job['my_application_status']) ? trim((string)$job['my_application_status']) : '';
+                                return $st !== '' && strcasecmp($st, 'Rejected') !== 0 && strcasecmp($st, 'Withdrawn') !== 0;
+                            })); ?></div>
+                            <div class="stat-label">Submitted / In progress</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number"><?php echo count(array_filter($recommendations, function($job) { return $job['already_applied'] == 0; })); ?></div>
-                            <div class="stat-label">Available to Apply</div>
+                            <div class="stat-number"><?php echo count(array_filter($recommendations, function ($job) use ($globallyAcceptedForStats) {
+                                if ($globallyAcceptedForStats) {
+                                    return false;
+                                }
+                                $st = isset($job['my_application_status']) ? trim((string) $job['my_application_status']) : '';
+
+                                return $st === '' || strcasecmp($st, 'Rejected') === 0;
+                            })); ?></div>
+                            <div class="stat-label">Open to apply</div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="filters-section">
-                    <h3>Filter Jobs</h3>
-                    <form method="GET" id="filterForm">
-                        <div class="filters-grid">
-                            <div class="filter-group">
-                                <label for="location">Location</label>
-                                <select name="location" id="location">
-                                    <option value="">All Locations</option>
-                                    <option value="Manila">Manila</option>
-                                    <option value="Quezon City">Quezon City</option>
-                                    <option value="Makati">Makati</option>
-                                    <option value="Taguig">Taguig</option>
-                                    <option value="Pasig">Pasig</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="job_type">Job Type</label>
-                                <select name="job_type" id="job_type">
-                                    <option value="">All Types</option>
-                                    <option value="Full-time">Full-time</option>
-                                    <option value="Part-time">Part-time</option>
-                                    <option value="Contract">Contract</option>
-                                    <option value="Internship">Internship</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="min_score">Minimum Match Score</label>
-                                <select name="min_score" id="min_score">
-                                    <option value="50" <?php echo $minScore == 50 ? 'selected' : ''; ?>>50%+ (Default)</option>
-                                    <option value="60" <?php echo $minScore == 60 ? 'selected' : ''; ?>>60%+</option>
-                                    <option value="70" <?php echo $minScore == 70 ? 'selected' : ''; ?>>70%+</option>
-                                    <option value="80" <?php echo $minScore == 80 ? 'selected' : ''; ?>>80%+</option>
-                                    <option value="90" <?php echo $minScore == 90 ? 'selected' : ''; ?>>90%+</option>
-                                </select>
-                            </div>
-                            <div class="filter-group">
-                                <label for="industry">Industry</label>
-                                <select name="industry" id="industry">
-                                    <option value="">All Industries</option>
-                                    <option value="Technology">Technology</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Customer Service">Customer Service</option>
-                                    <option value="Analytics">Analytics</option>
-                                    <option value="Design">Design</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="filter-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-filter"></i> Apply Filters
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
-                                <i class="fas fa-times"></i> Clear Filters
-                            </button>
-                        </div>
-                    </form>
                 </div>
                 
                 <?php if (empty($recommendations)): ?>
@@ -1115,6 +1237,12 @@ $conn->close();
                                                         ?>
                                                         <br>
                                                         <span style="color: #dc3545;">No location match</span>
+                                                        <?php if (!empty($breakdown['location_distance_km'])): ?>
+                                                            <span title="Estimated distance from your preferred location to this job location (AI geocoding)." style="margin-left: 6px; color: #6c757d; cursor: help;">
+                                                                <i class="fas fa-info-circle"></i>
+                                                            </span>
+                                                            <br><small style="color: #6c757d;">Approx distance: <?php echo htmlspecialchars($breakdown['location_distance_km']); ?> km</small>
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -1157,7 +1285,31 @@ $conn->close();
                                     </div>
                                     
                                     <div class="job-actions">
-                                        <?php if ($job['already_applied']): ?>
+                                        <?php
+                                        $appSt = isset($job['my_application_status']) ? trim((string)$job['my_application_status']) : '';
+                                        $globallyAccepted = !empty($nrspData['application_status']) && strcasecmp(trim((string) $nrspData['application_status']), 'Accepted') === 0;
+                                        $isRejected = $appSt !== '' && strcasecmp($appSt, 'Rejected') === 0;
+                                        $isAccepted = $appSt !== '' && strcasecmp($appSt, 'Accepted') === 0;
+                                        $isWithdrawn = $appSt !== '' && strcasecmp($appSt, 'Withdrawn') === 0;
+                                        $showApplied = $appSt !== '' && !$isRejected && !$isAccepted && !$isWithdrawn;
+                                        ?>
+                                        <?php if ($globallyAccepted && $appSt === ''): ?>
+                                            <div class="not-eligible-badge" title="You are already accepted for employment. You cannot apply to additional jobs.">
+                                                <i class="fas fa-ban"></i> Not eligible to apply
+                                            </div>
+                                        <?php elseif ($isRejected): ?>
+                                            <div class="rejected-badge">
+                                                <i class="fas fa-times-circle"></i> Rejected
+                                            </div>
+                                        <?php elseif ($isAccepted): ?>
+                                            <div class="accepted-badge">
+                                                <i class="fas fa-check-circle"></i> Accepted
+                                            </div>
+                                        <?php elseif ($isWithdrawn): ?>
+                                            <div class="withdrawn-badge" title="Closed because you were accepted for employment elsewhere.">
+                                                <i class="fas fa-ban"></i> Withdrawn
+                                            </div>
+                                        <?php elseif ($showApplied): ?>
                                             <div class="applied-badge">
                                                 <i class="fas fa-check"></i> Applied
                                             </div>
@@ -1216,6 +1368,17 @@ $conn->close();
             }
         }
         
+        /** Swap Apply Now → Applied as soon as the server succeeds (avoids waiting for a full iframe reload). */
+        function setJobCardApplied(jobId) {
+            const form = document.getElementById('applyForm_' + jobId);
+            if (!form) return;
+            const badge = document.createElement('div');
+            badge.className = 'applied-badge';
+            badge.setAttribute('role', 'status');
+            badge.innerHTML = '<i class="fas fa-check"></i> Applied';
+            form.replaceWith(badge);
+        }
+
         async function confirmApply(jobId) {
             const result = await Swal.fire({
                 title: 'Confirm Application',
@@ -1236,12 +1399,66 @@ $conn->close();
                 width: '450px'
             });
             
-            if (result.isConfirmed) {
-                // Submit the form
-                const form = document.getElementById('applyForm_' + jobId);
-                if (form) {
-                    form.submit();
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            const applyUrl = window.location.href.split('#')[0];
+
+            Swal.fire({
+                title: 'Submitting your application...',
+                html: '<p style="margin-top:12px;color:#555;font-size:15px;">Please wait a moment.</p>',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
+            });
+
+            const formData = new FormData();
+            formData.append('action', 'apply_job');
+            formData.append('job_id', String(jobId));
+            formData.append('ajax_apply', '1');
+
+            try {
+                const resp = await fetch(applyUrl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                let data = {};
+                try {
+                    data = await resp.json();
+                } catch (parseErr) {
+                    data = {};
+                }
+
+                if (resp.ok && data.success) {
+                    setJobCardApplied(jobId);
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Application submitted!',
+                        text: data.message || 'Your application was submitted successfully.',
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Could not apply',
+                        text: (data && data.message) ? data.message : 'Something went wrong. Please try again.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (err) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Connection error',
+                    text: 'Please check your network and try again.',
+                    confirmButtonColor: '#dc3545'
+                });
             }
         }
         
@@ -1264,8 +1481,8 @@ $conn->close();
             const location = jobCard.getAttribute('data-job-location') || 'Location';
             const jobType = jobCard.getAttribute('data-job-type') || 'Job Type';
             const salaryRange = jobCard.getAttribute('data-job-salary') || 'Not specified';
-            const description = jobCard.getAttribute('data-job-description') || 'No description available.';
-            const requirements = jobCard.getAttribute('data-job-requirements') || 'No requirements specified.';
+            const description = normalizeJobBodyText(jobCard.getAttribute('data-job-description') || 'No description available.');
+            const requirements = normalizeJobBodyText(jobCard.getAttribute('data-job-requirements') || 'No requirements specified.');
             const industry = jobCard.getAttribute('data-job-industry') || 'Not specified';
             const postedDate = jobCard.getAttribute('data-job-posted') || 'Unknown';
             const compatibilityScore = jobCard.getAttribute('data-job-score') || '0';
@@ -1273,7 +1490,7 @@ $conn->close();
             // Create detailed HTML content
             const jobDetailsHTML = `
                 <div style="text-align: left; max-width: 100%;">
-                    <div style="background: linear-gradient(135deg, #233a8b 0%, #1a2d6b 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; margin: -20px -20px 20px -20px;">
+                    <div style="background: linear-gradient(135deg, #233a8b 0%, #1a2d6b 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; margin: -20px -3% 20px -20px;">
                         <h2 style="margin: 0 0 10px 0; font-size: 1.5rem;">${escapeHtml(jobTitle)}</h2>
                         <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">${escapeHtml(company)}</p>
                         <div style="margin-top: 15px; display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.9rem;">
@@ -1288,21 +1505,17 @@ $conn->close();
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <h3 style="color: #233a8b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <h3 style="color: #233a8b; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                             <i class="fas fa-info-circle"></i> Job Description
                         </h3>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #233a8b; white-space: pre-wrap; line-height: 1.6;">
-                            ${escapeHtml(description)}
-                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #233a8b; white-space: pre-line; line-height: 1.6; text-align: center;">${escapeHtml(description)}</div>
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <h3 style="color: #233a8b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <h3 style="color: #233a8b; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                             <i class="fas fa-clipboard-list"></i> Requirements
                         </h3>
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; white-space: pre-wrap; line-height: 1.6;">
-                            ${escapeHtml(requirements)}
-                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745; white-space: pre-line; line-height: 1.6; text-align: center;">${escapeHtml(requirements)}</div>
                     </div>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
@@ -1358,13 +1571,16 @@ $conn->close();
             };
             return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
         }
-        
-        function clearFilters() {
-            document.getElementById('location').value = '';
-            document.getElementById('job_type').value = '';
-            document.getElementById('min_score').value = '50';
-            document.getElementById('industry').value = '';
-            document.getElementById('filterForm').submit();
+
+        /** Trim DB text and each line so modal body has no fake “first-line indent”. */
+        function normalizeJobBodyText(str) {
+            if (str == null || str === '') return '';
+            return String(str)
+                .trim()
+                .split(/\r?\n/)
+                .map(function (line) { return line.trim(); })
+                .filter(function (line) { return line.length > 0; })
+                .join('\n');
         }
         
     </script>

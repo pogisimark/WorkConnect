@@ -1,7 +1,15 @@
 <?php 
 // Set timezone to Philippines
 date_default_timezone_set('Asia/Manila');
-include 'session_protect.php'; 
+include 'session_protect.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/db.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+$acfu_unread_count = acfu_get_unread_response_count($conn);
+if ($conn) {
+    $conn->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1063,6 +1071,36 @@ include 'session_protect.php';
         border-radius: 10px 10px 0 0;
     }
 
+    .company-chips-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .company-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #1976d2;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        max-width: 100%;
+    }
+    .company-chip button {
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.25);
+        border: none;
+        color: #fff;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        cursor: pointer;
+        line-height: 1;
+        font-size: 1rem;
+    }
+
     .selected-company-display {
         display: none;
         padding: 12px 16px;
@@ -1139,8 +1177,8 @@ include 'session_protect.php';
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="#" class="active"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -1249,25 +1287,25 @@ include 'session_protect.php';
                     <div style="background:linear-gradient(135deg, #4caf50, #45a049);color:white;padding:12px 20px;border-radius:12px;display:inline-block;margin-bottom:16px;box-shadow:0 4px 12px rgba(76,175,80,0.3);">
                         <h3 style="margin:0;font-size:1.2rem;font-weight:700;letter-spacing:0.3px;">✅ Accept Jobseeker</h3>
                     </div>
-                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select a company to send the jobseeker details to.</p>
+                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select one or more <strong>verified</strong> companies. Jobseeker details are emailed to each.</p>
                 </div>
                 
                 <!-- Company Selector -->
                 <div class="company-selector-container">
-                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Select Company:</label>
+                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Add companies:</label>
                     <div style="position:relative;">
                         <span class="company-search-icon">🔍</span>
                         <input type="text" id="companySearch" class="company-search-input" placeholder="Search for company name or email..." autocomplete="off">
                         <div id="companyDropdown" class="company-dropdown"></div>
                     </div>
                     <div id="selectedCompanyDisplay" class="selected-company-display">
-                        <div class="selected-company-info">
-                            <div class="selected-company-details">
-                                <div class="selected-company-name" id="selectedCompanyName"></div>
-                                <div class="selected-company-email" id="selectedCompanyEmail"></div>
-                            </div>
-                            <button type="button" class="clear-selection-btn" onclick="clearCompanySelection()">✕ Clear</button>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                            <span style="font-size:0.85rem;color:#555;">Selected companies:</span>
+                            <button type="button" class="clear-selection-btn" onclick="clearCompanySelection()">Clear all</button>
                         </div>
+                        <div id="selectedCompaniesChips" class="company-chips-wrap"></div>
+                        <div class="selected-company-name" id="selectedCompanyName" style="display:none;"></div>
+                        <div class="selected-company-email" id="selectedCompanyEmail" style="display:none;"></div>
                     </div>
                     <input type="hidden" id="employerEmail" value="">
                 </div>
@@ -1329,7 +1367,7 @@ include 'session_protect.php';
                     <div style="background:linear-gradient(135deg, #4caf50, #45a049);color:white;padding:12px 20px;border-radius:12px;display:inline-block;margin-bottom:16px;box-shadow:0 4px 12px rgba(76,175,80,0.3);">
                         <h3 style="margin:0;font-size:1.2rem;font-weight:700;letter-spacing:0.3px;">Send & Accept All Jobseekers</h3>
                     </div>
-                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Select multiple jobseekers and send their details to a single company.</p>
+                    <p style="color:#666;margin:0;font-size:0.95rem;line-height:1.4;">Send selected jobseekers to the <strong>same set</strong> of verified companies.</p>
                 </div>
                 
                 <!-- Selected jobseekers list -->
@@ -1342,20 +1380,20 @@ include 'session_protect.php';
                 
                 <!-- Company Selector -->
                 <div class="company-selector-container">
-                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Select Company:</label>
+                    <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Add companies:</label>
                     <div style="position:relative;">
                         <span class="company-search-icon">🔍</span>
                         <input type="text" id="bulkCompanySearch" class="company-search-input" placeholder="Search for company name or email..." autocomplete="off">
                         <div id="bulkCompanyDropdown" class="company-dropdown"></div>
                     </div>
                     <div id="selectedBulkCompanyDisplay" class="selected-company-display">
-                        <div class="selected-company-info">
-                            <div class="selected-company-details">
-                                <div class="selected-company-name" id="selectedBulkCompanyName"></div>
-                                <div class="selected-company-email" id="selectedBulkCompanyEmail"></div>
-                            </div>
-                            <button type="button" class="clear-selection-btn" onclick="clearBulkCompanySelection()">✕ Clear</button>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                            <span style="font-size:0.85rem;color:#555;">Selected companies:</span>
+                            <button type="button" class="clear-selection-btn" onclick="clearBulkCompanySelection()">Clear all</button>
                         </div>
+                        <div id="selectedBulkCompaniesChips" class="company-chips-wrap"></div>
+                        <div class="selected-company-name" id="selectedBulkCompanyName" style="display:none;"></div>
+                        <div class="selected-company-email" id="selectedBulkCompanyEmail" style="display:none;"></div>
                     </div>
                     <input type="hidden" id="bulkEmployerEmail" value="">
                 </div>
@@ -1632,6 +1670,126 @@ include 'session_protect.php';
         let currentSkillsFilter = 'all';
         let selectedJobseekers = [];
         let multipleAcceptMode = false;
+
+        /** Consistent display names: "MARK ANGEL" → "Mark Angel" (per-word title case) */
+        function titleCaseSegment(seg) {
+            if (!seg) return '';
+            const lower = seg.toLowerCase();
+            return lower.charAt(0).toUpperCase() + lower.slice(1);
+        }
+        function titleCaseWord(word) {
+            if (!word) return '';
+            return word.split('-').map(titleCaseSegment).join('-');
+        }
+        function titleCaseNamePart(str) {
+            if (!str || String(str).toLowerCase() === 'n/a') return '';
+            const t = String(str).trim();
+            if (!t) return '';
+            return t.split(/\s+/).map(function (w) {
+                if (w.indexOf("'") !== -1) {
+                    return w.split("'").map(function (p, i) {
+                        return (i === 0 ? '' : "'") + titleCaseSegment(p);
+                    }).join('');
+                }
+                return titleCaseWord(w);
+            }).join(' ');
+        }
+        function formatJobseekerDisplayName(j) {
+            const first = titleCaseNamePart(j.firstname || '');
+            const mid = (j.middlename && String(j.middlename).toLowerCase() !== 'n/a') ? titleCaseNamePart(j.middlename) : '';
+            const sur = titleCaseNamePart(j.surname || '');
+            let suf = '';
+            if (j.suffix && String(j.suffix).toLowerCase() !== 'n/a' && String(j.suffix).toLowerCase() !== 'none') {
+                suf = titleCaseNamePart(j.suffix);
+            }
+            const parts = [first, mid, sur].filter(Boolean);
+            let out = parts.join(' ');
+            if (suf) {
+                out = out ? (out + ', ' + suf) : suf;
+            }
+            return out.trim() || '—';
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function formatReferralStatusLine(j) {
+            const base = j.application_status || 'Pending';
+            /* Employer NSRP "Accepted" — show which company(ies) accepted this jobseeker */
+            if (base === 'Accepted') {
+                /* Job application accepted: show company + position (recommended jobs path) */
+                const jobCo = (j.accepted_company_name || '').trim();
+                const jobTitle = (j.accepted_job_title || '').trim();
+                if (jobCo && jobTitle) {
+                    return 'Accepted · ' + jobCo + ' · ' + jobTitle;
+                }
+                if (jobTitle) {
+                    return 'Accepted · ' + jobTitle;
+                }
+                /* Referral accepted: company name only (no job title row) */
+                const refs = j.referrals || [];
+                const acceptedRows = refs.filter(function (r) {
+                    return (r.status || '').toLowerCase() === 'accepted';
+                });
+                if (acceptedRows.length) {
+                    const names = acceptedRows.map(function (r) {
+                        return r.company_name || ('Company #' + r.company_id);
+                    });
+                    return 'Accepted · ' + names.join(' · ');
+                }
+                return 'Accepted';
+            }
+            /* Same pattern as Accepted: REJECTED · COMPANY in the status badge */
+            if (base === 'Rejected') {
+                const refs = j.referrals || [];
+                const names = [];
+                refs.forEach(function (r) {
+                    if ((r.status || '').toLowerCase() === 'rejected') {
+                        names.push(r.company_name || ('Company #' + r.company_id));
+                    }
+                });
+                if (names.length === 0 && j.referred_to_company_id && typeof allCompanies !== 'undefined' && allCompanies.length) {
+                    const refCompany = allCompanies.find(function (c) { return String(c.id) === String(j.referred_to_company_id); });
+                    if (refCompany && refCompany.company_name) {
+                        names.push(refCompany.company_name);
+                    }
+                }
+                if (names.length) {
+                    return 'Rejected · ' + names.join(' · ');
+                }
+                return 'Rejected';
+            }
+            if (base !== 'Referred') {
+                return base;
+            }
+            const refs = j.referrals;
+            if (refs && refs.length) {
+                const parts = refs.map(function (r) {
+                    let label = r.company_name || ('Company #' + r.company_id);
+                    const st = (r.status || '').toLowerCase();
+                    if (st === 'pending') {
+                        label += ' (pending)';
+                    } else if (st === 'rejected') {
+                        label += ' (rejected)';
+                    } else if (st === 'accepted') {
+                        label += ' (accepted)';
+                    } else if (st === 'withdrawn') {
+                        label += ' (closed)';
+                    }
+                    return label;
+                });
+                return 'Referred: ' + parts.join(' · ');
+            }
+            if (j.referred_to_company_id) {
+                const refCompany = allCompanies.find(function (c) { return String(c.id) === String(j.referred_to_company_id); });
+                return 'Referred (' + (refCompany ? refCompany.company_name : 'Unknown') + ')';
+            }
+            return 'Referred';
+        }
         
         // Tab switching functionality
         function showTab(tab) {
@@ -1915,6 +2073,12 @@ include 'session_protect.php';
             // Update the count display
             countElement.textContent = filteredData.length;
             
+            filteredData = filteredData.slice().sort(function (a, b) {
+                const idA = parseInt(a.id, 10) || 0;
+                const idB = parseInt(b.id, 10) || 0;
+                return idA - idB;
+            });
+
             if (!filteredData.length) {
                     container.innerHTML = `
                         <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #f8fafc, #ffffff); border-radius: 16px; border: 2px dashed #e0e0e0;">
@@ -1967,23 +2131,19 @@ include 'session_protect.php';
                     </div>`;
                 }
                 
-                let statusText = j.application_status || 'Pending';
-                if (j.application_status === 'Referred' && j.referred_to_company_id) {
-                    const refCompany = allCompanies.find(c => c.id == j.referred_to_company_id);
-                    statusText = 'Referred (' + (refCompany ? refCompany.company_name : 'Unknown') + ')';
-                }
+                let statusText = formatReferralStatusLine(j);
                     card.innerHTML = `
                         <div style="position: relative; margin-bottom: 16px;">
                             <div style="position: absolute; top: -8px; left: -8px; z-index: 10; display: none;" class="checkbox-container">
                                 <input type="checkbox" class="jobseeker-checkbox" data-jobseeker-id="${j.id}" style="width: 18px; height: 18px; cursor: pointer; accent-color: #4caf50;">
                             </div>
                             ${imgHtml}
-                            <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #233a8b, #1976d2); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">ID: ${j.id}</div>
+                            <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #233a8b, #1976d2); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em;">${j.id}</div>
                         </div>
-                        <div class="jobseeker-name">${j.firstname} ${j.middlename && j.middlename !== 'n/a' ? j.middlename + ' ' : ''}${j.surname}${j.suffix && j.suffix !== 'n/a' ? ', ' + j.suffix : ''}</div>
+                        <div class="jobseeker-name">${formatJobseekerDisplayName(j)}</div>
                         <div class="jobseeker-info"><strong>Age:</strong> ${j.age} years</div>
                         <div class="jobseeker-info"><strong>Gender:</strong> ${j.sex}</div>
-                        <div class="jobseeker-info"><strong>Status:</strong> <span class="status-${j.application_status ? j.application_status.toLowerCase() : 'pending'}">${statusText}</span></div>
+                        <div class="jobseeker-info"><strong>Status:</strong> <span class="status-${j.application_status ? j.application_status.toLowerCase() : 'pending'}">${escapeHtml(statusText)}</span></div>
                         <button class="view-details-btn">📋 View Details</button>
                     ${actionButtons}
                     `;
@@ -2269,7 +2429,7 @@ include 'session_protect.php';
             content += `<div class="details-section">
                 <h3 class="section-title">I. PERSONAL INFORMATION</h3>
                 <div class="section-content">
-                    ${formatField('Name', `${j.firstname} ${j.middlename && j.middlename !== 'n/a' ? j.middlename + ' ' : ''}${j.surname}${j.suffix && j.suffix !== 'n/a' ? ', ' + j.suffix : ''}`)}
+                    ${formatField('Name', formatJobseekerDisplayName(j))}
                     ${formatField('Age', j.age)}
                     ${formatField('Sex', j.sex)}
                     ${formatField('Date of Birth', j.dob)}
@@ -2438,6 +2598,7 @@ include 'session_protect.php';
         
         function showAcceptModal(jobseekerId) {
             currentJobseekerId = jobseekerId;
+            selectedCompanies = [];
             clearCompanySelection();
             document.getElementById('acceptModal').style.display = 'flex';
             // Refresh company dropdown when modal opens
@@ -2452,7 +2613,7 @@ include 'session_protect.php';
             document.getElementById('rejectionReason').value = '';
         }
         
-        function updateJobseekerStatusWithCallback(jobseekerId, status, rejectionReason = null, employerEmail = null, callback = null, companyName = null, companyId = null) {
+        function updateJobseekerStatusWithCallback(jobseekerId, status, rejectionReason = null, employerEmail = null, callback = null, referredMeta = null) {
             const requestData = {
                 jobseeker_id: jobseekerId,
                 status: status
@@ -2466,13 +2627,12 @@ include 'session_protect.php';
                 requestData.employer_email = employerEmail;
             }
             
-            // Add company_id when referring
-            if (status === 'Referred' && companyId) {
-                // Ensure companyId is a number, not a string
-                requestData.referred_to_company_id = parseInt(companyId, 10);
-                console.log('Sending referred_to_company_id:', requestData.referred_to_company_id, '(type:', typeof requestData.referred_to_company_id + ')');
-            } else if (status === 'Referred' && !companyId) {
-                console.warn('WARNING: Status is Referred but companyId is null/undefined!');
+            if (status === 'Referred' && referredMeta && referredMeta.companyIds && referredMeta.companyIds.length) {
+                requestData.referred_company_ids = referredMeta.companyIds.map(function (id) { return parseInt(id, 10); });
+            } else if (status === 'Referred' && referredMeta && referredMeta.companyId) {
+                requestData.referred_to_company_id = parseInt(referredMeta.companyId, 10);
+            } else if (status === 'Referred') {
+                console.warn('WARNING: Referred status without company ids in referredMeta');
             }
             
             console.log('Request Data:', requestData);
@@ -2491,31 +2651,41 @@ include 'session_protect.php';
                     const jobseeker = allJobseekers.find(j => j.id == jobseekerId);
                     if (jobseeker) {
                         jobseeker.application_status = status;
+                        if (status === 'Referred' && data.referrals) {
+                            jobseeker.referrals = data.referrals;
+                        }
                     }
                     
                     if (status === 'Referred') {
-                        // Get company name and id - use provided parameter or fallback to selected company
-                        const finalCompanyName = companyName || (selectedCompany ? selectedCompany.company_name : (selectedBulkCompany ? selectedBulkCompany.company_name : 'the employer'));
-                        const finalCompanyId = companyId || (selectedCompany ? selectedCompany.id : (selectedBulkCompany ? selectedBulkCompany.id : null));
+                        const emailList = (referredMeta && referredMeta.companyEmails && referredMeta.companyEmails.length)
+                            ? referredMeta.companyEmails
+                            : (employerEmail ? [employerEmail] : []);
+                        emailList.forEach(function (em) {
+                            if (em) {
+                                sendJobseekerEmail(jobseekerId, em);
+                            }
+                        });
+                        const nameList = (referredMeta && referredMeta.companyNames && referredMeta.companyNames.length)
+                            ? referredMeta.companyNames
+                            : (referredMeta && referredMeta.companyName ? [referredMeta.companyName] : []);
+                        sendJobseekerAcceptedEmail(jobseekerId, nameList.length ? nameList : null);
                         
-                        // Send email with jobseeker details to employer
-                        sendJobseekerEmail(jobseekerId, employerEmail);
-                        
-                        // Send email notification to jobseeker
-                        sendJobseekerAcceptedEmail(jobseekerId, finalCompanyName);
-                        
-                        // Create notification for the jobseeker
-                        createJobseekerNotification(jobseekerId, 'Application Referred!', 'Your job application has been referred to ' + finalCompanyName + '. The company will review your application and contact you if you are selected.');
+                        // Notification is now created server-side in update_jobseeker_status.php
                         
                         // Show success SweetAlert for referral (only for single accept, not bulk)
                         // Check if acceptModal is visible to determine if this is a single accept
                         const acceptModal = document.getElementById('acceptModal');
                         if (acceptModal && acceptModal.style.display === 'flex' && callback) {
-                            // This is called from single accept, show alert
+                            const n = (referredMeta && referredMeta.companyNames && referredMeta.companyNames.length) ? referredMeta.companyNames.length : 1;
+                            const namesPreview = (referredMeta && referredMeta.companyNames && referredMeta.companyNames.length)
+                                ? referredMeta.companyNames.slice(0, 3).join(', ') + (referredMeta.companyNames.length > 3 ? '…' : '')
+                                : 'the selected companies';
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Application Referred!',
-                                text: 'The jobseeker has been successfully referred to the company and emails sent to both the company and jobseeker.',
+                                html: n > 1
+                                    ? 'The jobseeker was referred to <strong>' + n + '</strong> companies (' + escapeHtml(namesPreview) + '). Notifications and emails were sent where applicable.'
+                                    : 'The jobseeker has been successfully referred and notifications/emails were sent to the company and jobseeker.',
                                 confirmButtonColor: '#2196f3',
                                 confirmButtonText: 'OK'
                             }).then(() => {
@@ -2531,8 +2701,7 @@ include 'session_protect.php';
                         // Send rejection email to jobseeker
                         sendJobseekerRejectionEmail(jobseekerId, rejectionReason);
                         
-                        // Create notification for the jobseeker
-                        createJobseekerNotification(jobseekerId, 'Application Update', 'Your job application status has been updated. Please check your dashboard for details.');
+                        // Notification is now created server-side in update_jobseeker_status.php
                         
                         // Show success SweetAlert for rejection
                         Swal.fire({
@@ -2615,8 +2784,7 @@ include 'session_protect.php';
                         // Send email with jobseeker details
                         sendJobseekerEmail(jobseekerId, employerEmail);
                         
-                        // Create notification for the jobseeker
-                        createJobseekerNotification(jobseekerId, 'Application Accepted!', 'Congratulations! Your job application has been reffered to the employer. You will receive an email with further details.');
+                        // Notification is now created server-side in update_jobseeker_status.php
                     } else if (status === 'Rejected') {
                         // Get rejection reason from the request data
                         const rejectionReason = requestData.rejection_reason || 'No specific reason provided.';
@@ -2624,8 +2792,7 @@ include 'session_protect.php';
                         // Send rejection email to jobseeker
                         sendJobseekerRejectionEmail(jobseekerId, rejectionReason);
                         
-                        // Create notification for the jobseeker
-                        createJobseekerNotification(jobseekerId, 'Application Update', 'Your job application status has been updated. Please check your dashboard for details.');
+                        // Notification is now created server-side in update_jobseeker_status.php
                         
                         // Show success SweetAlert for rejection
                         Swal.fire({
@@ -2728,16 +2895,19 @@ include 'session_protect.php';
             });
         }
         
-        function sendJobseekerAcceptedEmail(jobseekerId, companyName) {
+        function sendJobseekerAcceptedEmail(jobseekerId, companyNames) {
+            const payload = { jobseeker_id: jobseekerId };
+            if (Array.isArray(companyNames) && companyNames.length) {
+                payload.company_names = companyNames;
+            } else if (companyNames) {
+                payload.company_name = companyNames;
+            }
             fetch('send_jobseeker_accepted_email.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    jobseeker_id: jobseekerId,
-                    company_name: companyName
-                })
+                body: JSON.stringify(payload)
             })
             .then(response => {
                 console.log('Jobseeker email response status:', response.status);
@@ -2802,12 +2972,53 @@ include 'session_protect.php';
             return emailRegex.test(email);
         }
         
-        // Company Selector Functionality
+        // Company Selector Functionality (multi-company referral)
         let allCompanies = [];
-        let selectedCompany = null;
-        let selectedBulkCompany = null;
+        let selectedCompanies = [];
+        let selectedBulkCompanies = [];
+
+        function renderSelectedCompaniesChips() {
+            const wrap = document.getElementById('selectedCompaniesChips');
+            const disp = document.getElementById('selectedCompanyDisplay');
+            const hid = document.getElementById('employerEmail');
+            if (!wrap || !disp || !hid) return;
+            wrap.innerHTML = selectedCompanies.map(function (c) {
+                return '<span class="company-chip">' + escapeHtml(c.company_name) +
+                    ' <button type="button" data-rid="' + c.id + '" aria-label="Remove">×</button></span>';
+            }).join('');
+            wrap.querySelectorAll('button[data-rid]').forEach(function (btn) {
+                btn.onclick = function () {
+                    const rid = parseInt(btn.getAttribute('data-rid'), 10);
+                    selectedCompanies = selectedCompanies.filter(function (x) { return parseInt(x.id, 10) !== rid; });
+                    renderSelectedCompaniesChips();
+                    refreshCompanyDropdowns();
+                };
+            });
+            hid.value = selectedCompanies.map(function (c) { return c.email; }).join(',');
+            disp.classList.toggle('show', selectedCompanies.length > 0);
+        }
+
+        function renderSelectedBulkCompaniesChips() {
+            const wrap = document.getElementById('selectedBulkCompaniesChips');
+            const disp = document.getElementById('selectedBulkCompanyDisplay');
+            const hid = document.getElementById('bulkEmployerEmail');
+            if (!wrap || !disp || !hid) return;
+            wrap.innerHTML = selectedBulkCompanies.map(function (c) {
+                return '<span class="company-chip">' + escapeHtml(c.company_name) +
+                    ' <button type="button" data-rid="' + c.id + '" aria-label="Remove">×</button></span>';
+            }).join('');
+            wrap.querySelectorAll('button[data-rid]').forEach(function (btn) {
+                btn.onclick = function () {
+                    const rid = parseInt(btn.getAttribute('data-rid'), 10);
+                    selectedBulkCompanies = selectedBulkCompanies.filter(function (x) { return parseInt(x.id, 10) !== rid; });
+                    renderSelectedBulkCompaniesChips();
+                    refreshCompanyDropdowns();
+                };
+            });
+            hid.value = selectedBulkCompanies.map(function (c) { return c.email; }).join(',');
+            disp.classList.toggle('show', selectedBulkCompanies.length > 0);
+        }
         
-        // Fetch companies on page load
         function fetchCompanies() {
             fetch('get_companies.php')
                 .then(response => response.json())
@@ -2815,7 +3026,6 @@ include 'session_protect.php';
                     if (data.success) {
                         allCompanies = data.companies;
                         console.log('Companies loaded:', allCompanies.length);
-                        // Refresh dropdowns and re-render cards so Referred (Company Name) shows
                         refreshCompanyDropdowns();
                         filterAndDisplayJobseekers();
                     } else {
@@ -2833,38 +3043,36 @@ include 'session_protect.php';
                 });
         }
         
-        // Initialize company selectors
         function initializeCompanySelectors() {
             const companySearch = document.getElementById('companySearch');
             const bulkCompanySearch = document.getElementById('bulkCompanySearch');
-            
+            const multiOpt = {
+                getList: function () { return selectedCompanies; },
+                afterChange: function () { renderSelectedCompaniesChips(); }
+            };
+            const multiOptBulk = {
+                getList: function () { return selectedBulkCompanies; },
+                afterChange: function () { renderSelectedBulkCompaniesChips(); }
+            };
             if (companySearch) {
-                setupCompanySelector(companySearch, 'companyDropdown', 'selectedCompanyDisplay', 
-                    'selectedCompanyName', 'selectedCompanyEmail', 'employerEmail', (company) => {
-                        selectedCompany = company;
-                    });
+                setupCompanySelector(companySearch, 'companyDropdown', 'selectedCompanyDisplay',
+                    'selectedCompanyName', 'selectedCompanyEmail', 'employerEmail', null, multiOpt);
             }
-            
             if (bulkCompanySearch) {
                 setupCompanySelector(bulkCompanySearch, 'bulkCompanyDropdown', 'selectedBulkCompanyDisplay',
-                    'selectedBulkCompanyName', 'selectedBulkCompanyEmail', 'bulkEmployerEmail', (company) => {
-                        selectedBulkCompany = company;
-                    });
+                    'selectedBulkCompanyName', 'selectedBulkCompanyEmail', 'bulkEmployerEmail', null, multiOptBulk);
             }
         }
         
-        // Setup company selector with search functionality
-        function setupCompanySelector(searchInput, dropdownId, displayId, nameId, emailId, hiddenInputId, onSelect) {
+        function setupCompanySelector(searchInput, dropdownId, displayId, nameId, emailId, hiddenInputId, onSelect, multiOptions) {
             const dropdown = document.getElementById(dropdownId);
             const display = document.getElementById(displayId);
             const nameDisplay = document.getElementById(nameId);
             const emailDisplay = document.getElementById(emailId);
             const hiddenInput = document.getElementById(hiddenInputId);
             
-            // Function to filter and render companies
             function filterAndRender() {
                 const searchTerm = searchInput.value.toLowerCase().trim();
-                
                 let filteredCompanies;
                 if (searchTerm === '') {
                     filteredCompanies = allCompanies;
@@ -2874,154 +3082,131 @@ include 'session_protect.php';
                         company.email.toLowerCase().includes(searchTerm)
                     );
                 }
-                
-                renderCompanyDropdown(dropdown, filteredCompanies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect);
+                renderCompanyDropdown(dropdown, filteredCompanies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect, multiOptions);
             }
             
-            // Initial render with all companies if available
             if (allCompanies.length > 0) {
                 filterAndRender();
             }
-            
-            // Search functionality - filter as user types
-            searchInput.addEventListener('input', function(e) {
+            searchInput.addEventListener('input', function () {
                 filterAndRender();
             });
         }
         
-        // Function to refresh company dropdowns when companies are loaded
         function refreshCompanyDropdowns() {
             const companySearch = document.getElementById('companySearch');
             const bulkCompanySearch = document.getElementById('bulkCompanySearch');
-            
+            const multiOpt = {
+                getList: function () { return selectedCompanies; },
+                afterChange: function () { renderSelectedCompaniesChips(); }
+            };
+            const multiOptBulk = {
+                getList: function () { return selectedBulkCompanies; },
+                afterChange: function () { renderSelectedBulkCompaniesChips(); }
+            };
             if (companySearch && allCompanies.length > 0) {
                 const searchTerm = companySearch.value.toLowerCase().trim();
-                let filteredCompanies = searchTerm === '' ? allCompanies : 
+                const filteredCompanies = searchTerm === '' ? allCompanies : 
                     allCompanies.filter(company => 
                         company.company_name.toLowerCase().includes(searchTerm) ||
                         company.email.toLowerCase().includes(searchTerm)
                     );
-                const dropdown = document.getElementById('companyDropdown');
-                const display = document.getElementById('selectedCompanyDisplay');
-                const nameDisplay = document.getElementById('selectedCompanyName');
-                const emailDisplay = document.getElementById('selectedCompanyEmail');
-                const hiddenInput = document.getElementById('employerEmail');
-                renderCompanyDropdown(dropdown, filteredCompanies, companySearch, display, nameDisplay, emailDisplay, hiddenInput, (company) => {
-                    selectedCompany = company;
-                });
+                renderCompanyDropdown(document.getElementById('companyDropdown'), filteredCompanies, companySearch,
+                    document.getElementById('selectedCompanyDisplay'),
+                    document.getElementById('selectedCompanyName'), document.getElementById('selectedCompanyEmail'),
+                    document.getElementById('employerEmail'), null, multiOpt);
             }
-            
             if (bulkCompanySearch && allCompanies.length > 0) {
                 const searchTerm = bulkCompanySearch.value.toLowerCase().trim();
-                let filteredCompanies = searchTerm === '' ? allCompanies : 
+                const filteredCompanies = searchTerm === '' ? allCompanies : 
                     allCompanies.filter(company => 
                         company.company_name.toLowerCase().includes(searchTerm) ||
                         company.email.toLowerCase().includes(searchTerm)
                     );
-                const dropdown = document.getElementById('bulkCompanyDropdown');
-                const display = document.getElementById('selectedBulkCompanyDisplay');
-                const nameDisplay = document.getElementById('selectedBulkCompanyName');
-                const emailDisplay = document.getElementById('selectedBulkCompanyEmail');
-                const hiddenInput = document.getElementById('bulkEmployerEmail');
-                renderCompanyDropdown(dropdown, filteredCompanies, bulkCompanySearch, display, nameDisplay, emailDisplay, hiddenInput, (company) => {
-                    selectedBulkCompany = company;
-                });
+                renderCompanyDropdown(document.getElementById('bulkCompanyDropdown'), filteredCompanies, bulkCompanySearch,
+                    document.getElementById('selectedBulkCompanyDisplay'),
+                    document.getElementById('selectedBulkCompanyName'), document.getElementById('selectedBulkCompanyEmail'),
+                    document.getElementById('bulkEmployerEmail'), null, multiOptBulk);
             }
         }
         
-        // Render company dropdown
-        function renderCompanyDropdown(dropdown, companies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect) {
+        function renderCompanyDropdown(dropdown, companies, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect, multiOptions) {
+            if (!dropdown) return;
             if (companies.length === 0) {
-                dropdown.innerHTML = '<div class="company-no-results">No companies found</div>';
+                dropdown.innerHTML = '<div class="company-no-results">No verified companies found</div>';
                 return;
             }
-            
-            // Show count of companies
             const searchTerm = searchInput.value.toLowerCase().trim();
             const countText = searchTerm === '' 
                 ? `Showing ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}`
                 : `Found ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}`;
-            
-            dropdown.innerHTML = `<div class="company-count">${countText}</div>`;
+            dropdown.innerHTML = '<div class="company-count">' + countText + '</div>';
             
             companies.forEach(company => {
                 const item = document.createElement('div');
                 item.className = 'company-item';
                 item.innerHTML = `
-                    <div class="company-item-name">${company.company_name}</div>
-                    <div class="company-item-email">${company.email}</div>
+                    <div class="company-item-name">${escapeHtml(company.company_name)}</div>
+                    <div class="company-item-email">${escapeHtml(company.email)}</div>
                 `;
-                
-                item.addEventListener('click', function(e) {
-                    e.stopPropagation(); // Prevent event bubbling
-                    
-                    // Remove previous selection highlight
-                    dropdown.querySelectorAll('.company-item').forEach(el => {
-                        el.classList.remove('selected');
-                    });
-                    
-                    // Highlight selected item
+                if (multiOptions && multiOptions.getList) {
+                    const inList = multiOptions.getList().some(x => String(x.id) === String(company.id));
+                    if (inList) item.classList.add('selected');
+                }
+                item.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (multiOptions && multiOptions.getList) {
+                        const arr = multiOptions.getList();
+                        const companyObj = { id: company.id, company_name: company.company_name, email: company.email };
+                        if (!arr.some(x => String(x.id) === String(company.id))) {
+                            arr.push(companyObj);
+                        }
+                        multiOptions.afterChange();
+                        searchInput.value = '';
+                        const searchTerm2 = searchInput.value.toLowerCase().trim();
+                        const filtered = searchTerm2 === '' ? allCompanies : allCompanies.filter(c => 
+                            c.company_name.toLowerCase().includes(searchTerm2) || c.email.toLowerCase().includes(searchTerm2));
+                        renderCompanyDropdown(dropdown, filtered, searchInput, display, nameDisplay, emailDisplay, hiddenInput, onSelect, multiOptions);
+                        display.classList.add('show');
+                        return;
+                    }
+                    dropdown.querySelectorAll('.company-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
-                    
-                    // Set selected company
                     searchInput.value = company.company_name;
                     hiddenInput.value = company.email;
-                    nameDisplay.textContent = company.company_name;
-                    emailDisplay.textContent = company.email;
+                    if (nameDisplay) nameDisplay.textContent = company.company_name;
+                    if (emailDisplay) emailDisplay.textContent = company.email;
                     display.classList.add('show');
-                    
-                    // Call callback - ensure company object has all fields
                     if (onSelect) {
-                        // Ensure company object has id
-                        const companyObj = {
-                            id: company.id,
-                            company_name: company.company_name,
-                            email: company.email
-                        };
-                        console.log('Selecting company:', companyObj);
-                        onSelect(companyObj);
+                        onSelect({ id: company.id, company_name: company.company_name, email: company.email });
                     }
                 });
-                
                 dropdown.appendChild(item);
             });
         }
         
-        // Clear company selection
         function clearCompanySelection() {
-            selectedCompany = null;
+            selectedCompanies = [];
+            renderSelectedCompaniesChips();
             const searchInput = document.getElementById('companySearch');
             const dropdown = document.getElementById('companyDropdown');
-            const display = document.getElementById('selectedCompanyDisplay');
-            
             if (searchInput) searchInput.value = '';
-            if (document.getElementById('employerEmail')) document.getElementById('employerEmail').value = '';
-            if (display) display.classList.remove('show');
-            
-            // Remove selection highlight
             if (dropdown) {
-                dropdown.querySelectorAll('.company-item').forEach(el => {
-                    el.classList.remove('selected');
-                });
+                dropdown.querySelectorAll('.company-item').forEach(el => el.classList.remove('selected'));
             }
+            refreshCompanyDropdowns();
         }
         
         function clearBulkCompanySelection() {
-            selectedBulkCompany = null;
+            selectedBulkCompanies = [];
+            renderSelectedBulkCompaniesChips();
             const searchInput = document.getElementById('bulkCompanySearch');
             const dropdown = document.getElementById('bulkCompanyDropdown');
-            const display = document.getElementById('selectedBulkCompanyDisplay');
-            
             if (searchInput) searchInput.value = '';
-            if (document.getElementById('bulkEmployerEmail')) document.getElementById('bulkEmployerEmail').value = '';
-            if (display) display.classList.remove('show');
-            
-            // Remove selection highlight
             if (dropdown) {
-                dropdown.querySelectorAll('.company-item').forEach(el => {
-                    el.classList.remove('selected');
-                });
+                dropdown.querySelectorAll('.company-item').forEach(el => el.classList.remove('selected'));
             }
+            refreshCompanyDropdowns();
         }
         
         // Load companies when page loads
@@ -3036,49 +3221,39 @@ include 'session_protect.php';
         
         // Accept modal event listeners
         document.getElementById('confirmAcceptBtn').onclick = function() {
-            const email = document.getElementById('employerEmail').value.trim();
             const acceptBtn = document.getElementById('confirmAcceptBtn');
             const btnText = document.querySelector('#confirmAcceptBtn .btn-text');
             const spinner = document.getElementById('acceptSpinner');
             const cancelBtn = document.getElementById('cancelAcceptBtn');
             
-            if (!email || !selectedCompany) {
+            if (selectedCompanies.length === 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Required Field',
-                    text: 'Please select a company to send the jobseeker details to.',
+                    title: 'Required',
+                    text: 'Add at least one verified company from the list.',
                     confirmButtonColor: '#4caf50'
                 });
                 return;
             }
             
-            // Show loading state
             acceptBtn.disabled = true;
             cancelBtn.disabled = true;
             btnText.style.display = 'none';
             spinner.style.display = 'flex';
             
             if (currentJobseekerId) {
-                // Get company name and id from selected company
-                const companyName = selectedCompany ? selectedCompany.company_name : 'the employer';
-                const companyId = selectedCompany ? selectedCompany.id : null;
-                
-                // Debug logging
-                console.log('Selected Company:', selectedCompany);
-                console.log('Company ID:', companyId);
-                console.log('Company Name:', companyName);
-                
-                // Call the update function and handle the response
-                updateJobseekerStatusWithCallback(currentJobseekerId, 'Referred', null, email, function(success) {
-                    // Stop spinner and reset button state
+                const emails = [...new Set(selectedCompanies.map(c => c.email).filter(Boolean))];
+                const referredMeta = {
+                    companyIds: selectedCompanies.map(c => parseInt(c.id, 10)),
+                    companyNames: selectedCompanies.map(c => c.company_name),
+                    companyEmails: emails
+                };
+                updateJobseekerStatusWithCallback(currentJobseekerId, 'Referred', null, emails[0] || '', function(success) {
                     acceptBtn.disabled = false;
                     cancelBtn.disabled = false;
                     btnText.style.display = 'inline';
                     spinner.style.display = 'none';
-                    
-                    // Modal will be closed by SweetAlert .then() callback
-                    // No need to close it here
-                }, companyName, companyId);
+                }, referredMeta);
             }
         };
         
@@ -3300,8 +3475,8 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                 listHTML += `
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff;border-radius:6px;margin-bottom:8px;border:1px solid #e0e0e0;">
                         <div>
-                            <strong>${js.firstname} ${js.middlename && js.middlename !== 'n/a' ? js.middlename + ' ' : ''}${js.surname}${js.suffix && js.suffix !== 'n/a' ? ', ' + js.suffix : ''}</strong>
-                            <div style="font-size:0.85rem;color:#666;">ID: ${js.id} | Age: ${js.age} | ${js.sex}</div>
+                            <strong>${formatJobseekerDisplayName(js)}</strong>
+                            <div style="font-size:0.85rem;color:#666;">${js.id} | Age: ${js.age} | ${js.sex}</div>
                         </div>
                     </div>
                 `;
@@ -3343,17 +3518,16 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
         }
         
         function bulkAcceptJobseekers() {
-            const email = document.getElementById('bulkEmployerEmail').value.trim();
             const bulkAcceptBtn = document.getElementById('confirmBulkAcceptBtn');
             const btnText = document.querySelector('#confirmBulkAcceptBtn .btn-text');
             const spinner = document.getElementById('bulkAcceptSpinner');
             const cancelBtn = document.getElementById('cancelBulkAcceptBtn');
             
-            if (!email || !selectedBulkCompany) {
+            if (selectedBulkCompanies.length === 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Required Field',
-                    text: 'Please select a company to send the jobseeker details to.',
+                    title: 'Required',
+                    text: 'Add at least one verified company from the list.',
                     confirmButtonColor: '#4caf50'
                 });
                 return;
@@ -3371,13 +3545,16 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             let successCount = 0;
             let errorCount = 0;
             
-            // Get company name and id from selected bulk company
-            const companyName = selectedBulkCompany ? selectedBulkCompany.company_name : 'the employer';
-            const companyId = selectedBulkCompany ? selectedBulkCompany.id : null;
+            const bulkEmails = [...new Set(selectedBulkCompanies.map(c => c.email).filter(Boolean))];
+            const referredMetaBulk = {
+                companyIds: selectedBulkCompanies.map(c => parseInt(c.id, 10)),
+                companyNames: selectedBulkCompanies.map(c => c.company_name),
+                companyEmails: bulkEmails
+            };
             
             selectedJobseekers.forEach((jobseeker, index) => {
                 setTimeout(() => {
-                    updateJobseekerStatusWithCallback(jobseeker.id, 'Referred', null, email, function(success) {
+                    updateJobseekerStatusWithCallback(jobseeker.id, 'Referred', null, bulkEmails[0] || '', function(success) {
                         completed++;
                         
                         if (success) {
@@ -3396,10 +3573,12 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                             
                             // Show final result
                             if (errorCount === 0) {
+                                const nc = referredMetaBulk.companyNames.length;
+                                const compLabel = nc > 1 ? `${nc} companies` : (referredMetaBulk.companyNames[0] || 'the company');
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Sent Successful!',
-                                    text: `All ${successCount} jobseekers have been accepted and details sent to ${email}.`,
+                                    text: `All ${successCount} jobseeker(s) were referred to ${compLabel}.`,
                                     confirmButtonColor: '#4caf50',
                                     confirmButtonText: 'OK'
                                 }).then(() => {
@@ -3433,7 +3612,7 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                                 });
                             }
                         }
-                    }, companyName, companyId);
+                    }, referredMetaBulk);
                 }, index * 500); // Stagger requests by 500ms
             });
         }
@@ -3457,9 +3636,15 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
         window.onclick = function(e) {
             if (e.target === document.getElementById('resumeModal')) document.getElementById('resumeModal').style.display = 'none';
             if (e.target === document.getElementById('detailsModal')) document.getElementById('detailsModal').style.display = 'none';
-            if (e.target === document.getElementById('acceptModal')) document.getElementById('acceptModal').style.display = 'none';
+            if (e.target === document.getElementById('acceptModal')) {
+                document.getElementById('acceptModal').style.display = 'none';
+                resetAcceptModal();
+            }
             if (e.target === document.getElementById('rejectModal')) document.getElementById('rejectModal').style.display = 'none';
-            if (e.target === document.getElementById('bulkAcceptModal')) document.getElementById('bulkAcceptModal').style.display = 'none';
+            if (e.target === document.getElementById('bulkAcceptModal')) {
+                document.getElementById('bulkAcceptModal').style.display = 'none';
+                clearBulkCompanySelection();
+            }
             if (e.target === document.getElementById('logoutModal')) document.getElementById('logoutModal').style.display = 'none';
         };
         </script>

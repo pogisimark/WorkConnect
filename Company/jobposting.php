@@ -26,8 +26,22 @@ if ($columns_check && $columns_check->num_rows > 0) {
 $success_message = '';
 $error_message = '';
 
+/** True when request expects JSON (fetch + X-Requested-With). */
+function jobposting_is_ajax_request() {
+    return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+        && strcasecmp(trim($_SERVER['HTTP_X_REQUESTED_WITH']), 'XMLHttpRequest') === 0;
+}
+
+function jobposting_json_response($success, $message, array $extra = []) {
+    header('Content-Type: application/json; charset=utf-8');
+    $payload = array_merge(['success' => (bool) $success, 'message' => (string) $message], $extra);
+    echo json_encode($payload);
+    exit;
+}
+
 // Handle form submissions
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $isAjax = jobposting_is_ajax_request();
     if (isset($_POST['action'])) {
         switch ($_POST['action']) {
             case 'add_job':
@@ -55,8 +69,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 if ($stmt->execute()) {
+                    $stmt->close();
+                    if ($isAjax) {
+                        jobposting_json_response(true, 'Job posting created successfully!');
+                    }
                     $success_message = "Job posting created successfully!";
-                    // Redirect to prevent form resubmission
                     header("Location: jobposting.php?success=1");
                     exit();
                 } else {
@@ -89,6 +106,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 if ($stmt->execute()) {
+                    $stmt->close();
+                    if ($isAjax) {
+                        $job_payload = [
+                            'id' => (int) $job_id,
+                            'title' => $title,
+                            'description' => $description,
+                            'requirements' => $requirements,
+                            'salary_range' => $salary_range,
+                            'location' => $location,
+                            'job_type' => $job_type,
+                            'industry' => $industry,
+                            'status' => $status,
+                            'company' => $company_name,
+                        ];
+                        jobposting_json_response(true, 'Job posting updated successfully!', ['job' => $job_payload]);
+                    }
                     $success_message = "Job posting updated successfully!";
                     header("Location: jobposting.php?success=1");
                     exit();
@@ -112,6 +145,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 if ($stmt->execute()) {
+                    if ($stmt->affected_rows < 1) {
+                        $stmt->close();
+                        $error_message = 'Job not found or already deleted.';
+                        break;
+                    }
+                    $stmt->close();
+                    if ($isAjax) {
+                        jobposting_json_response(true, 'Job posting deleted successfully!');
+                    }
                     $success_message = "Job posting deleted successfully!";
                     header("Location: jobposting.php?success=1");
                     exit();
@@ -120,14 +162,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 $stmt->close();
                 break;
+
+            case 'set_job_status':
+                $job_id = (int) ($_POST['job_id'] ?? 0);
+                $new_status = trim((string) ($_POST['new_status'] ?? ''));
+                if ($job_id <= 0 || !in_array($new_status, ['Closed', 'Active'], true)) {
+                    $error_message = 'Invalid job or status.';
+                    break;
+                }
+                $check_column = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+                if ($check_column && $check_column->num_rows > 0) {
+                    $stmt = $conn->prepare('UPDATE job_postings SET status = ? WHERE id = ? AND company_id = ?');
+                    $stmt->bind_param('sii', $new_status, $job_id, $company_id);
+                } else {
+                    $stmt = $conn->prepare('UPDATE job_postings SET status = ? WHERE id = ? AND company = ?');
+                    $stmt->bind_param('sis', $new_status, $job_id, $company_name);
+                }
+                if ($stmt && $stmt->execute()) {
+                    if ($stmt->affected_rows < 1) {
+                        $error_message = 'Job not found or you do not have permission to update it.';
+                        $stmt->close();
+                        break;
+                    }
+                    $stmt->close();
+                    $status_msg = ($new_status === 'Closed')
+                        ? 'Job posting closed successfully.'
+                        : 'Job posting reopened successfully.';
+                    if ($isAjax) {
+                        jobposting_json_response(true, $status_msg);
+                    }
+                    header('Location: jobposting.php?success=1');
+                    exit();
+                }
+                $error_message = 'Could not update job status. ' . ($conn->error ?: '');
+                if ($stmt) {
+                    $stmt->close();
+                }
+                break;
+        }
+        if ($isAjax && $error_message !== '') {
+            jobposting_json_response(false, $error_message);
         }
     }
 }
 
-// Check for success message in URL
-if (isset($_GET['success']) && $_GET['success'] == '1') {
-    $success_message = "Operation completed successfully!";
-}
+// Legacy success (e.g. non-AJAX delete) — show SweetAlert on load, not green banner
+$flash_success_swal = (isset($_GET['success']) && $_GET['success'] == '1');
 
 // Get company's job postings with analytics
 $check_column = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
@@ -175,6 +255,13 @@ if ($app_table_check && $app_table_check->num_rows > 0) {
     }
 }
 
+require_once __DIR__ . '/view_applicants_badge_helper.php';
+$pending_applicants_sidebar_count = company_pending_applicants_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/referred_pending_badge_helper.php';
+$referred_pending_sidebar_count = company_referred_pending_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/admin_requests_badge_helper.php';
+$pending_admin_requests_count = company_admin_pending_request_count($conn, $company_id);
+
 $conn->close();
 ?>
 
@@ -188,6 +275,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
         body {
             margin: 0;
@@ -285,116 +373,257 @@ $conn->close();
             border: 1px solid #f5c6cb;
         }
         
+        /* Wider cards: max 3 columns on large screens (avoids cramped 4-up layout) */
         .jobs-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 28px;
+            margin-bottom: 36px;
+        }
+        
+        @media (max-width: 1200px) {
+            .jobs-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 22px;
+            }
+        }
+        
+        @media (max-width: 700px) {
+            .jobs-grid {
+                grid-template-columns: 1fr;
+            }
         }
         
         .job-card {
             background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
+            padding: 0;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(26, 56, 118, 0.08);
+            border: 1px solid #e8eaf0;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            overflow: hidden;
         }
         
         .job-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(26, 56, 118, 0.12);
+        }
+        
+        .job-card--closed {
+            opacity: 0.96;
+            background: #fafbfc;
+        }
+        
+        .job-card-inner {
+            padding: 22px 24px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         
         .job-card-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+        
+        .job-card-header > div:first-child {
+            min-width: 0;
         }
         
         .job-card-title {
-            font-size: 1.2rem;
-            font-weight: 600;
+            font-size: 1.28rem;
+            font-weight: 700;
             color: #1a3876;
-            margin: 0 0 5px 0;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+            letter-spacing: -0.02em;
         }
         
         .job-card-company {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
+            color: #546e7a;
+            font-size: 0.95rem;
+            margin: 0;
+            font-weight: 500;
         }
         
         .job-card-meta {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
+            padding: 14px 0;
+            border-top: 1px solid #eef1f5;
+            border-bottom: 1px solid #eef1f5;
         }
         
         .job-meta-item {
             display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #666;
-            font-size: 0.85rem;
+            align-items: flex-start;
+            gap: 10px;
+            color: #455a64;
+            font-size: 0.92rem;
+            line-height: 1.4;
+        }
+        
+        .job-meta-item i {
+            color: #5c6bc0;
+            margin-top: 3px;
+            width: 1rem;
+            flex-shrink: 0;
         }
         
         .job-card-description {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
+            color: #37474f;
+            font-size: 0.93rem;
+            line-height: 1.58;
+            margin: 0;
+            flex: 1;
+            min-height: 4.75rem;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
         
-        .job-card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
+        .job-card-description.job-card-description--empty {
+            color: #90a4ae;
+            font-style: italic;
         }
         
-        .job-card-actions {
+        .job-card-footer {
+            margin-top: auto;
+            padding: 18px 22px 20px;
+            border-top: 1px solid #e8eaf0;
+            background: linear-gradient(180deg, #f9fafc 0%, #f4f6f9 100%);
             display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .job-card-footer-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            font-size: 0.88rem;
+            color: #455a64;
+        }
+        
+        .job-card-footer-meta .job-stat-pill {
+            display: inline-flex;
+            align-items: center;
             gap: 8px;
+            color: #37474f;
+            font-weight: 500;
+        }
+        
+        .job-card-footer-meta .job-stat-pill i {
+            color: #5c6bc0;
+            opacity: 0.9;
+        }
+        
+        .job-card-footer-meta .job-stat-pill--hired {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+        
+        .job-card-footer-meta .job-stat-pill--hired i {
+            color: #43a047;
+        }
+        
+        /* 2×2 action grid — equal width, no cramped single row */
+        .job-card-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 12px;
+            width: 100%;
         }
         
         .btn-small {
-            padding: 6px 12px;
+            padding: 11px 12px;
             border: none;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            white-space: nowrap;
+        }
+        
+        .btn-small:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-view-details {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+        
+        .btn-view-details:hover {
+            background: #bbdefb;
         }
         
         .btn-edit {
-            background: #007bff;
+            background: #1a3876;
             color: white;
         }
         
         .btn-edit:hover {
-            background: #0056b3;
+            background: #2c4a9e;
+        }
+        
+        .btn-close-job {
+            background: #fff8e1;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+        
+        .btn-close-job:hover {
+            background: #ffecb3;
+        }
+        
+        .btn-reopen-job {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .btn-reopen-job:hover {
+            background: #c8e6c9;
         }
         
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: #fff;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
         }
         
         .btn-delete:hover {
-            background: #c82333;
+            background: #ffebee;
         }
         
         .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            line-height: 1;
         }
         
         .status-active {
@@ -410,6 +639,180 @@ $conn->close();
         .status-closed {
             background: #f8d7da;
             color: #721c24;
+        }
+        
+        /* —— Job “View details” modal (SweetAlert2) —— */
+        .jd-modal-popup {
+            border-radius: 16px !important;
+            padding: 0 !important;
+            overflow: hidden;
+            box-shadow: 0 24px 56px rgba(26, 56, 118, 0.22) !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .jd-modal-title {
+            margin: 0 !important;
+            padding: 22px 52px 18px 24px !important;
+            font-size: 1.28rem !important;
+            font-weight: 700 !important;
+            color: #1a3876 !important;
+            text-align: left !important;
+            line-height: 1.35 !important;
+            border-bottom: 1px solid #e8eaf0;
+            background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+        }
+        .jd-modal-html {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-height: min(62vh, 480px);
+            overflow-y: auto;
+        }
+        .jd-modal-html::-webkit-scrollbar {
+            width: 8px;
+        }
+        .jd-modal-html::-webkit-scrollbar-thumb {
+            background: #c5cae9;
+            border-radius: 8px;
+        }
+        .swal2-popup.jd-modal-popup .swal2-close {
+            width: 2.2rem !important;
+            height: 2.2rem !important;
+            border-radius: 10px !important;
+            color: #546e7a !important;
+            transition: background 0.2s, color 0.2s !important;
+        }
+        .swal2-popup.jd-modal-popup .swal2-close:hover {
+            background: #eceff1 !important;
+            color: #1a3876 !important;
+        }
+        .jd-modal-actions-wrap {
+            margin: 0 !important;
+            padding: 16px 24px 20px !important;
+            background: #f4f6f9;
+            border-top: 1px solid #e8eaf0;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .jd-modal-actions-wrap .swal2-confirm {
+            border-radius: 10px !important;
+            padding: 10px 32px !important;
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+            box-shadow: 0 2px 8px rgba(26, 56, 118, 0.25) !important;
+        }
+        .jd-modal-root {
+            padding: 20px 24px 8px;
+            text-align: left;
+        }
+        .jd-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px 24px;
+            margin-bottom: 22px;
+        }
+        @media (max-width: 560px) {
+            .jd-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .jd-meta-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #78909c;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .jd-meta-value {
+            font-size: 0.95rem;
+            color: #263238;
+            font-weight: 500;
+            line-height: 1.35;
+        }
+        .jd-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .jd-status--active {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        .jd-status--closed {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+        .jd-status--draft {
+            background: #fff8e1;
+            color: #e65100;
+        }
+        .jd-status--other {
+            background: #eceff1;
+            color: #455a64;
+        }
+        .jd-section {
+            margin-bottom: 18px;
+        }
+        .jd-section:last-of-type {
+            margin-bottom: 0;
+        }
+        .jd-section-head {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #1a3876;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .jd-section-head i {
+            opacity: 0.85;
+            font-size: 0.85rem;
+        }
+        .jd-section-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #37474f;
+            border: 1px solid #e8eaf0;
+        }
+        .jd-req-list {
+            margin: 0;
+            padding-left: 1.15rem;
+        }
+        .jd-req-list li {
+            margin-bottom: 8px;
+            padding-left: 2px;
+        }
+        .jd-req-list li:last-child {
+            margin-bottom: 0;
+        }
+        .jd-req-empty {
+            list-style: none;
+            margin-left: -1.15rem;
+            color: #90a4ae;
+            font-style: italic;
+        }
+        .jd-footer-date {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px dashed #cfd8dc;
+            font-size: 0.82rem;
+            color: #78909c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .jd-footer-date i {
+            color: #5c6bc0;
         }
         
         .empty-state {
@@ -777,9 +1180,9 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php" class="active"><i class="fas fa-briefcase"></i> Job Posting</a></li>
-                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
-                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
-                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants<?php echo company_pending_applicants_badge_html($pending_applicants_sidebar_count); ?></a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred<?php echo company_referred_pending_badge_html($referred_pending_sidebar_count); ?></a></li>
+                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests<?php echo company_admin_requests_badge_html($pending_admin_requests_count); ?></a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -801,6 +1204,21 @@ $conn->close();
                     <div id="errorAlert" class="alert alert-error">
                         <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
                     </div>
+                <?php endif; ?>
+
+                <?php if (!empty($flash_success_swal)): ?>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Operation completed successfully!',
+                        confirmButtonColor: '#1a3876'
+                    }).then(function() {
+                        history.replaceState(null, '', 'jobposting.php');
+                    });
+                });
+                </script>
                 <?php endif; ?>
 
                 <!-- Job Posting Form -->
@@ -892,69 +1310,94 @@ $conn->close();
                         </div>
                     <?php else: ?>
                     <div class="jobs-grid">
-                        <?php foreach ($job_postings as $job): ?>
-                            <div class="job-card">
-                                <div class="job-card-header">
-                                    <div>
-                                        <h3 class="job-card-title"><?php echo htmlspecialchars($job['title']); ?></h3>
-                                        <p class="job-card-company"><?php echo htmlspecialchars($job['company']); ?></p>
-                                    </div>
-                                    <span class="status-badge status-<?php echo strtolower($job['status']); ?>">
-                                        <?php echo htmlspecialchars($job['status']); ?>
-                                    </span>
-                                </div>
-                                
-                                <div class="job-card-meta">
-                                    <div class="job-meta-item">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <?php echo htmlspecialchars($job['location']); ?>
-                                    </div>
-                                    <div class="job-meta-item">
-                                        <i class="fas fa-briefcase"></i>
-                                        <?php echo htmlspecialchars($job['job_type']); ?>
-                                    </div>
-                                    <?php if ($job['salary_range']): ?>
-                                        <div class="job-meta-item">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                            <?php echo htmlspecialchars($job['salary_range']); ?>
+                        <?php foreach ($job_postings as $job):
+                            $job_status_key = strtolower((string) ($job['status'] ?? 'active'));
+                            $raw_desc = trim((string) ($job['description'] ?? ''));
+                            if ($raw_desc === '') {
+                                $desc_class = 'job-card-description job-card-description--empty';
+                                $desc_html = 'No description provided.';
+                            } else {
+                                $desc_class = 'job-card-description';
+                                $desc_html = htmlspecialchars(strlen($raw_desc) > 150 ? substr($raw_desc, 0, 150) . '…' : $raw_desc);
+                            }
+                            $can_close = in_array($job_status_key, ['active', 'draft'], true);
+                            $is_closed = ($job_status_key === 'closed');
+                            ?>
+                            <div class="job-card<?php echo $is_closed ? ' job-card--closed' : ''; ?>" data-job-id="<?php echo (int) $job['id']; ?>">
+                                <div class="job-card-inner">
+                                    <div class="job-card-header">
+                                        <div>
+                                            <h3 class="job-card-title"><?php echo htmlspecialchars($job['title']); ?></h3>
+                                            <p class="job-card-company"><?php echo htmlspecialchars($job['company']); ?></p>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
-                                
-                                <div class="job-card-description">
-                                    <?php echo htmlspecialchars(substr($job['description'], 0, 150)); ?>...
+                                        <span class="status-badge status-<?php echo htmlspecialchars($job_status_key); ?>">
+                                            <?php echo htmlspecialchars($job['status']); ?>
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="job-card-meta">
+                                        <div class="job-meta-item">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            <?php echo htmlspecialchars($job['location']); ?>
+                                        </div>
+                                        <div class="job-meta-item">
+                                            <i class="fas fa-briefcase"></i>
+                                            <?php echo htmlspecialchars($job['job_type']); ?>
+                                        </div>
+                                        <?php if (!empty($job['salary_range'])): ?>
+                                            <div class="job-meta-item">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                ₱<?php echo htmlspecialchars($job['salary_range']); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <p class="<?php echo $desc_class; ?>"><?php echo $desc_html; ?></p>
                                 </div>
                                 
                                 <div class="job-card-footer">
-                                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                                        <small style="color: #666;">
+                                    <div class="job-card-footer-meta">
+                                        <span class="job-stat-pill">
+                                            <i class="far fa-calendar-alt"></i>
                                             <?php echo date('M d, Y', strtotime($job['created_at'])); ?>
-                                        </small>
-                                        <?php if (isset($job_analytics[$job['id']])): 
+                                        </span>
+                                        <?php if (isset($job_analytics[$job['id']])):
                                             $analytics = $job_analytics[$job['id']];
                                             if ($analytics['total_applications'] > 0): ?>
-                                                <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                                                    <span style="color: #1a3876; font-weight: 600; font-size: 0.9rem;">
-                                                        <i class="fas fa-users"></i> <?php echo $analytics['total_applications']; ?> Application<?php echo $analytics['total_applications'] > 1 ? 's' : ''; ?>
+                                                <span class="job-stat-pill">
+                                                    <i class="fas fa-users"></i>
+                                                    <?php echo (int) $analytics['total_applications']; ?> application<?php echo $analytics['total_applications'] > 1 ? 's' : ''; ?>
+                                                </span>
+                                                <?php if (!empty($analytics['status_counts']['Accepted'])): ?>
+                                                    <span class="job-stat-pill job-stat-pill--hired">
+                                                        <i class="fas fa-check-circle"></i>
+                                                        <?php echo (int) $analytics['status_counts']['Accepted']; ?> hired
                                                     </span>
-                                                    <?php if (isset($analytics['status_counts']['Accepted']) && $analytics['status_counts']['Accepted'] > 0): ?>
-                                                        <span style="color: #4caf50; font-size: 0.85rem;">
-                                                            <i class="fas fa-check-circle"></i> <?php echo $analytics['status_counts']['Accepted']; ?> Hired
-                                                        </span>
-                                                    <?php endif; ?>
-                                                </div>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <small style="color: #999; font-size: 0.85rem;">
-                                                    <i class="fas fa-users"></i> No applications yet
-                                                </small>
+                                                <span class="job-stat-pill" style="color:#90a4ae;">
+                                                    <i class="fas fa-inbox"></i> No applications yet
+                                                </span>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                     <div class="job-card-actions">
-                                        <button class="btn-small btn-edit" onclick="editJob(<?php echo $job['id']; ?>)">
+                                        <button type="button" class="btn-small btn-view-details" onclick="viewJobDetails(<?php echo (int) $job['id']; ?>)">
+                                            <i class="fas fa-eye"></i> View details
+                                        </button>
+                                        <button type="button" class="btn-small btn-edit" onclick="editJob(<?php echo (int) $job['id']; ?>)">
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
-                                        <button class="btn-small btn-delete" onclick="deleteJob(<?php echo $job['id']; ?>, '<?php echo htmlspecialchars($job['title'], ENT_QUOTES); ?>')">
+                                        <?php if ($can_close): ?>
+                                            <button type="button" class="btn-small btn-close-job" onclick="closeJobPosting(<?php echo (int) $job['id']; ?>, '<?php echo htmlspecialchars($job['title'], ENT_QUOTES); ?>')">
+                                                <i class="fas fa-lock"></i> Close
+                                            </button>
+                                        <?php elseif ($is_closed): ?>
+                                            <button type="button" class="btn-small btn-reopen-job" onclick="reopenJobPosting(<?php echo (int) $job['id']; ?>, '<?php echo htmlspecialchars($job['title'], ENT_QUOTES); ?>')">
+                                                <i class="fas fa-redo-alt"></i> Reopen
+                                            </button>
+                                        <?php endif; ?>
+                                        <button type="button" class="btn-small btn-delete" onclick="deleteJob(<?php echo (int) $job['id']; ?>, '<?php echo htmlspecialchars($job['title'], ENT_QUOTES); ?>')">
                                             <i class="fas fa-trash"></i> Delete
                                         </button>
                                     </div>
@@ -987,29 +1430,6 @@ $conn->close();
             }
         }
 
-        // Logout modal
-        function showLogoutModal() {
-            // Close dropdown first
-            document.getElementById('profileDropdown').style.display = 'none';
-            
-            // Show confirmation modal
-            Swal.fire({
-                title: 'Logout?',
-                text: 'Are you sure you want to logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a3876',
-                cancelButtonColor: '#666',
-                confirmButtonText: 'Yes, Logout',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'logout.php';
-                }
-            });
-        }
-
         function toggleForm() {
             const formSection = document.getElementById('jobFormSection');
             const formContent = formSection.querySelector('form');
@@ -1024,7 +1444,8 @@ $conn->close();
             }
         }
 
-        function resetForm() {
+        function resetForm(options) {
+            options = options || {};
             document.getElementById('formTitle').textContent = 'Add New Job Posting';
             document.getElementById('formAction').value = 'add_job';
             document.getElementById('jobId').value = '';
@@ -1037,8 +1458,9 @@ $conn->close();
             // Re-initialize formatting
             setTimeout(initializeSalaryFormatting, 100);
             
-            // Scroll to top of form
-            document.getElementById('jobFormSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (!options.skipScroll) {
+                document.getElementById('jobFormSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function editJob(jobId) {
@@ -1084,26 +1506,418 @@ $conn->close();
             setTimeout(initializeSalaryFormatting, 100);
         }
 
+        async function submitDeleteFetch(jobId) {
+            const fd = new FormData();
+            fd.append('action', 'delete_job');
+            fd.append('job_id', String(jobId));
+            const res = await fetch('jobposting.php', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (parseErr) {
+                throw new Error('Unexpected response from server. Please try again.');
+            }
+            if (!data.success) {
+                throw new Error(data.message || 'Could not delete job posting.');
+            }
+            return data;
+        }
+
+        function removeJobFromPage(jobId) {
+            const card = document.querySelector('.job-card[data-job-id="' + jobId + '"]');
+            if (card) {
+                card.remove();
+            }
+            const idx = allJobs.findIndex(function(j) {
+                return Number(j.id) === Number(jobId);
+            });
+            if (idx !== -1) {
+                allJobs.splice(idx, 1);
+            }
+            const titleEl = document.querySelector('.jobs-section .section-title');
+            if (titleEl) {
+                titleEl.textContent = 'My Job Postings (' + allJobs.length + ')';
+            }
+            const grid = document.querySelector('.jobs-grid');
+            if (grid && grid.children.length === 0) {
+                grid.remove();
+                const section = document.querySelector('.jobs-section');
+                if (section && !section.querySelector('.empty-state')) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-state';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-briefcase';
+                    const h3 = document.createElement('h3');
+                    h3.textContent = 'No Job Postings Yet';
+                    const p = document.createElement('p');
+                    p.textContent = 'Fill out the form above to create your first job posting.';
+                    empty.appendChild(icon);
+                    empty.appendChild(h3);
+                    empty.appendChild(p);
+                    section.appendChild(empty);
+                }
+            }
+            const editingId = document.getElementById('jobId').value;
+            if (editingId && Number(editingId) === Number(jobId)) {
+                resetForm({ skipScroll: true });
+            }
+        }
+
         function deleteJob(jobId, jobTitle) {
             Swal.fire({
                 title: 'Are you sure?',
-                text: `You are about to delete "${jobTitle}". This action cannot be undone!`,
+                text: 'You are about to delete "' + jobTitle + '". This action cannot be undone!',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.innerHTML = `
-                        <input type="hidden" name="action" value="delete_job">
-                        <input type="hidden" name="job_id" value="${jobId}">
-                    `;
-                    document.body.appendChild(form);
-                    form.submit();
+                confirmButtonText: 'Yes, delete it!',
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: function() {
+                    return submitDeleteFetch(jobId);
                 }
+            }).then(function(result) {
+                if (result.isConfirmed && result.value) {
+                    removeJobFromPage(jobId);
+                    showJobStatusToast(result.value.message);
+                }
+            });
+        }
+
+        /** Fetch close/reopen; used inside Swal preConfirm so loader runs until the server responds. */
+        async function submitJobStatusFetch(jobId, newStatus) {
+            const fd = new FormData();
+            fd.append('action', 'set_job_status');
+            fd.append('job_id', String(jobId));
+            fd.append('new_status', newStatus);
+            const res = await fetch('jobposting.php', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (parseErr) {
+                throw new Error('Unexpected response from server. Please try again.');
+            }
+            if (!data.success) {
+                throw new Error(data.message || 'Could not update job status.');
+            }
+            return data;
+        }
+
+        /** Update card + allJobs after close/reopen — no full reload (avoids delay after success). */
+        function updateJobCardInPlace(jobId, newStatus) {
+            const card = document.querySelector('.job-card[data-job-id="' + jobId + '"]');
+            if (!card) {
+                return;
+            }
+            const titleEl = card.querySelector('.job-card-title');
+            const title = titleEl ? titleEl.textContent.trim() : '';
+
+            const badge = card.querySelector('.status-badge');
+            if (badge) {
+                const key = String(newStatus).toLowerCase();
+                badge.className = 'status-badge status-' + key;
+                badge.textContent = String(newStatus || '');
+            }
+
+            if (newStatus === 'Closed') {
+                card.classList.add('job-card--closed');
+            } else {
+                card.classList.remove('job-card--closed');
+            }
+
+            const actions = card.querySelector('.job-card-actions');
+            if (!actions) {
+                return;
+            }
+            const delBtn = actions.querySelector('.btn-delete');
+            const oldClose = actions.querySelector('.btn-close-job');
+            const oldReopen = actions.querySelector('.btn-reopen-job');
+
+            if (newStatus === 'Closed') {
+                if (oldClose) {
+                    oldClose.remove();
+                }
+                if (!actions.querySelector('.btn-reopen-job')) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn-small btn-reopen-job';
+                    btn.innerHTML = '<i class="fas fa-redo-alt"></i> Reopen';
+                    btn.addEventListener('click', function() {
+                        reopenJobPosting(jobId, title);
+                    });
+                    actions.insertBefore(btn, delBtn);
+                }
+            } else {
+                if (oldReopen) {
+                    oldReopen.remove();
+                }
+                if (!actions.querySelector('.btn-close-job')) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn-small btn-close-job';
+                    btn.innerHTML = '<i class="fas fa-lock"></i> Close';
+                    btn.addEventListener('click', function() {
+                        closeJobPosting(jobId, title);
+                    });
+                    actions.insertBefore(btn, delBtn);
+                }
+            }
+
+            const j = allJobs.find(function(x) {
+                return Number(x.id) === Number(jobId);
+            });
+            if (j) {
+                j.status = newStatus;
+            }
+        }
+
+        /** Append a meta row (icon + text) without innerHTML on user text. */
+        function appendJobMetaRow(metaEl, iconClass, text) {
+            const row = document.createElement('div');
+            row.className = 'job-meta-item';
+            const icon = document.createElement('i');
+            icon.className = iconClass;
+            row.appendChild(icon);
+            row.appendChild(document.createTextNode(' ' + (text == null ? '' : String(text))));
+            metaEl.appendChild(row);
+        }
+
+        /** After saving edit via AJAX: refresh card + allJobs, then status buttons. */
+        function applyJobEditToCard(job) {
+            if (!job || job.id == null) {
+                return;
+            }
+            const id = Number(job.id);
+            const card = document.querySelector('.job-card[data-job-id="' + id + '"]');
+            if (!card) {
+                return;
+            }
+
+            const titleEl = card.querySelector('.job-card-title');
+            if (titleEl) {
+                titleEl.textContent = job.title || '';
+            }
+            const compEl = card.querySelector('.job-card-company');
+            if (compEl && job.company) {
+                compEl.textContent = job.company;
+            }
+
+            const meta = card.querySelector('.job-card-meta');
+            if (meta) {
+                meta.textContent = '';
+                appendJobMetaRow(meta, 'fas fa-map-marker-alt', job.location || '');
+                appendJobMetaRow(meta, 'fas fa-briefcase', job.job_type || '');
+                if (job.salary_range) {
+                    const row = document.createElement('div');
+                    row.className = 'job-meta-item';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-money-bill-wave';
+                    row.appendChild(icon);
+                    row.appendChild(document.createTextNode(' ₱' + String(job.salary_range)));
+                    meta.appendChild(row);
+                }
+            }
+
+            const descP = card.querySelector('p.job-card-description');
+            if (descP) {
+                const raw = String(job.description || '').trim();
+                if (!raw) {
+                    descP.className = 'job-card-description job-card-description--empty';
+                    descP.textContent = 'No description provided.';
+                } else {
+                    descP.className = 'job-card-description';
+                    const snippet = raw.length > 150 ? raw.slice(0, 150) + '…' : raw;
+                    descP.textContent = snippet;
+                }
+            }
+
+            const j = allJobs.find(function(x) {
+                return Number(x.id) === id;
+            });
+            if (j) {
+                j.title = job.title;
+                j.description = job.description;
+                j.requirements = job.requirements;
+                j.salary_range = job.salary_range;
+                j.location = job.location;
+                j.job_type = job.job_type;
+                j.industry = job.industry;
+                j.status = job.status;
+                if (job.company) {
+                    j.company = job.company;
+                }
+            }
+
+            updateJobCardInPlace(id, job.status || 'Active');
+        }
+
+        function showJobStatusToast(message) {
+            Swal.fire({
+                icon: 'success',
+                title: message,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2800,
+                timerProgressBar: true
+            });
+        }
+
+        function closeJobPosting(jobId, jobTitle) {
+            Swal.fire({
+                title: 'Close this posting?',
+                html: `“${escapeHtml(jobTitle)}” will no longer appear to jobseekers. You can reopen it later.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#e65100',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, close it',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: () => submitJobStatusFetch(jobId, 'Closed')
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    updateJobCardInPlace(jobId, 'Closed');
+                    showJobStatusToast(result.value.message);
+                }
+            });
+        }
+
+        function reopenJobPosting(jobId, jobTitle) {
+            Swal.fire({
+                title: 'Reopen posting?',
+                html: `“${escapeHtml(jobTitle)}” will be visible again as an active job.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2e7d32',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, reopen',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: () => submitJobStatusFetch(jobId, 'Active')
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    updateJobCardInPlace(jobId, 'Active');
+                    showJobStatusToast(result.value.message);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text == null ? '' : String(text);
+            return d.innerHTML;
+        }
+
+        function viewJobDetails(jobId) {
+            const job = allJobs.find(j => Number(j.id) === Number(jobId));
+            if (!job) {
+                return;
+            }
+
+            function formatPosted(iso) {
+                if (!iso) {
+                    return '—';
+                }
+                const d = new Date(String(iso).replace(' ', 'T'));
+                if (isNaN(d.getTime())) {
+                    return escapeHtml(String(iso).replace('T', ' ').slice(0, 19));
+                }
+                return escapeHtml(d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }));
+            }
+
+            function statusClass(st) {
+                const s = String(st || '').toLowerCase();
+                if (s === 'active') {
+                    return 'jd-status jd-status--active';
+                }
+                if (s === 'closed') {
+                    return 'jd-status jd-status--closed';
+                }
+                if (s === 'draft') {
+                    return 'jd-status jd-status--draft';
+                }
+                return 'jd-status jd-status--other';
+            }
+
+            function requirementsHtml(text) {
+                const raw = String(text || '').trim();
+                if (!raw) {
+                    return '<ul class="jd-req-list"><li class="jd-req-empty">No requirements listed.</li></ul>';
+                }
+                const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                const items = lines.map(function (line) {
+                    const t = line.replace(/^[\-\*•]\s*/, '').replace(/^\d+[\.)]\s*/, '');
+                    return '<li>' + escapeHtml(t) + '</li>';
+                }).join('');
+                return '<ul class="jd-req-list">' + items + '</ul>';
+            }
+
+            const salaryVal = job.salary_range
+                ? '₱' + escapeHtml(String(job.salary_range))
+                : '<span style="color:#90a4ae;">—</span>';
+            const industryVal = job.industry
+                ? escapeHtml(String(job.industry))
+                : '<span style="color:#90a4ae;">—</span>';
+            const descRaw = (job.description || '').trim();
+            const descBlock = descRaw
+                ? escapeHtml(descRaw).replace(/\r?\n/g, '<br>')
+                : '<span style="color:#90a4ae;font-style:italic;">No description provided.</span>';
+
+            const html = ''
+                + '<div class="jd-modal-root">'
+                + '<div class="jd-meta-grid">'
+                + '<div><div class="jd-meta-label">Company</div><div class="jd-meta-value">' + escapeHtml(job.company || '') + '</div></div>'
+                + '<div><div class="jd-meta-label">Status</div><div class="jd-meta-value"><span class="' + statusClass(job.status) + '">' + escapeHtml(job.status || '—') + '</span></div></div>'
+                + '<div><div class="jd-meta-label">Location</div><div class="jd-meta-value">' + escapeHtml(job.location || '') + '</div></div>'
+                + '<div><div class="jd-meta-label">Job type</div><div class="jd-meta-value">' + escapeHtml(job.job_type || '') + '</div></div>'
+                + '<div><div class="jd-meta-label">Salary</div><div class="jd-meta-value">' + salaryVal + '</div></div>'
+                + '<div><div class="jd-meta-label">Industry</div><div class="jd-meta-value">' + industryVal + '</div></div>'
+                + '</div>'
+                + '<div class="jd-section">'
+                + '<div class="jd-section-head"><i class="fas fa-align-left"></i> Description</div>'
+                + '<div class="jd-section-box">' + descBlock + '</div>'
+                + '</div>'
+                + '<div class="jd-section">'
+                + '<div class="jd-section-head"><i class="fas fa-clipboard-list"></i> Requirements</div>'
+                + '<div class="jd-section-box">' + requirementsHtml(job.requirements) + '</div>'
+                + '</div>'
+                + '<div class="jd-footer-date"><i class="far fa-clock"></i><span>Posted <strong>' + formatPosted(job.created_at) + '</strong></span></div>'
+                + '</div>';
+
+            Swal.fire({
+                title: job.title || 'Job posting',
+                html: html,
+                showCloseButton: true,
+                width: 'min(92vw, 720px)',
+                padding: 0,
+                focusConfirm: false,
+                customClass: {
+                    popup: 'jd-modal-popup',
+                    title: 'jd-modal-title',
+                    htmlContainer: 'jd-modal-html',
+                    actions: 'jd-modal-actions-wrap',
+                    confirmButton: 'jd-modal-confirm'
+                },
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#1a3876'
             });
         }
 
@@ -1206,6 +2020,26 @@ $conn->close();
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // After close/reopen reload: restore scroll position (avoid jump to top)
+            try {
+                const saved = sessionStorage.getItem('wc_jobposting_scroll');
+                if (saved !== null) {
+                    sessionStorage.removeItem('wc_jobposting_scroll');
+                    const y = parseInt(saved, 10);
+                    if (!Number.isNaN(y) && y >= 0) {
+                        const applyScroll = function() {
+                            window.scrollTo(0, y);
+                        };
+                        applyScroll();
+                        requestAnimationFrame(function() {
+                            applyScroll();
+                            requestAnimationFrame(applyScroll);
+                        });
+                        window.addEventListener('load', applyScroll, { once: true });
+                    }
+                }
+            } catch (e) { /* ignore */ }
+
             initializeSalaryFormatting();
             autoHideAlerts();
             
@@ -1228,8 +2062,9 @@ $conn->close();
             }
         });
         
-        // Handle form submission
-        document.getElementById('jobForm').addEventListener('submit', function(e) {
+        // Handle form submission (AJAX + loading + SweetAlert success)
+        document.getElementById('jobForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
             const title = document.getElementById('title').value.trim();
             const description = document.getElementById('description').value.trim();
             const requirements = document.getElementById('requirements').value.trim();
@@ -1238,44 +2073,101 @@ $conn->close();
             const location = document.getElementById('location').value.trim();
             
             if (!title || !description || !requirements || !location) {
-                e.preventDefault();
                 Swal.fire({
                     title: 'Missing Information',
                     text: 'Please fill in all required fields.',
                     icon: 'warning',
                     confirmButtonColor: '#1a3876'
                 });
-                return false;
+                return;
             }
             
-            // Validate salary fields
             if (!salaryMin || !salaryMax) {
-                e.preventDefault();
                 Swal.fire({
                     title: 'Missing Salary Information',
                     text: 'Please fill in both minimum and maximum salary.',
                     icon: 'warning',
                     confirmButtonColor: '#1a3876'
                 });
-                return false;
+                return;
             }
             
             const minValue = removeCommas(salaryMin);
             const maxValue = removeCommas(salaryMax);
             
-            if (parseInt(minValue) > parseInt(maxValue)) {
-                e.preventDefault();
+            if (parseInt(minValue, 10) > parseInt(maxValue, 10)) {
                 Swal.fire({
                     title: 'Invalid Salary Range',
                     text: 'Minimum salary cannot be greater than maximum salary.',
                     icon: 'warning',
                     confirmButtonColor: '#1a3876'
                 });
-                return false;
+                return;
             }
             
-            // Combine salary min and max into salary_range
             document.getElementById('salary_range').value = minValue + '-' + maxValue;
+            
+            const form = this;
+            const fd = new FormData(form);
+            const isEdit = document.getElementById('formAction').value === 'update_job';
+            Swal.fire({
+                title: isEdit ? 'Saving changes…' : 'Creating posting…',
+                text: 'Please wait…',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            try {
+                const res = await fetch('jobposting.php', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                });
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Unexpected response from server. Please try again.',
+                        confirmButtonColor: '#1a3876'
+                    });
+                    return;
+                }
+                Swal.close();
+                if (data.success) {
+                    if (isEdit && data.job) {
+                        applyJobEditToCard(data.job);
+                        showJobStatusToast(data.message);
+                        resetForm({ skipScroll: true });
+                    } else {
+                        showJobStatusToast(data.message);
+                        window.setTimeout(function() {
+                            window.location.href = 'jobposting.php';
+                        }, 2200);
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Something went wrong.',
+                        confirmButtonColor: '#1a3876'
+                    });
+                }
+            } catch (err) {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not reach the server. Please try again.',
+                    confirmButtonColor: '#1a3876'
+                });
+            }
         });
     </script>
 </body>

@@ -190,6 +190,12 @@ body {
     min-width: 0;
   }
   
+  /* Mobile: more room for welcome — hide PESO logo + WorkConnect word (hamburger stays) */
+  .logo-brand .logo,
+  .logo-brand .brand {
+    display: none !important;
+  }
+  
   .logo {
     height: 32px;
     margin-right: 8px;
@@ -217,7 +223,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
+    max-width: 200px; /* wider once logo + WorkConnect label are hidden */
   }
   
   .logout-btn {
@@ -417,6 +423,11 @@ body {
     min-height: 50px;
   }
   
+  .logo-brand .logo,
+  .logo-brand .brand {
+    display: none !important;
+  }
+  
   .logo {
     height: 28px;
     margin-right: 6px;
@@ -428,7 +439,7 @@ body {
   
   .welcome-text {
     font-size: 0.75rem;
-    max-width: 100px;
+    max-width: 160px;
   }
   
   .logout-btn {
@@ -730,6 +741,11 @@ body {
 .status-rejected {
   background: #f8d7da;
   color: #721c24;
+}
+
+.status-referred {
+  background: #2196f3;
+  color: #fff;
 }
 
 .profile-summary {

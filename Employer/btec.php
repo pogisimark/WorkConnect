@@ -1,4 +1,14 @@
-<?php include 'session_protect.php'; ?>
+<?php
+include 'session_protect.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/db.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+$acfu_unread_count = acfu_get_unread_response_count($conn);
+if ($conn) {
+    $conn->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -907,6 +917,14 @@
                 margin: 0 !important;
             }
             
+            .btec-cell-input {
+                font-size: 9px !important;
+                padding: 3px 4px !important;
+                border: 1px solid #333 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
             .btec-table th,
             .btec-table td {
                 padding: 4px 5px !important;
@@ -1052,6 +1070,30 @@
             font-size: 0.85rem;
         }
         
+        /* Part A — manual entry cells (not auto-filled like Part B) */
+        .btec-data-cell.btec-part-a-input-wrap {
+            padding: 4px 6px !important;
+            vertical-align: middle;
+            background: #fff !important;
+        }
+        .btec-cell-input {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 6px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #233a8b;
+            background: #fff;
+        }
+        .btec-cell-input:focus {
+            outline: none;
+            border-color: #233a8b;
+            box-shadow: 0 0 0 2px rgba(35, 58, 139, 0.15);
+        }
+        
     </style>
 </head>
 <body>
@@ -1077,8 +1119,8 @@
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="#" class="active"> BTEC MONTHLY REPORT</a>
@@ -1194,45 +1236,45 @@
                             
                             <tr>
                                 <td class="activity-name"># of applicants registered</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell">Examples: Daily Job Referral, Job Fair, LRA, SRA, SPES, WAP, WHIP, TUPAD, GIP (Please specify)</td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of applicants pre-screened</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of jobseekers referred to PESO</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of placed monitored</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
@@ -1243,23 +1285,23 @@
                             
                             <tr>
                                 <td class="activity-name"># of job vacancies posted</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name">Date posted</td>
-                                <td class="programs-cell"></td>
-                                <td class="programs-cell"></td>
-                                <td class="programs-cell"></td>
-                                <td class="programs-cell"></td>
-                                <td class="programs-cell"></td>
-                                <td class="programs-cell"></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" placeholder="e.g. mm/dd/yyyy" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
@@ -1270,34 +1312,34 @@
                             
                             <tr>
                                 <td class="activity-name"># of enrolled participants</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell">Skills Training Program</td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of participants graduated</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of employed, Please encircle: WE/SE</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
@@ -1308,34 +1350,34 @@
                             
                             <tr>
                                 <td class="activity-name">Specify:</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell">DOLE Livelihood Grants/ LGU Livelihood Projects/ DTI/ OWWA/ TESDA (TWSP, STEP)</td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of beneficiaries</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># or active/operational</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
@@ -1346,34 +1388,34 @@
                             
                             <tr>
                                 <td class="activity-name"># of students enrolled</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell">Career Guidance Seminar</td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of students participated</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name">Name of school:</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
@@ -1384,35 +1426,35 @@
                             
                             <tr>
                                 <td class="activity-name"># of batches</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell">PEOS, AIRTIP, LEGS</td>
                             </tr>
                             
                             <tr>
                                 <td class="activity-name"># of participants</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             
                             <!-- Other Programs Assisted -->
                             <tr>
                                 <td class="activity-name">Other Programs Assisted: Passport on Wheels (POW)/ Hapinoy/ SSS</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
+                                <td class="btec-data-cell btec-part-a-input-wrap"><input type="text" class="btec-cell-input" autocomplete="off" /></td>
                                 <td class="programs-cell"></td>
                             </tr>
                             

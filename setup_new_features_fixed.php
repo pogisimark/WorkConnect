@@ -234,23 +234,7 @@ if ($conn->query($sql10) === TRUE) {
 }
 
 echo "<br>Inserting sample data...<br>";
-
-// Insert sample job postings
-$sampleJobs = [
-    ['Software Developer', 'TechCorp Inc.', 'We are looking for a skilled software developer to join our team.', 'Bachelor degree in Computer Science, 2+ years experience, PHP/MySQL knowledge', '25000-35000', 'Manila', 'Full-time', 'Technology'],
-    ['Marketing Assistant', 'Digital Solutions', 'Assist in marketing campaigns and social media management.', 'Marketing degree preferred, social media experience, creative thinking', '18000-25000', 'Quezon City', 'Full-time', 'Marketing'],
-    ['Customer Service Representative', 'Service Plus', 'Handle customer inquiries and provide excellent service.', 'High school graduate, good communication skills, customer service experience', '15000-20000', 'Makati', 'Full-time', 'Customer Service'],
-    ['Data Analyst', 'Analytics Pro', 'Analyze data and create reports for business insights.', 'Statistics or Math degree, Excel skills, analytical thinking', '22000-30000', 'Taguig', 'Full-time', 'Analytics'],
-    ['Graphic Designer', 'Creative Studio', 'Create visual designs for various marketing materials.', 'Design degree or portfolio, Adobe Creative Suite skills', '20000-28000', 'Pasig', 'Full-time', 'Design']
-];
-
-$stmt = $conn->prepare("INSERT IGNORE INTO job_postings (title, company, description, requirements, salary_range, location, job_type, industry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-foreach ($sampleJobs as $job) {
-    $stmt->bind_param("ssssssss", $job[0], $job[1], $job[2], $job[3], $job[4], $job[5], $job[6], $job[7]);
-    $stmt->execute();
-}
-$stmt->close();
-echo "✅ Sample job postings inserted successfully.<br>";
+echo "ℹ️ Sample job postings skipped — only company-created jobs are used.<br>";
 
 // Insert resume templates
 $templates = [

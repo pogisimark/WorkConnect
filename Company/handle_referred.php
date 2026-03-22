@@ -24,6 +24,9 @@ if (!isset($_SESSION['logged_in']) || !isset($_SESSION['company_id']) || !isset(
 }
 
 require_once 'db.php';
+require_once '../Employee/create_notification.php';
+require_once __DIR__ . '/../Employer/referrals_schema.php';
+require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
 
 // Check if PHPMailer is available and load it
 $phpmailer_available = false;
@@ -95,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $company_website = (in_array('website', $company_columns) && isset($company_data['website'])) ? $company_data['website'] : '';
         
         // Get jobseeker information (include user_id for in-app notifications)
-        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email, application_status, user_id FROM jobseeker WHERE id = ?");
+        $stmt = $conn->prepare("SELECT firstname, surname, middlename, email, application_status, user_id, referred_to_company_id FROM jobseeker WHERE id = ?");
         if (!$stmt) {
             ob_clean();
             echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
@@ -120,6 +123,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->close();
             ob_clean();
             echo json_encode(['success' => false, 'message' => 'This jobseeker is not in Referred status']);
+            exit;
+        }
+
+        ensure_jobseeker_referrals_table($conn);
+
+        $refStmt = $conn->prepare("SELECT id, status FROM jobseeker_company_referrals WHERE jobseeker_id = ? AND company_id = ?");
+        $refStmt->bind_param("ii", $jobseeker_id, $company_id);
+        $refStmt->execute();
+        $refRow = $refStmt->get_result()->fetch_assoc();
+        $refStmt->close();
+
+        if (!$refRow) {
+            $legacyCid = isset($jobseeker['referred_to_company_id']) ? (int)$jobseeker['referred_to_company_id'] : 0;
+            if ($legacyCid === (int)$company_id) {
+                $insLegacy = $conn->prepare("INSERT INTO jobseeker_company_referrals (jobseeker_id, company_id, status) VALUES (?, ?, 'pending')");
+                $insLegacy->bind_param("ii", $jobseeker_id, $company_id);
+                $insLegacy->execute();
+                $insLegacy->close();
+                $refRow = ['status' => 'pending'];
+            }
+        }
+
+        if (!$refRow || strtolower($refRow['status']) !== 'pending') {
+            $stmt->close();
+            ob_clean();
+            echo json_encode(['success' => false, 'message' => 'This jobseeker was not referred to your company, or you have already responded.']);
             exit;
         }
         
@@ -181,17 +210,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     
         if ($action === 'accept') {
-            // Update jobseeker's application_status from 'Referred' to 'Accepted'
-            $stmt = $conn->prepare("UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND application_status = 'Referred'");
-            if (!$stmt) {
+            $stmtRef = $conn->prepare("UPDATE jobseeker_company_referrals SET status = 'accepted' WHERE jobseeker_id = ? AND company_id = ? AND status = 'pending'");
+            if (!$stmtRef) {
                 ob_clean();
                 echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
                 exit;
             }
+            $stmtRef->bind_param("ii", $jobseeker_id, $company_id);
             
-            $stmt->bind_param("i", $jobseeker_id);
-            
-            if ($stmt->execute()) {
+            if ($stmtRef->execute() && $stmtRef->affected_rows > 0) {
+                $stmtRef->close();
+                $stmtWd = $conn->prepare("UPDATE jobseeker_company_referrals SET status = 'withdrawn' WHERE jobseeker_id = ? AND company_id != ? AND status = 'pending'");
+                if ($stmtWd) {
+                    $stmtWd->bind_param("ii", $jobseeker_id, $company_id);
+                    $stmtWd->execute();
+                    $stmtWd->close();
+                }
+                // Jobseeker accepted via referral — withdraw all open job applications (recommended jobs)
+                withdraw_open_job_applications_for_jobseeker($conn, $jobseeker_id, 0);
+                $stmt = $conn->prepare("UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND application_status = 'Referred'");
+                $stmt->bind_param("i", $jobseeker_id);
+                $stmt->execute();
                 $stmt->close();
                 
                 // Send acceptance email
@@ -355,10 +394,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     'success' => true,
                     'message' => $email_sent ? 'Jobseeker accepted and email sent successfully.' : 'Jobseeker accepted. Email notification may not have been sent.'
                 ];
+                if (!empty($jobseeker['user_id'])) {
+                    createNotification(
+                        (int)$jobseeker['user_id'],
+                        'Application Accepted',
+                        "Great news! {$company_name} accepted your referred application.",
+                        'application'
+                    );
+                }
             } else {
-                $error_msg = $stmt->error ? $stmt->error : 'Failed to update jobseeker status';
+                $error_msg = $stmtRef->error ? $stmtRef->error : 'Could not update referral (already processed?)';
                 $response = ['success' => false, 'message' => $error_msg];
-                $stmt->close();
+                $stmtRef->close();
             }
             
             // Clean output and send JSON
@@ -373,34 +420,84 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit;
             }
             
-            $rejection_reason = $conn->real_escape_string(trim($input['rejection_reason']));
+            $rejection_reason_raw = trim($input['rejection_reason']);
+            $rejection_reason_html = htmlspecialchars($rejection_reason_raw, ENT_QUOTES, 'UTF-8');
             
-            // Update jobseeker's application_status from 'Referred' to 'Rejected'
-            $stmt = $conn->prepare("UPDATE jobseeker SET application_status = 'Rejected' WHERE id = ? AND application_status = 'Referred'");
-            if (!$stmt) {
+            $stmtRef = $conn->prepare("UPDATE jobseeker_company_referrals SET status = 'rejected', rejection_reason = ? WHERE jobseeker_id = ? AND company_id = ? AND status = 'pending'");
+            if (!$stmtRef) {
                 ob_clean();
                 echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
                 exit;
             }
+            $stmtRef->bind_param("sii", $rejection_reason_raw, $jobseeker_id, $company_id);
             
-            $stmt->bind_param("i", $jobseeker_id);
-            
-            if ($stmt->execute()) {
-                $stmt->close();
-                
-                // Update rejection_reason if column exists
-                $check_column = $conn->query("SHOW COLUMNS FROM jobseeker LIKE 'rejection_reason'");
-                if ($check_column && $check_column->num_rows > 0) {
-                    $stmt_reason = $conn->prepare("UPDATE jobseeker SET rejection_reason = ? WHERE id = ?");
-                    if ($stmt_reason) {
-                        $stmt_reason->bind_param("si", $rejection_reason, $jobseeker_id);
-                        $stmt_reason->execute();
-                        $stmt_reason->close();
-                    }
+            if (!$stmtRef->execute() || $stmtRef->affected_rows < 1) {
+                $stmtRef->close();
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => 'Could not record rejection (referral may already be updated).']);
+                exit;
+            }
+            $stmtRef->close();
+
+            // Sync job_applications_extended so Recommended Jobs shows "Rejected" (not "Applied") for this company's postings
+            $checkCol = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
+            if ($checkCol && $checkCol->num_rows > 0) {
+                $syncStmt = $conn->prepare("UPDATE job_applications_extended jae
+                    INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                    SET jae.status = 'Rejected', jae.viewed_date = COALESCE(jae.viewed_date, NOW()), jae.notes = ?
+                    WHERE jae.jobseeker_id = ? AND jp.company_id = ? AND jae.status IN ('Applied', 'Viewed', 'Interview')");
+                if ($syncStmt) {
+                    $syncStmt->bind_param("sii", $rejection_reason_raw, $jobseeker_id, $company_id);
+                    $syncStmt->execute();
+                    $syncStmt->close();
                 }
+            } else {
+                $syncStmt = $conn->prepare("UPDATE job_applications_extended jae
+                    INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
+                    SET jae.status = 'Rejected', jae.viewed_date = COALESCE(jae.viewed_date, NOW()), jae.notes = ?
+                    WHERE jae.jobseeker_id = ? AND jp.company = ? AND jae.status IN ('Applied', 'Viewed', 'Interview')");
+                if ($syncStmt) {
+                    $syncStmt->bind_param("sis", $rejection_reason_raw, $jobseeker_id, $company_name);
+                    $syncStmt->execute();
+                    $syncStmt->close();
+                }
+            }
+
+            $cntP = $conn->prepare("SELECT COUNT(*) AS c FROM jobseeker_company_referrals WHERE jobseeker_id = ? AND status = 'pending'");
+            $cntP->bind_param("i", $jobseeker_id);
+            $cntP->execute();
+            $pendingCount = (int)($cntP->get_result()->fetch_assoc()['c'] ?? 0);
+            $cntP->close();
+
+            $cntA = $conn->prepare("SELECT COUNT(*) AS c FROM jobseeker_company_referrals WHERE jobseeker_id = ? AND status = 'accepted'");
+            $cntA->bind_param("i", $jobseeker_id);
+            $cntA->execute();
+            $acceptedCount = (int)($cntA->get_result()->fetch_assoc()['c'] ?? 0);
+            $cntA->close();
+
+            if ($pendingCount === 0 && $acceptedCount === 0) {
+                $stmtJs = $conn->prepare("UPDATE jobseeker SET application_status = 'Rejected', rejection_reason = ? WHERE id = ? AND application_status = 'Referred'");
+                if ($stmtJs) {
+                    $stmtJs->bind_param("si", $rejection_reason_raw, $jobseeker_id);
+                    $stmtJs->execute();
+                    $stmtJs->close();
+                }
+            }
                 
-                // Send rejection email
-                $subject = "Update on Your Job Application - WorkConnect";
+                // Referral-specific rejection (different from View Applicants rejection in handle_application.php)
+                $subject = 'Update on your referral to ' . $company_name . ' – WorkConnect';
+                
+                $referral_context = "
+                            <div class='referral-box'>
+                                <h3 style='color: #1a3876; margin-bottom: 12px; font-size: 1.05rem;'>Your referral</h3>
+                                <p style='margin: 0 0 8px; color: #444;'>We referred you to <strong>" . htmlspecialchars($company_name) . "</strong> because we believed your profile could be a good match.</p>
+                                <p style='margin: 0; color: #555; font-size: 15px;'><strong>Role / opportunity:</strong> " . htmlspecialchars($job_title) . "</p>";
+                if ($job_details) {
+                    $referral_context .= "
+                                <p style='margin: 8px 0 0; color: #666; font-size: 14px;'>" . htmlspecialchars($job_details['location'] ?? '') . "</p>";
+                }
+                $referral_context .= "
+                            </div>";
                 
                 $rejection_message = "
                 <!DOCTYPE html>
@@ -425,53 +522,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                         }
                         .header {
-                            background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+                            background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
                             color: #ffffff;
-                            padding: 40px 30px;
+                            padding: 36px 30px;
                             text-align: center;
                         }
                         .header h1 {
-                            font-size: 28px;
+                            font-size: 24px;
                             font-weight: 600;
                             margin: 0;
                         }
                         .content {
-                            padding: 50px 40px;
+                            padding: 44px 40px;
                             background-color: #ffffff;
                         }
-                        .job-details {
-                            background: #f8f9fa;
+                        .referral-box {
+                            background: #f0f4fb;
                             border-radius: 8px;
                             padding: 20px;
-                            margin: 20px 0;
-                        }
-                        .job-details h3 {
-                            color: #1a3876;
-                            margin-bottom: 15px;
-                            font-size: 1.2rem;
-                        }
-                        .detail-item {
-                            margin-bottom: 10px;
-                            color: #666;
-                        }
-                        .detail-item strong {
-                            color: #333;
+                            margin: 22px 0;
+                            border-left: 4px solid #1a3876;
                         }
                         .rejection-reason {
-                            background: #fff3cd;
-                            border-left: 4px solid #ffc107;
-                            padding: 15px;
-                            margin: 20px 0;
+                            background: #fff8e6;
+                            border-left: 4px solid #e6a100;
+                            padding: 16px 18px;
+                            margin: 22px 0;
                             border-radius: 4px;
                         }
                         .rejection-reason h3 {
-                            color: #856404;
+                            color: #6d4c00;
                             margin-bottom: 10px;
                             font-size: 1rem;
                         }
                         .footer {
                             background: #f8f9fa;
-                            padding: 30px;
+                            padding: 28px;
                             text-align: center;
                             color: #666;
                             font-size: 14px;
@@ -481,43 +567,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <body>
                     <div class='email-wrapper'>
                         <div class='header'>
-                            <h1>Application Update</h1>
+                            <h1>Message from WorkConnect</h1>
                         </div>
                         <div class='content'>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>Good day, " . htmlspecialchars($jobseeker_name) . ",</p>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>We hope this message finds you well.</p>
-                            <p style='margin-bottom: 20px; font-size: 16px;'>This is to inform you that you were successfully referred by WorkConnect to a potential job opportunity that matched your qualifications. However, after the company's evaluation process, we regret to inform you that your application was not selected for the position.</p>
-                            
-                            <div class='job-details'>
-                                <h3>Position Applied For</h3>
-                                <div class='detail-item'><strong>" . htmlspecialchars($job_title) . "</strong></div>";
-                
-                if ($job_details) {
-                    $rejection_message .= "
-                                <div class='detail-item' style='margin-top: 10px;'>" . htmlspecialchars($job_details['company'] ?? $company_name) . " - " . htmlspecialchars($job_details['location'] ?? '') . "</div>";
-                    if (!empty($job_details['job_type'])) {
-                        $rejection_message .= "<div class='detail-item'><strong>Job Type:</strong> " . htmlspecialchars($job_details['job_type']) . "</div>";
-                    }
-                    if (!empty($job_details['salary_range'])) {
-                        $rejection_message .= "<div class='detail-item'><strong>Salary Range:</strong> ₱" . htmlspecialchars($job_details['salary_range']) . "</div>";
-                    }
-                }
-                
-                $rejection_message .= "
-                            </div>
+                            <h2 style='color: #1a3876; margin-bottom: 18px; font-size: 1.25rem;'>Dear " . htmlspecialchars($jobseeker_name) . ",</h2>
+                            <p style='margin-bottom: 18px; font-size: 16px;'>We are sorry to share disappointing news, and we thank you for your patience.</p>
+                            <p style='margin-bottom: 18px; font-size: 16px;'>At WorkConnect, we did our part to refer you to an employer we thought would fit your goals. Unfortunately, <strong>" . htmlspecialchars($company_name) . "</strong> has reviewed your information and has decided <strong>not to move forward</strong> with your referral at this time. This outcome reflects their current hiring needs and assessment—not your worth as a candidate.</p>
                             
                             <div class='rejection-reason'>
-                                <h3>The company provided the following reason for their decision:</h3>
-                                <p style='color: #333; margin: 0;'>" . nl2br(htmlspecialchars($rejection_reason)) . "</p>
+                                <h3>Feedback shared by the company</h3>
+                                <p style='color: #333; margin: 0;'>" . nl2br($rejection_reason_html) . "</p>
                             </div>
-                            
-                            <p style='margin-top: 30px; font-size: 16px;'>Please note that this decision was made by the company and does not reflect your overall potential or capabilities. We highly encourage you to continue applying, as WorkConnect remains committed to assisting you in finding job opportunities that best suit your skills and experience.</p>
-                            
-                            <p style='margin-top: 20px; font-size: 16px;'>Should you have any questions or wish to explore other available job openings, feel free to reach out to us.</p>
-                            
-                            <p style='margin-top: 30px; font-size: 16px;'>Thank you for your continued trust in WorkConnect. We wish you the best in your job search journey.</p>
-                            
-                            <p style='margin-top: 20px; font-size: 16px; color: #666;'>Kind regards,<br><strong>The WorkConnect Team</strong></p>
+                            <p style='margin-top: 26px; font-size: 16px;'><strong>Please don’t be discouraged.</strong> Many strong candidates receive a “no” and succeed elsewhere. We encourage you to keep your profile updated and to keep exploring opportunities through WorkConnect—we remain committed to helping you find the right fit.</p>
+                            <p style='margin-top: 18px; font-size: 16px; color: #555;'>If you have questions or would like guidance on next steps, you can reach out to our team. We’re rooting for you.</p>
+                            <p style='margin-top: 28px; font-size: 16px; color: #666;'>With support,<br><strong>The WorkConnect Team</strong></p>
                         </div>
                         <div class='footer'>
                             <p><strong>WorkConnect</strong></p>
@@ -563,11 +626,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     'success' => true,
                     'message' => $email_sent ? 'Jobseeker rejected and email sent successfully.' : 'Jobseeker rejected. Email notification may not have been sent.'
                 ];
-            } else {
-                $error_msg = $stmt->error ? $stmt->error : 'Failed to update jobseeker status';
-                $response = ['success' => false, 'message' => $error_msg];
-                $stmt->close();
-            }
+                if (!empty($jobseeker['user_id'])) {
+                    if ($pendingCount === 0 && $acceptedCount === 0) {
+                        createNotification(
+                            (int)$jobseeker['user_id'],
+                            'Application Rejected',
+                            "All referred employers have declined. Last update from {$company_name}.\n\nReason: {$rejection_reason_raw}",
+                            'application'
+                        );
+                    } else {
+                        $rr = trim($rejection_reason_raw);
+                        createNotification(
+                            (int)$jobseeker['user_id'],
+                            'Referral update',
+                            "{$company_name} declined your referral.\n\nReason: {$rr}.\n\nOther referred employers may still review your profile.",
+                            'application'
+                        );
+                    }
+                }
             
             // Clean output and send JSON
             ob_clean();

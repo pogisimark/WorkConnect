@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $jobseeker = $result->fetch_assoc();
         
         // Create professional email content
-        $subject = "New Jobseeker Application - " . $jobseeker['firstname'] . " " . $jobseeker['surname'];
+        $subject = "New Jobseeker Referral - " . $jobseeker['firstname'] . " " . $jobseeker['surname'];
         
         // Helper function to format boolean values
         function formatBoolean($value) {
@@ -146,7 +146,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <html>
         <head>
             <meta charset='UTF-8'>
-            <title>Jobseeker Application Details</title>
+            <title>Jobseeker Referral Details</title>
             <style>
                 body { 
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -245,13 +245,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <body>
             <div class='email-container'>
                 <div class='header'>
-                    <h1>New Jobseeker Application</h1>
+                    <h1>New Jobseeker Referral</h1>
                     <p>WorkConnect - Jobseeker Profile Details</p>
                 </div>
                 
                 <div class='content'>
                     <div class='highlight'>
-                        <strong>Application Summary:</strong> " . $jobseeker['firstname'] . " " . $jobseeker['surname'] . " has been accepted for employment consideration. Please review their complete profile below.
+                        <strong>Referral Summary:</strong> " . $jobseeker['firstname'] . " " . $jobseeker['surname'] . " has been referred for employment consideration. Please review their complete profile below.
                     </div>
                     
                     <div class='section'>

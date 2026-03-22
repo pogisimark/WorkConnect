@@ -87,7 +87,7 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
                 </div>
             </div>
             <div class='footer'>
-                <p><strong>WorkConnect</strong> | Department of Labor and Employment</p>
+                <p><strong>WorkConnect</strong> | Public Employment Service Office</p>
                 <p>This is an automated message. Please do not reply to this email.</p>
                 <p>&copy; " . date('Y') . " WorkConnect. All rights reserved.</p>
             </div>

@@ -99,3 +99,36 @@
         display: none !important;
     }
 }
+
+/* Admin Requests red count: one line with label, vertically centered (all company pages) */
+.sidebar.desktop-nav .sidebar-nav a {
+    flex-wrap: nowrap;
+    align-items: center;
+}
+.sidebar.desktop-nav .sidebar-nav a .company-admin-req-badge {
+    align-self: center;
+    line-height: 1;
+    margin-top: 0;
+}
+.sidebar.desktop-nav .sidebar-nav a .company-referred-pending-badge {
+    align-self: center;
+    line-height: 1;
+    margin-top: 0;
+}
+.sidebar.desktop-nav .sidebar-nav a .company-pending-applicants-badge {
+    align-self: center;
+    line-height: 1;
+    margin-top: 0;
+}
+.sidebar.desktop-nav .sidebar-nav a.active .company-pending-applicants-badge {
+    display: inline-flex !important;
+    align-self: center !important;
+    background: #f44336 !important;
+    color: #fff !important;
+}
+.sidebar.desktop-nav .sidebar-nav a.active .company-referred-pending-badge {
+    display: inline-flex !important;
+    align-self: center !important;
+    background: #f44336 !important;
+    color: #fff !important;
+}

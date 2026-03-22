@@ -158,6 +158,13 @@ $company_website = (in_array('website', $existing_columns) && isset($company_pro
 $company_address = (in_array('address', $existing_columns) && isset($company_profile['address'])) ? $company_profile['address'] : '';
 $company_phone = (in_array('phone', $existing_columns) && isset($company_profile['phone'])) ? $company_profile['phone'] : '';
 
+require_once __DIR__ . '/view_applicants_badge_helper.php';
+$pending_applicants_sidebar_count = company_pending_applicants_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/referred_pending_badge_helper.php';
+$referred_pending_sidebar_count = company_referred_pending_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/admin_requests_badge_helper.php';
+$pending_admin_requests_count = company_admin_pending_request_count($conn, $company_id);
+
 $conn->close();
 ?>
 
@@ -171,6 +178,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
         body {
             margin: 0;
@@ -593,9 +601,9 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
-                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
-                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
-                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants<?php echo company_pending_applicants_badge_html($pending_applicants_sidebar_count); ?></a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred<?php echo company_referred_pending_badge_html($referred_pending_sidebar_count); ?></a></li>
+                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests<?php echo company_admin_requests_badge_html($pending_admin_requests_count); ?></a></li>
                 <li><a href="profile.php" class="active"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -751,27 +759,6 @@ $conn->close();
                 }
             });
         });
-
-        // Logout modal
-        function showLogoutModal() {
-            document.getElementById('profileDropdown').style.display = 'none';
-            
-            Swal.fire({
-                title: 'Logout?',
-                text: 'Are you sure you want to logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a3876',
-                cancelButtonColor: '#666',
-                confirmButtonText: 'Yes, Logout',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'logout.php';
-                }
-            });
-        }
 
         // Logo preview
         function previewLogo(input) {

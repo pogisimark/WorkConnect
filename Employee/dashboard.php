@@ -5,11 +5,6 @@ date_default_timezone_set('Asia/Manila');
 require_once 'session_check.php';
 require_once 'db.php';
 
-// Ensure session is properly started and user is authenticated
-if (session_status() == PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Additional session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
     header("Location: login.php");
@@ -20,7 +15,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
 $session_token = hash('sha256', session_id() . $_SESSION['user_id'] . 'workconnect');
 $_SESSION['iframe_token'] = $session_token;
 
-// Get user applications
+// NSRP form submissions (jobseeker table)
 $user_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT * FROM jobseeker WHERE user_id = ? ORDER BY submission_year DESC, submission_month DESC");
 $stmt->bind_param("i", $user_id);
@@ -46,6 +41,24 @@ foreach ($status_counts as $status) {
     $status_counts_assoc[$status_key] = $status['count'];
 }
 
+// Count job applications from Recommended Jobs (job_applications_extended)
+$recommended_job_application_count = 0;
+$jae_table = @$conn->query("SHOW TABLES LIKE 'job_applications_extended'");
+if ($jae_table && $jae_table->num_rows > 0) {
+    $stmt_jae = $conn->prepare(
+        'SELECT COUNT(*) AS c FROM job_applications_extended jae
+         INNER JOIN jobseeker j ON j.id = jae.jobseeker_id
+         WHERE j.user_id = ?'
+    );
+    if ($stmt_jae) {
+        $stmt_jae->bind_param('i', $user_id);
+        $stmt_jae->execute();
+        $row_jae = $stmt_jae->get_result()->fetch_assoc();
+        $recommended_job_application_count = (int)($row_jae['c'] ?? 0);
+        $stmt_jae->close();
+    }
+}
+
 $conn->close();
 ?>
 
@@ -57,6 +70,36 @@ $conn->close();
     <title>Dashboard - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Global SweetAlert entry point for iframe children.
+        window.showGlobalSwal = function() {
+            const scrollContainer = document.querySelector('.dashboard-container') || document.scrollingElement || document.documentElement;
+            const savedWindowY = window.scrollY || window.pageYOffset || 0;
+            const savedContainerY = scrollContainer ? scrollContainer.scrollTop : 0;
+
+            // Most calls use object syntax; inject scroll-safe defaults there.
+            if (arguments.length > 0 && typeof arguments[0] === 'object' && arguments[0] !== null) {
+                const inputConfig = arguments[0];
+                const userDidOpen = inputConfig.didOpen;
+                const userWillClose = inputConfig.willClose;
+                const config = Object.assign({}, inputConfig, {
+                    heightAuto: false,
+                    returnFocus: false,
+                    didOpen: function(popup) {
+                        if (typeof userDidOpen === 'function') userDidOpen(popup);
+                    },
+                    willClose: function(popup) {
+                        if (typeof userWillClose === 'function') userWillClose(popup);
+                        if (scrollContainer) scrollContainer.scrollTop = savedContainerY;
+                        window.scrollTo(0, savedWindowY);
+                    }
+                });
+                return Swal.fire(config);
+            }
+
+            return Swal.fire.apply(Swal, arguments);
+        };
+    </script>
     <style>
         /* Spinner Animation */
         @keyframes spin {
@@ -142,6 +185,12 @@ $conn->close();
             min-width: 0;
         }
         
+        /* Mobile: hide logo + brand text; keep hamburger */
+        .logo-brand .logo,
+        .logo-brand .brand {
+            display: none !important;
+        }
+        
         .hamburger-menu {
             display: flex !important;
             flex-shrink: 0;
@@ -172,7 +221,7 @@ $conn->close();
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 120px;
+            max-width: 200px; /* wider now that logo/brand are hidden on mobile */
         }
         
         .notification-container {
@@ -192,30 +241,20 @@ $conn->close();
             overflow-y: auto; /* Enable vertical scrolling */
         }
         
-        /* Mobile-friendly iframe for job application form */
+        /* NSRP iframe: height is set by JS to full content — no min-height (avoids double scrollbars) */
         #apply-iframe {
             width: 100% !important;
-            min-height: 100vh !important; /* Ensure enough height for content */
-            height: auto !important; /* Auto height to show all content */
+            min-height: 0 !important;
+            height: auto !important;
             border: none !important;
             border-radius: 8px !important;
-        }
-        
-        /* Mobile progress bar improvements */
-        #apply-iframe {
-            /* Ensure iframe content is scrollable */
             position: relative;
             z-index: 1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         /* Mobile-specific progress bar styling */
         @media (max-width: 768px) {
-            /* Target progress bars within the iframe content */
-            #apply-iframe {
-                /* Add mobile-specific styling for better progress bar display */
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
             /* Mobile progress bar improvements - these styles will be injected into iframe */
             .mobile-progress-container {
                 position: sticky;
@@ -861,10 +900,10 @@ $conn->close();
             font-size: 0.9rem;
         }
         
-        /* Fix iframe for mobile */
+        /* Fix iframe for mobile — JS sets exact height to content */
         #apply-iframe {
-            min-height: 100vh; /* Ensure enough height for content */
-            height: auto; /* Auto height to show all content */
+            min-height: 0;
+            height: auto;
             width: 100%;
             border: none;
             max-width: 100%;
@@ -975,7 +1014,7 @@ $conn->close();
         
         .welcome-text {
             font-size: 0.8rem;
-            max-width: 100px;
+            max-width: 160px;
         }
         
         .dashboard-container {
@@ -1005,8 +1044,8 @@ $conn->close();
         
         /* Mobile-friendly iframe for smaller screens */
         #apply-iframe {
-            min-height: 100vh !important; /* Ensure enough height for content */
-            height: auto !important; /* Auto height to show all content */
+            min-height: 0 !important;
+            height: auto !important;
         }
         
         .main-content {
@@ -1041,10 +1080,6 @@ $conn->close();
         .sidebar-nav a {
             padding: 6px 10px;
             font-size: 0.8rem;
-        }
-        
-        #apply-iframe {
-            height: 500px;
         }
         
         /* Ultra-mobile content fixes */
@@ -1265,7 +1300,33 @@ $conn->close();
         color: #333;
         margin-bottom: 5px;
     }
+
+    .notification-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .notification-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #eef3ff;
+        color: #1a3876;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
     
+    .notification-message strong {
+        font-weight: 700;
+        color: #1a237e;
+    }
+
     .notification-message {
         color: #666;
         font-size: 14px;
@@ -1552,8 +1613,8 @@ $conn->close();
         display: block;
         width: 100%;
         max-width: 100%;
-        min-height: 110vh; /* Ensure iframe has enough height */
-        height: auto; /* Allow iframe to expand to its content */
+        min-height: 0;
+        height: auto;
     }
     
     /* Recommended Jobs Container Styling */
@@ -1805,11 +1866,38 @@ $conn->close();
         margin-bottom: 30px;
     }
     
-    .success-rate-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* Stack: top row = stat cards (Accepted / Rejected / Pending / Withdrawn); below = optional rejection panel */
+    .success-rate-stack {
+        display: flex;
+        flex-direction: column;
         gap: 20px;
         margin-top: 20px;
+    }
+    
+    .success-rate-cards-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 20px;
+    }
+    
+    .success-rate-rejection-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+    
+    .success-rate-rejection-panel h3 {
+        margin: 0 0 16px 0;
+        color: #233a8b;
+        font-size: 1.1rem;
+    }
+    
+    .success-rate-rejection-panel .rejection-reasons {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
     }
     
     .success-rate-card {
@@ -1838,6 +1926,10 @@ $conn->close();
         border-top: 4px solid #ff9800;
     }
     
+    .success-rate-card.withdrawn {
+        border-top: 4px solid #78909c;
+    }
+    
     .success-rate-number {
         font-size: 3rem;
         font-weight: 700;
@@ -1856,6 +1948,10 @@ $conn->close();
         color: #ff9800;
     }
     
+    .success-rate-card.withdrawn .success-rate-number {
+        color: #546e7a;
+    }
+    
     .success-rate-label {
         color: #666;
         font-size: 0.9rem;
@@ -1866,6 +1962,10 @@ $conn->close();
         font-size: 1.2rem;
         font-weight: 600;
         color: #1976d2;
+    }
+    
+    .success-rate-card.withdrawn .success-rate-percentage {
+        color: #546e7a;
     }
     
     .rejection-reasons {
@@ -2030,8 +2130,13 @@ $conn->close();
         color: #666;
     }
     
+    @media (max-width: 992px) {
+        .success-rate-cards-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
     @media (max-width: 768px) {
-        .success-rate-grid,
         .gap-analysis-grid {
             grid-template-columns: 1fr;
             gap: 16px;
@@ -2057,7 +2162,50 @@ $conn->close();
             font-size: 1.5rem;
         }
     }
-    
+
+    /* Parent-level modal host for iframe pages */
+    #global-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 5000;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    #global-modal-panel {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        max-width: 720px;
+        width: min(92vw, 720px);
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 24px;
+    }
+    #global-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+    #global-modal-title {
+        margin: 0;
+        color: #233a8b;
+        font-size: 1.4rem;
+        line-height: 1.2;
+    }
+    #global-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #666;
+        cursor: pointer;
+        padding: 0 6px;
+    }
+
     </style>
 </head>
 <body>
@@ -2130,7 +2278,7 @@ $conn->close();
 
                 <div class="application-status">
                     <div class="status-card">
-                        <h3>Application Status</h3>
+                        <h3>NSRP Form Status</h3>
                         <div style="margin-bottom: 15px;">
                             <span class="status-badge status-pending">Pending: <?php echo $status_counts_assoc['Pending'] ?? 0; ?></span>
                         </div>
@@ -2146,32 +2294,39 @@ $conn->close();
                     </div>
 
                     <div class="status-card">
-                        <h3>Recent Applications</h3>
+                        <h3>Recent NSRP Form</h3>
                         <?php if (empty($applications)): ?>
                             <div class="no-applications">
-                                <h3>No Applications Yet</h3>
-                                <p>You haven't submitted any job applications yet.</p>
-                                <button class="apply-now-btn" onclick="showSection('apply')">Apply Now</button>
+                                <h3>No NSRP Form Yet</h3>
+                                <p>Complete your NSRP registration to appear here.</p>
+                                <button class="apply-now-btn" onclick="showSection('apply')">Go to NSRP Registration</button>
                             </div>
                         <?php else: ?>
                             <?php foreach (array_slice($applications, 0, 3) as $app): ?>
                                 <?php 
-                                    $app_status = !empty($app['application_status']) ? $app['application_status'] : 'Pending';
+                                    $app_status = !empty($app['application_status']) ? trim($app['application_status']) : 'Pending';
                                     $status_class = strtolower($app_status);
                                     
-                                    // Format submission date
+                                    // NSRP submission: month and year only
                                     $submission_date = '';
-                                    if (!empty($app['submission_date'])) {
-                                        $submission_date = date('M Y', strtotime($app['submission_date']));
-                                    } elseif (!empty($app['submission_month']) && !empty($app['submission_year'])) {
-                                        $submission_date = date('M Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year']));
-                                    } else {
+                                    if (!empty($app['submission_date']) && $app['submission_date'] !== '0000-00-00') {
+                                        $ts = strtotime($app['submission_date']);
+                                        $submission_date = $ts ? date('M Y', $ts) : '';
+                                    }
+                                    if ($submission_date === '' && !empty($app['submission_month']) && !empty($app['submission_year'])) {
+                                        $submission_date = date('M Y', mktime(0, 0, 0, (int)$app['submission_month'], 1, (int)$app['submission_year']));
+                                    }
+                                    if ($submission_date === '') {
                                         $submission_date = 'Date not available';
                                     }
                                     
-                                    $full_name = trim(($app['firstname'] ?? '') . ' ' . ($app['surname'] ?? ''));
+                                    $mn = trim((string)($app['middlename'] ?? ''));
+                                    if ($mn === '' || strtolower($mn) === 'n/a') {
+                                        $mn = '';
+                                    }
+                                    $full_name = trim(($app['firstname'] ?? '') . ($mn !== '' ? ' ' . $mn : '') . ' ' . ($app['surname'] ?? ''));
                                     if (empty($full_name)) {
-                                        $full_name = 'Application #' . $app['id'];
+                                        $full_name = 'NSRP form #' . $app['id'];
                                     }
                                 ?>
                                 <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
@@ -2211,15 +2366,15 @@ $conn->close();
                             <p><?php echo htmlspecialchars($_SESSION['email'] ?? 'Not set'); ?></p>
                         </div>
                         <div class="profile-item">
-                            <h4>Total Applications</h4>
-                            <p><?php echo count($applications); ?></p>
+                            <h4 title="Jobs you applied to from Recommended Jobs">Total Applications</h4>
+                            <p><?php echo (int)$recommended_job_application_count; ?></p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Skills Ranking Section -->
                 <div class="skills-ranking-section">
-                    <h2 class="section-title">Top Skills Ranking</h2>
+                    <h2 class="section-title">Most Common Skills</h2>
                     <div id="skillsRankingContainer" class="skills-ranking-grid">
                         <div class="skills-ranking-loading">
                             <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
@@ -2231,7 +2386,8 @@ $conn->close();
                 <!-- Application Success Rate Section -->
                 <div class="success-rate-section">
                     <h2 class="section-title">Application Success Rate</h2>
-                    <div id="successRateContainer" class="success-rate-grid">
+                    <p style="color:#666;font-size:0.9rem;margin:-8px 0 16px 0;">Based on applications you submitted from <strong>Recommended Jobs</strong>. <strong>Withdrawn</strong> means the application was closed (e.g. you were accepted elsewhere).</p>
+                    <div id="successRateContainer" class="success-rate-stack">
                         <div class="analytics-loading">
                             <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
                             <p>Loading success rate data...</p>
@@ -2292,7 +2448,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading recommended jobs...</p>
                     </div>
-                    <iframe id="recommended-jobs-iframe" src="recommended_jobs.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes"></iframe>
+                    <iframe id="recommended-jobs-iframe" src="recommended_jobs.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no"></iframe>
                 </div>
             </div>
 
@@ -2304,7 +2460,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading resume builder...</p>
                     </div>
-                    <iframe id="resume-iframe" src="resume_builder.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes"></iframe>
+                    <iframe id="resume-iframe" src="resume_builder.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no"></iframe>
                 </div>
             </div>
             -->
@@ -2329,7 +2485,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading application form for your session...</p>
                     </div>
-                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" style="border-radius: 8px; border: none; height: auto;"></iframe>
+                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no" style="border-radius: 8px; border: none; height: auto;"></iframe>
                 </div>
             </div>
 
@@ -2356,28 +2512,34 @@ $conn->close();
                 </div>
                 
                 <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                    <h3 style="color: #1a3876; margin-bottom: 15px;">All Applications</h3>
+                    <h3 style="color: #1a3876; margin-bottom: 15px;">NSRP Form</h3>
                     <?php if (empty($applications)): ?>
-                        <p style="color: #666;">No applications submitted yet.</p>
+                        <p style="color: #666;">No NSRP form submitted yet.</p>
                     <?php else: ?>
                         <?php foreach ($applications as $app): ?>
                             <?php 
-                                $app_status = !empty($app['application_status']) ? $app['application_status'] : 'Pending';
+                                $app_status = !empty($app['application_status']) ? trim($app['application_status']) : 'Pending';
                                 $status_class = strtolower($app_status);
                                 
-                                // Format submission date
                                 $submission_date = '';
-                                if (!empty($app['submission_date'])) {
-                                    $submission_date = date('M j, Y', strtotime($app['submission_date']));
-                                } elseif (!empty($app['submission_month']) && !empty($app['submission_year'])) {
-                                    $submission_date = date('M j, Y', mktime(0, 0, 0, $app['submission_month'], 1, $app['submission_year']));
-                                } else {
+                                if (!empty($app['submission_date']) && $app['submission_date'] !== '0000-00-00') {
+                                    $ts = strtotime($app['submission_date']);
+                                    $submission_date = $ts ? date('M j, Y', $ts) : '';
+                                }
+                                if ($submission_date === '' && !empty($app['submission_month']) && !empty($app['submission_year'])) {
+                                    $submission_date = date('M j, Y', mktime(0, 0, 0, (int)$app['submission_month'], 1, (int)$app['submission_year']));
+                                }
+                                if ($submission_date === '') {
                                     $submission_date = 'Date not available';
                                 }
                                 
-                                $full_name = trim(($app['firstname'] ?? '') . ' ' . ($app['surname'] ?? ''));
+                                $mn = trim((string)($app['middlename'] ?? ''));
+                                if ($mn === '' || strtolower($mn) === 'n/a') {
+                                    $mn = '';
+                                }
+                                $full_name = trim(($app['firstname'] ?? '') . ($mn !== '' ? ' ' . $mn : '') . ' ' . ($app['surname'] ?? ''));
                                 if (empty($full_name)) {
-                                    $full_name = 'Application #' . $app['id'];
+                                    $full_name = 'NSRP form #' . $app['id'];
                                 }
                             ?>
                             <div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #1a3876;">
@@ -2388,7 +2550,7 @@ $conn->close();
                                         <small style="color: #666;">
                                             Submitted: <?php echo htmlspecialchars($submission_date); ?>
                                             <?php if (!empty($app['occupation1'])): ?>
-                                                | Position: <?php echo htmlspecialchars($app['occupation1']); ?>
+                                                | Preferred occupation: <?php echo htmlspecialchars($app['occupation1']); ?>
                                             <?php endif; ?>
                                         </small>
                                     </div>
@@ -2410,7 +2572,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading announcements...</p>
                     </div>
-                    <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto; min-height: 100vh;"></iframe>
+                    <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no" style="border-radius: 8px; border: none; height: auto; min-height: 100vh;"></iframe>
                 </div>
                 <!-- Facebook Link -->
                 <div class="facebook-link-container" style="margin-top: 20px;">
@@ -2433,8 +2595,35 @@ $conn->close();
         <div class="mobile-nav-item" data-section="profile" onclick="showSection('profile')">Profile</div>
     </div>
 
+    <div id="global-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="global-modal-title">
+        <div id="global-modal-panel">
+            <div id="global-modal-header">
+                <h3 id="global-modal-title">Details</h3>
+                <button id="global-modal-close" type="button" aria-label="Close modal">&times;</button>
+            </div>
+            <div id="global-modal-content"></div>
+        </div>
+    </div>
+
     <script>
-        
+        window.showGlobalModal = function (payload) {
+            const overlay = document.getElementById('global-modal-overlay');
+            const title = document.getElementById('global-modal-title');
+            const content = document.getElementById('global-modal-content');
+            if (!overlay || !title || !content) return;
+            title.textContent = payload && payload.title ? payload.title : 'Details';
+            content.innerHTML = payload && payload.html ? payload.html : '';
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeGlobalModal = function () {
+            const overlay = document.getElementById('global-modal-overlay');
+            if (!overlay) return;
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        };
+
         // Handle URL hash changes (for direct links)
         function handleHashChange() {
             const hash = window.location.hash.substring(1); // Remove the #
@@ -2451,11 +2640,31 @@ $conn->close();
             if (e.data && e.data.type === 'nrsp_submitted') {
                 location.reload();
             }
+            if (e.data && e.data.type === 'showModal') {
+                window.showGlobalModal(e.data.payload || {});
+            }
+            if (e.data && e.data.type === 'hideModal') {
+                window.closeGlobalModal();
+            }
         });
         
         // Check hash on page load
         document.addEventListener('DOMContentLoaded', function() {
             handleHashChange();
+            const closeBtn = document.getElementById('global-modal-close');
+            const overlay = document.getElementById('global-modal-overlay');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    window.closeGlobalModal();
+                });
+            }
+            if (overlay) {
+                overlay.addEventListener('click', function (event) {
+                    if (event.target === overlay) {
+                        window.closeGlobalModal();
+                    }
+                });
+            }
         });
         
         // Function to hide loading indicator with timer
@@ -2500,6 +2709,137 @@ $conn->close();
                     loadingIndicator.style.display = 'none';
                 }, 2000);
             }
+        }
+
+        /**
+         * NSRP apply iframe: height = full document inside iframe so ONLY the dashboard scrolls
+         * (no second scrollbar inside the iframe). Uses ResizeObserver + delayed remeasures for mobile WebKit.
+         */
+        function setupApplyIframeAutoResize() {
+            const iframe = document.getElementById('apply-iframe');
+            if (!iframe) return;
+
+            const minH = 200;
+            let intervalId = null;
+            let lastAppliedHeight = 0;
+            let resizeObserver = null;
+
+            const applyHeight = function (heightPx, force) {
+                const h = Math.max(minH, Math.round(Number(heightPx) || 0));
+                if (!force && Math.abs(h - lastAppliedHeight) < 2) return;
+                iframe.style.height = h + 'px';
+                iframe.style.maxHeight = 'none';
+                lastAppliedHeight = h;
+            };
+
+            const measureHeight = function (force) {
+                if (force) lastAppliedHeight = 0;
+                try {
+                    const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+                    if (!doc) return;
+                    const b = doc.body;
+                    const e = doc.documentElement;
+                    /* Do not use html.clientHeight — it tracks iframe viewport and breaks tall content */
+                    const contentHeight = Math.max(
+                        b ? b.scrollHeight : 0,
+                        b ? b.offsetHeight : 0,
+                        e ? e.scrollHeight : 0,
+                        e ? e.offsetHeight : 0
+                    );
+                    applyHeight(contentHeight, !!force);
+                } catch (err) {
+                    applyHeight(minH, true);
+                }
+            };
+
+            const bindResizeObserver = function () {
+                try {
+                    if (resizeObserver) resizeObserver.disconnect();
+                    const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+                    if (!doc || !doc.body) return;
+                    resizeObserver = new ResizeObserver(function () {
+                        measureHeight(true);
+                    });
+                    resizeObserver.observe(doc.body);
+                    resizeObserver.observe(doc.documentElement);
+                } catch (e) { /* ResizeObserver unsupported */ }
+            };
+
+            iframe.setAttribute('scrolling', 'no');
+            iframe.style.overflow = 'hidden';
+
+            iframe.addEventListener('load', function () {
+                measureHeight(true);
+                bindResizeObserver();
+                if (intervalId) clearInterval(intervalId);
+                intervalId = setInterval(function () { measureHeight(false); }, 700);
+                [40, 120, 350, 900, 1800].forEach(function (ms) {
+                    setTimeout(function () { measureHeight(true); }, ms);
+                });
+            });
+
+            const onViewportChange = function () {
+                measureHeight(true);
+                [80, 280, 600].forEach(function (ms) {
+                    setTimeout(function () { measureHeight(true); }, ms);
+                });
+            };
+            window.addEventListener('resize', onViewportChange);
+            window.addEventListener('orientationchange', onViewportChange);
+
+            window.addEventListener('message', function (ev) {
+                if (!ev.data || ev.data.type !== 'workconnect-resize-apply' || ev.data.source !== 'apply') return;
+                measureHeight(true);
+                setTimeout(function () { measureHeight(true); }, 120);
+            });
+
+            window._wcResizeApplyIframe = function () { measureHeight(true); };
+
+            measureHeight(true);
+        }
+
+        function setupIframeAutoResize(iframeId, minHeight = 700) {
+            const iframe = document.getElementById(iframeId);
+            if (!iframe) return;
+
+            let intervalId = null;
+            let lastAppliedHeight = 0;
+            const applyHeight = (height) => {
+                const safeHeight = Math.max(minHeight, Number(height) || 0);
+                // Prevent resize feedback loops: only apply meaningful height changes.
+                if (Math.abs(safeHeight - lastAppliedHeight) < 4) return;
+                iframe.style.height = safeHeight + 'px';
+                lastAppliedHeight = safeHeight;
+            };
+
+            const measureHeight = () => {
+                try {
+                    const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+                    if (!doc) return;
+                    const body = doc.body;
+                    const html = doc.documentElement;
+                    const contentHeight = Math.max(
+                        body ? body.scrollHeight : 0,
+                        body ? body.offsetHeight : 0,
+                        html ? html.scrollHeight : 0,
+                        html ? html.offsetHeight : 0
+                    );
+                    applyHeight(contentHeight);
+                } catch (e) {
+                    // Keep min height when iframe document is not accessible.
+                    applyHeight(minHeight);
+                }
+            };
+
+            iframe.setAttribute('scrolling', 'no');
+            iframe.style.overflow = 'hidden';
+            iframe.addEventListener('load', function() {
+                measureHeight();
+                if (intervalId) clearInterval(intervalId);
+                intervalId = setInterval(measureHeight, 800);
+            });
+            window.addEventListener('resize', measureHeight);
+            measureHeight();
         }
         
         // Function to handle recommended jobs iframe loading
@@ -2567,6 +2907,13 @@ $conn->close();
                 // If showing apply section, hide loading indicator after delay
                 if (section === 'apply') {
                     hideLoadingIndicator();
+                    /* Iframe was display:none — remeasure height so parent scroll matches full form */
+                    setTimeout(function () {
+                        if (typeof window._wcResizeApplyIframe === 'function') window._wcResizeApplyIframe();
+                    }, 50);
+                    setTimeout(function () {
+                        if (typeof window._wcResizeApplyIframe === 'function') window._wcResizeApplyIframe();
+                    }, 400);
                 }
                 
                 // If showing recommended jobs section, hide loading indicator after delay
@@ -2846,6 +3193,68 @@ $conn->close();
             div.textContent = text;
             return div.innerHTML;
         }
+
+        /** Bold the text after "Reason:" and add line breaks; safe HTML for notification body only. */
+        function formatNotificationMessage(raw) {
+            if (raw == null || raw === '') return '';
+            const t = String(raw);
+            const marker = 'Reason:';
+            const idx = t.indexOf(marker);
+            if (idx === -1) {
+                return escapeHtml(t).replace(/\n/g, '<br>');
+            }
+
+            const before = t.slice(0, idx);
+            const after = t.slice(idx + marker.length).trimStart();
+
+            let reasonPart;
+            let tailHtml = '';
+
+            const withBreak = /^([\s\S]+?)\.\s*\n\n(Other\s+referred[\s\S]*)$/i.exec(after);
+            const inlineOther = /^([\s\S]+?)(\.\s+Other\s+referred[\s\S]*)$/i.exec(after);
+
+            if (withBreak) {
+                reasonPart = withBreak[1].trim();
+                tailHtml = '.<br><br>' + escapeHtml(withBreak[2]);
+            } else if (inlineOther) {
+                reasonPart = inlineOther[1].trim();
+                const rest = inlineOther[2].replace(/^\.\s*/, '');
+                tailHtml = '.<br><br>' + escapeHtml(rest);
+            } else {
+                reasonPart = after.trim();
+            }
+
+            return escapeHtml(before).replace(/\n/g, '<br>') + marker + ' <strong>' + escapeHtml(reasonPart) + '</strong>' + tailHtml;
+        }
+
+        function getNotificationMeta(notification) {
+            const title = (notification.title || '').toLowerCase();
+            const type = (notification.type || '').toLowerCase();
+
+            if (type === 'announcement' || title.includes('announcement')) return { icon: '📢', label: 'Announcement' };
+            if (type === 'follow_up' || title.includes('follow-up')) return { icon: '💬', label: 'Follow-up' };
+            if (type === 'nrsp' || title.includes('nrsp')) return { icon: '📝', label: 'NRSP' };
+            if (type === 'application' || title.includes('application') || title.includes('accepted') || title.includes('rejected') || title.includes('referred')) {
+                return { icon: '📄', label: 'Application' };
+            }
+            return { icon: '🔔', label: 'General' };
+        }
+
+        function formatNotificationTime(isoTimestamp, fallback) {
+            if (!isoTimestamp) return fallback || '';
+            const date = new Date(isoTimestamp);
+            if (Number.isNaN(date.getTime())) return fallback || '';
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return 'Just now';
+            if (diffMin < 60) return `${diffMin}m ago`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h ago`;
+            const diffDay = Math.floor(diffHr / 24);
+            if (diffDay < 7) return `${diffDay}d ago`;
+            return fallback || date.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
         
         function loadNotifications() {
             const notificationList = document.getElementById('notificationList');
@@ -2863,12 +3272,18 @@ $conn->close();
                         
                         data.notifications.forEach(notification => {
                             if (!notification.is_read) unreadCount++;
+                            const meta = getNotificationMeta(notification);
+                            const displayTime = formatNotificationTime(notification.created_at_iso, notification.created_at);
                             
                             const notificationItem = document.createElement('div');
                             notificationItem.className = `notification-item ${!notification.is_read ? 'unread' : ''}`;
                             notificationItem.innerHTML = `
+                                <div class="notification-meta">
+                                    <span class="notification-type">${meta.icon} ${escapeHtml(meta.label)}</span>
+                                    <span class="notification-time">${escapeHtml(displayTime || '')}</span>
+                                </div>
                                 <div class="notification-title">${escapeHtml(notification.title || '')}</div>
-                                <div class="notification-message">${escapeHtml(notification.message || '')}</div>
+                                <div class="notification-message">${formatNotificationMessage(notification.message || '')}</div>
                                 <div class="notification-time">${escapeHtml(notification.created_at || '')}</div>
                             `;
                             notificationItem.onclick = () => markAsRead(notification.id);
@@ -2931,6 +3346,12 @@ $conn->close();
             loadNotifications();
             // Check for new notifications every 30 seconds
             setInterval(loadNotifications, 30000);
+
+            // NSRP: iframe height = full form content; parent dashboard scrolls only (no double scrollbar).
+            setupApplyIframeAutoResize();
+            setupIframeAutoResize('recommended-jobs-iframe', 900);
+            setupIframeAutoResize('resume-iframe', 900);
+            setupIframeAutoResize('announcements-iframe', 700);
 
             // Hamburger menu & slide-out sidebar (mobile)
             const hamburgerMenu = document.getElementById('hamburgerMenu');
@@ -3077,7 +3498,7 @@ $conn->close();
             if (!iframe) return;
             
             // Add mobile-specific attributes
-            iframe.setAttribute('scrolling', 'yes');
+            iframe.setAttribute('scrolling', 'no');
             iframe.style.webkitOverflowScrolling = 'touch';
             
             // Handle iframe load
@@ -3092,6 +3513,7 @@ $conn->close();
                                 body {
                                     padding-top: 60px;
                                     overflow-x: hidden;
+                                    overflow-y: visible !important;
                                 }
                                 .mobile-progress-container {
                                     position: fixed;
@@ -3644,41 +4066,50 @@ $conn->close();
             
             if (data.total_applications === 0) {
                 container.innerHTML = `
-                    <div class="analytics-loading" style="grid-column: 1 / -1;">
+                    <div class="analytics-loading" style="width:100%;">
                         <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">📊</div>
-                        <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No Applications Yet</div>
-                        <div style="color: #999; font-size: 0.9rem;">Submit your first application to see your success rate</div>
+                        <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No job applications yet</div>
+                        <div style="color: #999; font-size: 0.9rem;">Apply to a job from <strong>Recommended Jobs</strong> to see your success rate here.</div>
                     </div>
                 `;
                 return;
             }
             
+            const wCount = typeof data.withdrawn_count === 'number' ? data.withdrawn_count : 0;
+            const wRate = typeof data.withdrawn_rate === 'number' ? data.withdrawn_rate : 0;
             let html = `
-                <div class="success-rate-card accepted">
-                    <div class="success-rate-label">Accepted Applications</div>
-                    <div class="success-rate-number">${data.accepted_count}</div>
-                    <div class="success-rate-percentage">${data.success_rate}%</div>
-                </div>
-                <div class="success-rate-card rejected">
-                    <div class="success-rate-label">Rejected Applications</div>
-                    <div class="success-rate-number">${data.rejected_count}</div>
-                    <div class="success-rate-percentage">${data.rejection_rate}%</div>
-                </div>
-                <div class="success-rate-card pending">
-                    <div class="success-rate-label">Pending Applications</div>
-                    <div class="success-rate-number">${data.pending_count}</div>
-                    <div class="success-rate-percentage">${data.pending_rate}%</div>
+                <div class="success-rate-cards-row">
+                    <div class="success-rate-card accepted">
+                        <div class="success-rate-label">Accepted Applications</div>
+                        <div class="success-rate-number">${data.accepted_count}</div>
+                        <div class="success-rate-percentage">${data.success_rate}%</div>
+                    </div>
+                    <div class="success-rate-card rejected">
+                        <div class="success-rate-label">Rejected Applications</div>
+                        <div class="success-rate-number">${data.rejected_count}</div>
+                        <div class="success-rate-percentage">${data.rejection_rate}%</div>
+                    </div>
+                    <div class="success-rate-card pending">
+                        <div class="success-rate-label">Pending Applications</div>
+                        <div class="success-rate-number">${data.pending_count}</div>
+                        <div class="success-rate-percentage">${data.pending_rate}%</div>
+                    </div>
+                    <div class="success-rate-card withdrawn">
+                        <div class="success-rate-label">Withdrawn Applications</div>
+                        <div class="success-rate-number">${wCount}</div>
+                        <div class="success-rate-percentage">${wRate}%</div>
+                    </div>
                 </div>
             `;
             
             if (Object.keys(data.top_rejection_reasons).length > 0) {
                 html += `
-                    <div class="success-rate-card" style="grid-column: 1 / -1; text-align: left;">
-                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Top Rejection Reasons</h3>
+                    <div class="success-rate-rejection-panel">
+                        <h3>Rejection Reasons</h3>
                         <div class="rejection-reasons">
                             ${Object.entries(data.top_rejection_reasons).map(([reason, count]) => `
                                 <div class="rejection-reason-item">
-                                    <span style="color: #666;">${reason}</span>
+                                    <span style="color: #666;">${escapeHtml(String(reason))}</span>
                                     <span style="color: #f44336; font-weight: 600;">${count}x</span>
                                 </div>
                             `).join('')}

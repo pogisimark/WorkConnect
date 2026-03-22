@@ -3,8 +3,8 @@
 // This script automatically creates the database and ALL tables.
 // Run this once to set up everything automatically.
 //
-// Tables created (28 total):
-//   Core (5):     employee_users, admin_accounts, jobseeker, company_users, skill_registry
+// Tables created (29 total):
+//   Core (6):     employee_users, admin_accounts, jobseeker, company_users, jobseeker_company_referrals, skill_registry
 //   Utility (3):  notifications, password_resets, company_password_resets
 //   Feature (11): job_postings, user_preferences, job_applications_extended, follow_up_requests,
 //                 admin_company_follow_up, resume_templates, resumes, application_analytics,
@@ -71,8 +71,12 @@ $sql = "CREATE TABLE IF NOT EXISTS employee_users (
     lastname VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    email_verify_token VARCHAR(64) NULL DEFAULT NULL,
+    email_verify_expires DATETIME NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email_verify_token (email_verify_token)
 )";
 if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ employee_users table created</p>";
@@ -272,18 +276,41 @@ $sql = "CREATE TABLE IF NOT EXISTS company_users (
     company_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    email_verify_token VARCHAR(64) NULL DEFAULT NULL,
+    email_verify_expires DATETIME NULL DEFAULT NULL,
     logo VARCHAR(255) DEFAULT NULL,
     description TEXT DEFAULT NULL,
     website VARCHAR(255) DEFAULT NULL,
     address TEXT DEFAULT NULL,
     phone VARCHAR(50) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_company_email_verify_token (email_verify_token)
 )";
 if ($conn->query($sql) === TRUE) {
     echo "<p class='success'>✅ company_users table created</p>";
 } else {
     echo "<p class='error'>❌ Error creating company_users: " . $conn->error . "</p>";
+}
+
+// 4.4b jobseeker_company_referrals (multi-company admin referrals; company accept/reject per row)
+$sql = "CREATE TABLE IF NOT EXISTS jobseeker_company_referrals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jobseeker_id INT NOT NULL,
+    company_id INT NOT NULL,
+    status ENUM('pending','accepted','rejected','withdrawn') NOT NULL DEFAULT 'pending',
+    rejection_reason TEXT NULL,
+    referred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_js_company (jobseeker_id, company_id),
+    KEY idx_jobseeker (jobseeker_id),
+    KEY idx_company_status (company_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+if ($conn->query($sql) === TRUE) {
+    echo "<p class='success'>✅ jobseeker_company_referrals table created</p>";
+} else {
+    echo "<p class='error'>❌ Error creating jobseeker_company_referrals: " . $conn->error . "</p>";
 }
 
 // 4.5 skill_registry
@@ -465,7 +492,7 @@ $sql = "CREATE TABLE IF NOT EXISTS job_applications_extended (
     compatibility_score DECIMAL(5,2) DEFAULT 0.00,
     applied_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     viewed_date TIMESTAMP NULL,
-    status ENUM('Applied', 'Viewed', 'Interview', 'Accepted', 'Rejected') DEFAULT 'Applied',
+    status ENUM('Applied', 'Viewed', 'Interview', 'Accepted', 'Rejected', 'Withdrawn') DEFAULT 'Applied',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (jobseeker_id) REFERENCES jobseeker(id) ON DELETE CASCADE,
@@ -506,6 +533,7 @@ $sql = "CREATE TABLE IF NOT EXISTS admin_company_follow_up (
     status ENUM('pending','answered') DEFAULT 'pending',
     company_response TEXT,
     responded_at DATETIME NULL,
+    admin_response_read_at DATETIME NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     hidden_by_admin TINYINT(1) DEFAULT 0,
     hidden_by_company TINYINT(1) DEFAULT 0,
@@ -641,25 +669,9 @@ if ($conn->query($sql) === TRUE) {
 
 echo "</div>";
 
-// Step 7: Insert sample data
+// Step 7: Insert sample data (job postings are NOT seeded — companies create real listings via Company portal)
 echo "<div class='step'><h2>Step 7: Inserting Sample Data...</h2>";
-
-// Insert sample job postings
-$sampleJobs = [
-    ['Software Developer', 'TechCorp Inc.', 'We are looking for a skilled software developer to join our team.', 'Bachelor degree in Computer Science, 2+ years experience, PHP/MySQL knowledge', '25000-35000', 'Manila', 'Full-time', 'Technology'],
-    ['Marketing Assistant', 'Digital Solutions', 'Assist in marketing campaigns and social media management.', 'Marketing degree preferred, social media experience, creative thinking', '18000-25000', 'Quezon City', 'Full-time', 'Marketing'],
-    ['Customer Service Representative', 'Service Plus', 'Handle customer inquiries and provide excellent service.', 'High school graduate, good communication skills, customer service experience', '15000-20000', 'Makati', 'Full-time', 'Customer Service'],
-    ['Data Analyst', 'Analytics Pro', 'Analyze data and create reports for business insights.', 'Statistics or Math degree, Excel skills, analytical thinking', '22000-30000', 'Taguig', 'Full-time', 'Analytics'],
-    ['Graphic Designer', 'Creative Studio', 'Create visual designs for various marketing materials.', 'Design degree or portfolio, Adobe Creative Suite skills', '20000-28000', 'Pasig', 'Full-time', 'Design']
-];
-
-$stmt = $conn->prepare("INSERT IGNORE INTO job_postings (title, company, description, requirements, salary_range, location, job_type, industry) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-foreach ($sampleJobs as $job) {
-    $stmt->bind_param("ssssssss", $job[0], $job[1], $job[2], $job[3], $job[4], $job[5], $job[6], $job[7]);
-    $stmt->execute();
-}
-$stmt->close();
-echo "<p class='success'>✅ Sample job postings inserted</p>";
+echo "<p class='success'>ℹ️ Sample job postings skipped — only company-created jobs are used.</p>";
 
 // Insert resume templates
 $templates = [
@@ -885,10 +897,10 @@ echo "</div>";
 // Final Summary
 echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'>
 <h2 style='color: #28a745;'>✅ Setup Complete!</h2>
-<p><strong>All 28 database tables have been created successfully!</strong></p>
+<p><strong>All 29 database tables have been created successfully!</strong></p>
 <p><strong>Tables Created:</strong></p>
 <ul>
-    <li>✅ 5 Core Tables (employee_users, admin_accounts, jobseeker, company_users, skill_registry)</li>
+    <li>✅ 6 Core Tables (employee_users, admin_accounts, jobseeker, company_users, jobseeker_company_referrals, skill_registry)</li>
     <li>✅ 3 Utility Tables (notifications, password_resets, company_password_resets)</li>
     <li>✅ 11 Feature Tables (job_postings, user_preferences, job_applications_extended, follow_up_requests, admin_company_follow_up, resume_templates, resumes, application_analytics, application_timeline, analytics_insights, monthly_analytics)</li>
     <li>✅ 5 Announcement Tables (announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks)</li>

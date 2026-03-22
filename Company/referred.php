@@ -4,6 +4,10 @@ date_default_timezone_set('Asia/Manila');
 
 require_once 'session_check.php';
 require_once 'db.php';
+require_once __DIR__ . '/../Employer/referrals_schema.php';
+ensure_jobseeker_referrals_table($conn);
+$tblRef = $conn->query("SHOW TABLES LIKE 'jobseeker_company_referrals'");
+$use_referrals_table = $tblRef && $tblRef->num_rows > 0;
 
 // Get company information
 $company_id = intval($_SESSION['company_id']); // Ensure it's an integer
@@ -55,41 +59,59 @@ if ($debug_all_referred) {
     }
 }
 
-if ($has_referred_column) {
-    // Filter by company_id - only show jobseekers specifically referred to this company
-    // Also check for any referred jobseekers without company_id for debugging
-    $debug_stmt = $conn->prepare("SELECT COUNT(*) as count FROM jobseeker WHERE application_status = 'Referred' AND referred_to_company_id IS NULL");
-    $debug_stmt->execute();
-    $debug_result = $debug_stmt->get_result()->fetch_assoc();
-    $debug_stmt->close();
-    if ($debug_result && $debug_result['count'] > 0) {
-        error_log("WARNING: Found {$debug_result['count']} referred jobseekers with NULL referred_to_company_id");
-    }
-    
-    // Check how many are referred to this company
-    $check_stmt = $conn->prepare("SELECT COUNT(*) as count FROM jobseeker WHERE application_status = 'Referred' AND referred_to_company_id = ?");
-    $check_stmt->bind_param("i", $company_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result()->fetch_assoc();
-    $check_stmt->close();
-    error_log("Found {$check_result['count']} jobseekers referred to company_id: $company_id");
-    
-    // Also check with NULL for debugging
-    $check_null_stmt = $conn->query("SELECT COUNT(*) as count FROM jobseeker WHERE application_status = 'Referred' AND referred_to_company_id IS NULL");
-    if ($check_null_stmt) {
-        $null_result = $check_null_stmt->fetch_assoc();
-        error_log("Found {$null_result['count']} jobseekers with NULL referred_to_company_id");
-    }
-    
-    // Debug: Check all referred jobseekers and their company_ids
-    $debug_all = $conn->query("SELECT id, application_status, referred_to_company_id, CAST(referred_to_company_id AS CHAR) as company_id_str FROM jobseeker WHERE application_status = 'Referred' LIMIT 10");
-    if ($debug_all) {
-        error_log("All referred jobseekers in database:");
-        while ($row = $debug_all->fetch_assoc()) {
-            error_log("  Jobseeker ID: {$row['id']}, Status: {$row['application_status']}, Company ID (int): " . ($row['referred_to_company_id'] ?? 'NULL') . ", Company ID (str): " . ($row['company_id_str'] ?? 'NULL'));
-        }
-    }
-    
+if ($use_referrals_table) {
+    $stmt = $conn->prepare("
+        SELECT 
+            j.id as jobseeker_id,
+            j.firstname,
+            j.middlename,
+            j.surname,
+            j.suffix,
+            j.email,
+            j.contact,
+            j.dob,
+            j.sex,
+            j.barangay,
+            j.municipality,
+            j.province,
+            j.resume_file,
+            j.application_status,
+            j.occupation1,
+            j.occupation2,
+            j.occupation3,
+            j.local1,
+            j.local2,
+            j.local3,
+            j.training_skills_1,
+            j.training_skills_2,
+            j.training_skills_3,
+            j.skill_others,
+            j.skill_auto_mechanic,
+            j.skill_electrician,
+            j.skill_photography,
+            j.skill_beautician,
+            j.skill_embroidery,
+            j.skill_plumbing,
+            j.skill_carpentry,
+            j.skill_gardening,
+            j.skill_sewing,
+            j.skill_computer,
+            j.skill_masonry,
+            j.skill_stenography,
+            j.skill_domestic,
+            j.skill_painter,
+            j.skill_tailoring,
+            j.skill_driver,
+            j.skill_painting,
+            j.submission_date,
+            j.referred_to_company_id
+        FROM jobseeker j
+        INNER JOIN jobseeker_company_referrals r ON r.jobseeker_id = j.id AND r.company_id = ? AND r.status = 'pending'
+        WHERE j.application_status = 'Referred'
+        ORDER BY j.submission_date DESC, j.id DESC
+    ");
+    $stmt->bind_param("i", $company_id);
+} elseif ($has_referred_column) {
     $stmt = $conn->prepare("
         SELECT 
             id as jobseeker_id,
@@ -204,7 +226,32 @@ $referral_stats = [
     'acceptance_rate' => 0
 ];
 
-if ($has_referred_column) {
+if ($use_referrals_table) {
+    $stats_stmt = $conn->prepare("SELECT COUNT(*) as count FROM jobseeker_company_referrals WHERE company_id = ?");
+    $stats_stmt->bind_param("i", $company_id);
+    $stats_stmt->execute();
+    $referral_stats['total_referred'] = (int)($stats_stmt->get_result()->fetch_assoc()['count'] ?? 0);
+    $stats_stmt->close();
+
+    $statusPairs = [
+        ['accepted', 'total_accepted'],
+        ['rejected', 'total_rejected'],
+        ['pending', 'total_pending'],
+    ];
+    foreach ($statusPairs as $pair) {
+        $stVal = $pair[0];
+        $key = $pair[1];
+        $stats_stmt = $conn->prepare("SELECT COUNT(*) as count FROM jobseeker_company_referrals WHERE company_id = ? AND status = ?");
+        $stats_stmt->bind_param("is", $company_id, $stVal);
+        $stats_stmt->execute();
+        $referral_stats[$key] = (int)($stats_stmt->get_result()->fetch_assoc()['count'] ?? 0);
+        $stats_stmt->close();
+    }
+    $processed = $referral_stats['total_accepted'] + $referral_stats['total_rejected'];
+    if ($processed > 0) {
+        $referral_stats['acceptance_rate'] = ($referral_stats['total_accepted'] / $processed) * 100;
+    }
+} elseif ($has_referred_column) {
     // Total referred to this company (all time)
     $stats_stmt = $conn->prepare("SELECT COUNT(*) as count FROM jobseeker WHERE referred_to_company_id = ?");
     $stats_stmt->bind_param("i", $company_id);
@@ -250,6 +297,13 @@ if ($has_referred_column) {
     }
 }
 
+require_once __DIR__ . '/view_applicants_badge_helper.php';
+$pending_applicants_sidebar_count = company_pending_applicants_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/referred_pending_badge_helper.php';
+$referred_pending_sidebar_count = company_referred_pending_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/admin_requests_badge_helper.php';
+$pending_admin_requests_count = company_admin_pending_request_count($conn, $company_id);
+
 $conn->close();
 ?>
 
@@ -263,6 +317,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
         body {
             margin: 0;
@@ -792,9 +847,9 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
-                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants</a></li>
-                <li><a href="referred.php" class="active"><i class="fas fa-user-check"></i> Referred</a></li>
-                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests</a></li>
+                <li><a href="view_applicants.php"><i class="fas fa-users"></i> View Applicants<?php echo company_pending_applicants_badge_html($pending_applicants_sidebar_count); ?></a></li>
+                <li><a href="referred.php" class="active"><i class="fas fa-user-check"></i> Referred<?php echo company_referred_pending_badge_html($referred_pending_sidebar_count); ?></a></li>
+                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests<?php echo company_admin_requests_badge_html($pending_admin_requests_count); ?></a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -1058,27 +1113,6 @@ $conn->close();
                     dropdown.style.display = 'none';
                 }
             }
-        }
-
-        // Logout modal
-        function showLogoutModal() {
-            document.getElementById('profileDropdown').style.display = 'none';
-            
-            Swal.fire({
-                title: 'Logout?',
-                text: 'Are you sure you want to logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a3876',
-                cancelButtonColor: '#666',
-                confirmButtonText: 'Yes, Logout',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'logout.php';
-                }
-            });
         }
 
         // View jobseeker details

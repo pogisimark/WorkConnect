@@ -24,6 +24,9 @@ if (!isset($_SESSION['logged_in']) || !isset($_SESSION['company_id']) || !isset(
 }
 
 require_once 'db.php';
+require_once '../Employee/create_notification.php';
+require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
+require_once __DIR__ . '/../Employer/referrals_schema.php';
 
 // Check if PHPMailer is available and load it
 $phpmailer_available = false;
@@ -115,14 +118,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->execute()) {
             $stmt->close();
             
-            // Update jobseeker's application_status to 'Accepted' (from either 'Pending' or 'Referred')
-            // This handles both direct applications (Pending) and referred jobseekers (Referred)
-            $stmt_jobseeker = $conn->prepare("UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND (application_status = 'Pending' OR application_status = 'Referred')");
+            // Update jobseeker NSRP row to Accepted (Pending / Referred / Rejected).
+            // Rejected = NSRP was declined first; a company can still accept them via Recommended Jobs.
+            $rejCol = @$conn->query("SHOW COLUMNS FROM jobseeker LIKE 'rejection_reason'");
+            $hasRejectionReason = $rejCol && $rejCol->num_rows > 0;
+            if ($hasRejectionReason) {
+                $stmt_jobseeker = $conn->prepare(
+                    "UPDATE jobseeker SET application_status = 'Accepted', rejection_reason = NULL WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
+                );
+            } else {
+                $stmt_jobseeker = $conn->prepare(
+                    "UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
+                );
+            }
             if ($stmt_jobseeker) {
                 $stmt_jobseeker->bind_param("i", $jobseeker_id);
                 $stmt_jobseeker->execute();
                 $stmt_jobseeker->close();
             }
+            // Accepted via job posting — close other applications and pending NSRP/company referrals
+            withdraw_open_job_applications_for_jobseeker($conn, $jobseeker_id, $application_id);
+            ensure_jobseeker_referrals_table($conn);
+            withdraw_pending_referrals_for_jobseeker($conn, $jobseeker_id);
             
             // Send acceptance email - professional congratulatory message
             $subject = "Congratulations! You Have Been Accepted - " . htmlspecialchars($company_name) . " - WorkConnect";
@@ -276,6 +293,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'success' => true,
                 'message' => $email_sent ? 'Application accepted and email sent successfully.' : ($jobseeker_email_valid ? 'Application accepted. Email notification may not have been sent.' : 'Application accepted. Jobseeker has no valid email; notification not sent.')
             ];
+            if (!empty($jobseeker['user_id'])) {
+                createNotification(
+                    (int)$jobseeker['user_id'],
+                    'Application Accepted',
+                    "Congratulations! {$company_name} accepted your application for {$job_title}.",
+                    'application'
+                );
+            }
         } else {
             $error_msg = $stmt->error ? $stmt->error : 'Failed to update application status';
             $response = ['success' => false, 'message' => $error_msg];
@@ -309,13 +334,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->execute()) {
             $stmt->close();
             
-            // Also update jobseeker's application_status to 'Rejected'
-            $stmt_jobseeker = $conn->prepare("UPDATE jobseeker SET application_status = 'Rejected' WHERE id = ?");
-            if ($stmt_jobseeker) {
-                $stmt_jobseeker->bind_param("i", $jobseeker_id);
-                $stmt_jobseeker->execute();
-                $stmt_jobseeker->close();
-            }
+            // Do NOT change jobseeker.application_status here (admin "Pending Jobseekers" stays as-is).
+            // Only company → Referred rejections (handle_referred.php) update that field to Rejected.
             
             // Send rejection email
             $subject = "Update on Your Job Application - WorkConnect";
@@ -455,6 +475,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'success' => true,
                 'message' => $email_sent ? 'Application rejected and email sent successfully.' : ($jobseeker_email_valid ? 'Application rejected. Email notification may not have been sent.' : 'Application rejected. Jobseeker has no valid email; notification not sent.')
             ];
+            if (!empty($jobseeker['user_id'])) {
+                createNotification(
+                    (int)$jobseeker['user_id'],
+                    'Application Rejected',
+                    "Your application for {$job_title} was rejected.\n\nReason: {$rejection_reason}",
+                    'application'
+                );
+            }
         } else {
             $error_msg = $stmt->error ? $stmt->error : 'Failed to update application status';
             $response = ['success' => false, 'message' => $error_msg];

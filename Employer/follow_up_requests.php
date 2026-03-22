@@ -2,6 +2,9 @@
 date_default_timezone_set('Asia/Manila');
 include 'session_protect.php';
 require_once 'db.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 
 $requests = [];
 if ($conn) {
@@ -18,6 +21,7 @@ if ($conn) {
         }
     }
 }
+$acfu_unread_count = acfu_get_unread_response_count($conn);
 $conn->close();
 
 function formatName($row) {
@@ -74,7 +78,12 @@ function formatDate($d) {
         .card .response { background: #e8f5e9; padding: 12px; border-radius: 8px; margin-top: 10px; white-space: pre-wrap; }
         .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
         .btn-primary { background: #1976d2; color: #fff; }
-        .btn-primary:hover { background: #1565c0; }
+        .btn-primary:hover:not(:disabled) { background: #1565c0; }
+        #respondSubmitBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 160px; }
+        #respondSubmitBtn:disabled { opacity: 0.92; cursor: wait; }
+        .respond-spin { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: respondSpin 0.65s linear infinite; flex-shrink: 0; }
+        #respondSubmitBtn.is-loading .respond-spin { display: inline-block; }
+        @keyframes respondSpin { to { transform: rotate(360deg); } }
         .modal { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1100; justify-content: center; align-items: center; }
         .modal.show { display: flex; }
         .modal-content { background: #fff; border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; }
@@ -119,8 +128,8 @@ function formatDate($d) {
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php" class="active"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php" class="active"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -204,21 +213,43 @@ function formatDate($d) {
             <p id="respondModalName" style="color: #666; margin: 0 0 12px 0;"></p>
             <textarea id="respondModalText" placeholder="Type your response. The jobseeker will see this in their notifications."></textarea>
             <div class="modal-actions">
-                <button type="button" class="btn btn-primary" id="respondSubmitBtn">Send response</button>
-                <button type="button" class="btn" style="background: #e0e0e0; color: #333;" onclick="closeRespondModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="respondSubmitBtn">
+                    <span class="respond-spin" id="respondSpinner" aria-hidden="true"></span>
+                    <span id="respondBtnLabel">Send response</span>
+                </button>
+                <button type="button" class="btn" id="respondCancelBtn" style="background: #e0e0e0; color: #333;" onclick="closeRespondModal()">Cancel</button>
             </div>
         </div>
     </div>
     <input type="hidden" id="respondRequestId" value="">
 
     <script>
+        function setRespondModalLoading(loading) {
+            var btn = document.getElementById('respondSubmitBtn');
+            var cancel = document.getElementById('respondCancelBtn');
+            var label = document.getElementById('respondBtnLabel');
+            if (!btn) return;
+            if (loading) {
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+                if (label) label.textContent = 'Sending...';
+                if (cancel) cancel.disabled = true;
+            } else {
+                btn.classList.remove('is-loading');
+                btn.disabled = false;
+                if (label) label.textContent = 'Send response';
+                if (cancel) cancel.disabled = false;
+            }
+        }
         function openRespondModal(requestId, name) {
             document.getElementById('respondRequestId').value = requestId;
             document.getElementById('respondModalName').textContent = name;
             document.getElementById('respondModalText').value = '';
+            setRespondModalLoading(false);
             document.getElementById('respondModal').classList.add('show');
         }
         function closeRespondModal() {
+            setRespondModalLoading(false);
             document.getElementById('respondModal').classList.remove('show');
         }
         document.getElementById('respondSubmitBtn').onclick = function() {
@@ -228,7 +259,7 @@ function formatDate($d) {
                 Swal.fire({ title: 'Error', text: 'Please enter a response.', icon: 'warning' });
                 return;
             }
-            this.disabled = true;
+            setRespondModalLoading(true);
             fetch('respond_follow_up.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -236,7 +267,7 @@ function formatDate($d) {
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                document.getElementById('respondSubmitBtn').disabled = false;
+                setRespondModalLoading(false);
                 closeRespondModal();
                 if (data.success) {
                     Swal.fire({ title: 'Sent', text: data.message, icon: 'success' }).then(function() { location.reload(); });
@@ -245,7 +276,7 @@ function formatDate($d) {
                 }
             })
             .catch(function() {
-                document.getElementById('respondSubmitBtn').disabled = false;
+                setRespondModalLoading(false);
                 Swal.fire({ title: 'Error', text: 'Request failed. Please try again.', icon: 'error' });
             });
         };

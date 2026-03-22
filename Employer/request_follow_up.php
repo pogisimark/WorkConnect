@@ -2,6 +2,10 @@
 date_default_timezone_set('Asia/Manila');
 include 'session_protect.php';
 require_once 'db.php';
+require_once __DIR__ . '/follow_up_pending_badge.php';
+require_once __DIR__ . '/admin_company_follow_up_badge.php';
+$follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+$acfu_unread_count = acfu_get_unread_response_count($conn);
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -60,6 +64,12 @@ $conn->close();
         .btn-delete-selected { background: #d32f2f; color: #fff; padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
         .btn-delete-selected:hover { background: #b71c1c; }
         .btn-delete-selected:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-mark-read { background: #1976d2; color: #fff; padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .btn-mark-read:hover:not(:disabled) { background: #1565c0; }
+        .btn-mark-read:disabled { opacity: 0.55; cursor: not-allowed; }
+        .btn-mark-read-one { background: #1976d2; color: #fff; padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
+        .btn-mark-read-one:hover { background: #1565c0; }
+        .card.follow-up-card-ac.unread-reply { border-left: 4px solid #1976d2; box-shadow: 0 2px 10px rgba(25,118,210,0.12); }
         .status-filter-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
         #statusFilterAc { padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; min-width: 140px; }
     </style>
@@ -81,8 +91,8 @@ $conn->close();
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php" class="active"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php" class="active"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -119,6 +129,7 @@ $conn->close();
                 </div>
                 <div class="bulk-actions">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;"><input type="checkbox" id="selectAllAc"> Select all</label>
+                    <button type="button" class="btn-mark-read" id="markAllReadAc" disabled>Mark all as read</button>
                     <button type="button" class="btn-delete-selected" id="deleteSelectedAc" disabled>Delete selected</button>
                 </div>
                 <div id="pastRequestsList"></div>
@@ -171,6 +182,7 @@ $conn->close();
                 if (allRequests.length === 0) {
                     document.getElementById('pastRequestsBody').style.display = 'block';
                     document.getElementById('pastRequestsList').innerHTML = '<div class="card"><p style="color:#666;margin:0;">No requests yet.</p></div>';
+                    updateMarkAllReadState();
                     return;
                 }
                 document.getElementById('pastRequestsBody').style.display = 'block';
@@ -180,26 +192,62 @@ $conn->close();
                 document.getElementById('pastRequestsLoading').textContent = 'Unable to load.';
             });
         }
+        function refreshAcfuSidebarBadge() {
+            fetch('get_acfu_unread_count.php').then(function(r) { return r.json(); }).then(function(d) {
+                if (!d.success) return;
+                var el = document.querySelector('.acfu-sidebar-badge');
+                if (!el) return;
+                var n = parseInt(d.count, 10) || 0;
+                if (n < 1) { el.innerHTML = ''; return; }
+                var display = n > 99 ? '99+' : String(n);
+                var title = n + ' unread company repl' + (n === 1 ? 'y' : 'ies');
+                el.innerHTML = '<span class="fu-nav-badge" style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 7px;margin-left:8px;background:#f44336;color:#fff;font-size:0.68rem;font-weight:700;border-radius:999px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,0.22);flex-shrink:0;" title="' + title.replace(/"/g, '&quot;') + '" aria-label="' + title.replace(/"/g, '&quot;') + '">' + display + '</span>';
+            }).catch(function() {});
+        }
+        function markOneAcRead(id) {
+            fetch('mark_admin_follow_up_read.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) { loadPastRequests(); refreshAcfuSidebarBadge(); }
+                    else { Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' }); }
+                })
+                .catch(function() { Swal.fire({ title: 'Error', text: 'Request failed.', icon: 'error' }); });
+        }
+        function updateMarkAllReadState() {
+            var hasUnread = allRequests.some(function(r) { return r.unread_company_reply; });
+            var btn = document.getElementById('markAllReadAc');
+            if (btn) btn.disabled = !hasUnread;
+        }
         function renderPastRequests() {
             var filter = (document.getElementById('statusFilterAc') || {}).value || 'all';
             var fullHtml = '';
             allRequests.forEach(function(r) {
                 if (filter !== 'all' && r.status !== filter) return;
                 var isPending = r.status === 'pending';
+                var unreadReply = !!r.unread_company_reply;
                 var dateStr = formatPhTime(r.created_at);
                 var safeName = (r.company_name || '').replace(/'/g, "\\'").replace(/\\/g, '\\\\');
-                fullHtml += '<div class="card follow-up-card-ac ' + (isPending ? 'pending' : 'answered') + '" data-id="' + r.id + '" data-status="' + r.status + '">';
-                fullHtml += '<p style="font-size:0.85rem;color:#666;margin:0 0 10px 0;">To: <strong>' + escapeHtml(r.company_name) + '</strong> · ' + dateStr + ' (PH time) <span class="badge badge-' + r.status + '">' + (isPending ? 'Pending' : 'Answered') + '</span></p>';
+                var unreadClass = (!isPending && unreadReply) ? ' unread-reply' : '';
+                fullHtml += '<div class="card follow-up-card-ac ' + (isPending ? 'pending' : 'answered') + unreadClass + '" data-id="' + r.id + '" data-status="' + r.status + '">';
+                fullHtml += '<p style="font-size:0.85rem;color:#666;margin:0 0 10px 0;">To: <strong>' + escapeHtml(r.company_name) + '</strong> · ' + dateStr + ' (PH time) <span class="badge badge-' + r.status + '">' + (isPending ? 'Pending' : 'Answered') + '</span>';
+                if (!isPending && unreadReply) fullHtml += ' <span style="font-size:0.75rem;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-weight:600;">New reply</span>';
+                fullHtml += '</p>';
                 fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Your message:</p><div style="background:#f5f5f5;padding:12px;border-radius:6px;margin-bottom:10px;font-size:0.9rem;">' + (r.message && r.message.trim() ? escapeHtml(r.message) : '<em style="color:#999;">No message</em>') + '</div>';
                 if (!isPending && r.company_response) {
                     fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Company response:</p><div style="background:#e8f5e9;padding:12px;border-radius:6px;margin-bottom:8px;font-size:0.9rem;">' + escapeHtml(r.company_response) + '</div>';
                     if (r.responded_at) fullHtml += '<p style="font-size:0.8rem;color:#666;margin:0;">Responded: ' + formatPhTime(r.responded_at) + ' (PH time)</p>';
                 } else if (isPending) fullHtml += '<p style="color:#856404;font-size:0.9rem;margin:0;">Awaiting company response.</p>';
-                fullHtml += '<div class="card-actions-ac"><div class="left"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="ac-checkbox" value="' + r.id + '"> Select</label></div><button type="button" class="btn-delete" onclick="deleteOneAc(' + r.id + ',\'' + safeName + '\')">Delete</button></div>';
+                fullHtml += '<div class="card-actions-ac"><div class="left"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="ac-checkbox" value="' + r.id + '"> Select</label></div>';
+                fullHtml += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+                if (!isPending && r.company_response && unreadReply) {
+                    fullHtml += '<button type="button" class="btn-mark-read-one" onclick="markOneAcRead(' + r.id + ')">Mark as read</button>';
+                }
+                fullHtml += '<button type="button" class="btn-delete" onclick="deleteOneAc(' + r.id + ',\'' + safeName + '\')">Delete</button></div></div>';
                 fullHtml += '</div>';
             });
             document.getElementById('pastRequestsList').innerHTML = fullHtml || '<div class="card"><p style="color:#666;margin:0;">No requests match the filter.</p></div>';
             document.querySelectorAll('.ac-checkbox').forEach(function(cb) { cb.addEventListener('change', updateAcDeleteState); });
+            updateMarkAllReadState();
         }
         function filterAcByStatus(value) {
             document.querySelectorAll('.follow-up-card-ac').forEach(function(card) {
@@ -224,6 +272,30 @@ $conn->close();
             }.bind(this));
             updateAcDeleteState();
         });
+        document.getElementById('markAllReadAc').addEventListener('click', function() {
+            Swal.fire({ title: 'Mark all as read?', text: 'All company replies will be marked as read.', icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, mark all', cancelButtonText: 'Cancel' }).then(function(res) {
+                if (!res.isConfirmed) return;
+                var btn = document.getElementById('markAllReadAc');
+                btn.disabled = true;
+                fetch('mark_admin_follow_up_read.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mark_all: true }) })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btn.disabled = false;
+                        if (data.success) {
+                            loadPastRequests();
+                            refreshAcfuSidebarBadge();
+                        } else {
+                            Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' });
+                            updateMarkAllReadState();
+                        }
+                    })
+                    .catch(function() {
+                        btn.disabled = false;
+                        updateMarkAllReadState();
+                        Swal.fire({ title: 'Error', text: 'Request failed.', icon: 'error' });
+                    });
+            });
+        });
         document.getElementById('deleteSelectedAc').addEventListener('click', function() {
             var ids = []; document.querySelectorAll('.ac-checkbox:checked').forEach(function(cb) { ids.push(parseInt(cb.value, 10)); });
             if (ids.length === 0) return;
@@ -231,7 +303,7 @@ $conn->close();
                 if (!r.isConfirmed) return;
                 this.disabled = true;
                 fetch('delete_admin_follow_up.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: ids }) }).then(function(res) { return res.json(); }).then(function(data) {
-                    if (data.success) { Swal.fire({ title: 'Done', text: data.message, icon: 'success' }); loadPastRequests(); }
+                    if (data.success) { Swal.fire({ title: 'Done', text: data.message, icon: 'success' }); loadPastRequests(); refreshAcfuSidebarBadge(); }
                     else Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' });
                     document.getElementById('deleteSelectedAc').disabled = false;
                 }).catch(function() { document.getElementById('deleteSelectedAc').disabled = false; });
@@ -241,7 +313,7 @@ $conn->close();
             Swal.fire({ title: 'Remove this request?', text: 'Request to ' + name + ' will be removed from your list.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Remove' }).then(function(r) {
                 if (!r.isConfirmed) return;
                 fetch('delete_admin_follow_up.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) }).then(function(res) { return res.json(); }).then(function(data) {
-                    if (data.success) { Swal.fire({ title: 'Done', text: data.message, icon: 'success' }); loadPastRequests(); }
+                    if (data.success) { Swal.fire({ title: 'Done', text: data.message, icon: 'success' }); loadPastRequests(); refreshAcfuSidebarBadge(); }
                     else Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' });
                 });
             });
@@ -256,7 +328,7 @@ $conn->close();
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     btn.disabled = false;
-                    if (data.success) { Swal.fire({ title: 'Sent', text: data.message, icon: 'success' }); document.getElementById('messageText').value = ''; loadPastRequests(); }
+                    if (data.success) { Swal.fire({ title: 'Sent', text: data.message, icon: 'success' }); document.getElementById('messageText').value = ''; loadPastRequests(); refreshAcfuSidebarBadge(); }
                     else Swal.fire({ title: 'Error', text: data.message || 'Failed.', icon: 'error' });
                 })
                 .catch(function() { btn.disabled = false; Swal.fire({ title: 'Error', text: 'Request failed.', icon: 'error' }); });

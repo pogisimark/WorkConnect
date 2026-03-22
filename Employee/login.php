@@ -1,8 +1,13 @@
 <?php
-session_start();
+require_once 'session_init.php';
 require_once 'db.php';
+require_once 'employee_verification_schema.php';
+
+ensureEmployeeVerificationSchema($conn);
 
 $error_message = '';
+$show_verify_swal = false;
+$verify_swal_email = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email'] ?? '');
@@ -11,8 +16,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($email) || empty($password)) {
         $error_message = "Email and password are required.";
     } else {
-        // Check user credentials
-        $stmt = $conn->prepare("SELECT id, firstname, lastname, password FROM employee_users WHERE email = ?");
+        // Check user credentials (email_verified: 0 = pending verification)
+        $stmt = $conn->prepare("SELECT id, firstname, lastname, password, email_verified FROM employee_users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -20,14 +25,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
             if (password_verify($password, $user['password'])) {
-                // Login successful
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['email'] = $email;
-                $_SESSION['firstname'] = $user['firstname'];
-                $_SESSION['lastname'] = $user['lastname'];
-                
-                header('Location: dashboard.php');
-                exit();
+                if (isset($user['email_verified']) && (int)$user['email_verified'] !== 1) {
+                    $show_verify_swal = true;
+                    $verify_swal_email = $email;
+                } else {
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['email'] = $email;
+                    $_SESSION['firstname'] = $user['firstname'];
+                    $_SESSION['lastname'] = $user['lastname'];
+                    
+                    header('Location: dashboard.php');
+                    exit();
+                }
             } else {
                 $error_message = "Invalid email or password.";
             }
@@ -58,7 +67,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         
         
-        <?php if (isset($_GET['success']) && $_GET['success'] === 'account_created'): ?>
+        <?php
+        // Only show URL success banner on GET. After signup the URL has ?success=verify_sent; a failed
+        // login POST keeps that query string, so we must not show both green + red at once.
+        $show_url_success = ($_SERVER['REQUEST_METHOD'] !== 'POST' && !empty($_GET['success']));
+        ?>
+        <?php if ($show_url_success && $_GET['success'] === 'verify_sent'): ?>
+            <div class="success-message">Account created! Check your email and click the verification link before logging in.</div>
+        <?php elseif ($show_url_success && $_GET['success'] === 'account_created'): ?>
             <div class="success-message">Account created successfully! You can now login with your credentials.</div>
         <?php endif; ?>
         
@@ -98,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
         
         <div class="back-home">
-            <a href="home.html">← Back to Home</a>
+            <a href="../index.php">← Back to Home</a>
         </div>
     </div>
 
@@ -243,6 +259,75 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             loginBtn.disabled = true;
             btnText.style.display = 'none';
             spinner.style.display = 'flex';
+        });
+
+        <?php if (!empty($show_verify_swal)): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            const verifyEmail = <?php echo json_encode($verify_swal_email); ?>;
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = document.querySelector('#loginBtn .btn-text');
+            const spinner = document.getElementById('loginSpinner');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                if (btnText) btnText.style.display = 'inline';
+                if (spinner) spinner.style.display = 'none';
+            }
+            Swal.fire({
+                icon: 'warning',
+                title: 'Verify your email',
+                html: 'Please check your email and verify your account before logging in.<br><br>If you did not receive the message, you can resend the verification link.',
+                confirmButtonText: 'OK',
+                showDenyButton: true,
+                denyButtonText: 'Resend verification email',
+                confirmButtonColor: '#1a3876',
+                denyButtonColor: '#6c757d'
+            }).then(function(result) {
+                if (result.isDenied && verifyEmail) {
+                    Swal.fire({
+                        title: 'Sending verification email...',
+                        html: 'Please wait while we send the link.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: function() {
+                            Swal.showLoading();
+                        }
+                    });
+                    fetch('resend_verification.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: verifyEmail })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: data.success ? 'success' : 'error',
+                            title: data.success ? 'Sent' : 'Error',
+                            text: data.message || (data.success ? 'Check your inbox.' : 'Could not resend.')
+                        });
+                    })
+                    .catch(function() {
+                        Swal.close();
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Could not resend. Try again later.' });
+                    });
+                }
+            });
+        });
+        <?php endif; ?>
+
+        // Auto-hide green/red login banners after 2 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.login-container > .success-message, .login-container > .error-message').forEach(function(el) {
+                if (!el.textContent.trim()) return;
+                setTimeout(function() {
+                    el.style.transition = 'opacity 0.35s ease';
+                    el.style.opacity = '0';
+                    setTimeout(function() {
+                        el.style.display = 'none';
+                    }, 350);
+                }, 2000);
+            });
         });
     </script>
 

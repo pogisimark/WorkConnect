@@ -31,6 +31,10 @@ if (in_array('logo', $existing_columns)) {
     $stmt->close();
 }
 
+// Fix stale "Applied" rows when jobseeker is already Accepted elsewhere (e.g. referral at another company)
+require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
+reconcile_stale_applications_for_company_jobs($conn, (int) $company_id);
+
 // Get all job postings for this company
 $jobs = [];
 $job_applicants = [];
@@ -88,6 +92,16 @@ if ($table_check && $table_check->num_rows > 0) {
     }
 }
 
+require_once __DIR__ . '/view_applicants_badge_helper.php';
+$pending_applicants_sidebar_count = 0;
+foreach ($jobs as $j) {
+    $pending_applicants_sidebar_count += company_pending_applicants_from_applicant_rows($job_applicants[$j['id']] ?? []);
+}
+require_once __DIR__ . '/referred_pending_badge_helper.php';
+$referred_pending_sidebar_count = company_referred_pending_count_for_sidebar($conn, $company_id);
+require_once __DIR__ . '/admin_requests_badge_helper.php';
+$pending_admin_requests_count = company_admin_pending_request_count($conn, $company_id);
+
 $conn->close();
 ?>
 
@@ -101,6 +115,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
         body {
             margin: 0;
@@ -468,6 +483,11 @@ $conn->close();
             color: #c62828;
         }
         
+        .status-withdrawn {
+            background: #eceff1;
+            color: #546e7a;
+        }
+        
         .applicant-actions {
             display: flex;
             gap: 10px;
@@ -717,9 +737,9 @@ $conn->close();
             <ul class="sidebar-nav">
                 <li><a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="jobposting.php"><i class="fas fa-briefcase"></i> Job Posting</a></li>
-                <li><a href="view_applicants.php" class="active"><i class="fas fa-users"></i> View Applicants</a></li>
-                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred</a></li>
-                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests</a></li>
+                <li><a href="view_applicants.php" class="active"><i class="fas fa-users"></i> View Applicants<?php echo company_pending_applicants_badge_html($pending_applicants_sidebar_count); ?></a></li>
+                <li><a href="referred.php"><i class="fas fa-user-check"></i> Referred<?php echo company_referred_pending_badge_html($referred_pending_sidebar_count); ?></a></li>
+                <li><a href="admin_requests.php"><i class="fas fa-envelope"></i> Admin Requests<?php echo company_admin_requests_badge_html($pending_admin_requests_count); ?></a></li>
                 <li><a href="profile.php"><i class="fas fa-building"></i> Company Profile</a></li>
                 <li><a href="#" class="logout" onclick="showLogoutModal(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -866,7 +886,7 @@ $conn->close();
                                                     <i class="fas fa-file-alt"></i> View Resume
                                                 </button>
                                                 <?php endif; ?>
-                                                <?php if (strtolower($applicant['application_status']) !== 'accepted' && strtolower($applicant['application_status']) !== 'rejected'): ?>
+                                                <?php if (!in_array(strtolower(trim($applicant['application_status'] ?? '')), ['accepted', 'rejected', 'withdrawn'], true)): ?>
                                                 <button class="btn btn-accept" onclick="acceptApplicant(<?php echo $applicant['application_id']; ?>, <?php echo $applicant['jobseeker_id']; ?>, <?php echo $job_id; ?>, '<?php echo htmlspecialchars($job['title']); ?>')">
                                                     <i class="fas fa-check"></i> Accept
                                                 </button>
@@ -953,25 +973,6 @@ $conn->close();
                     dropdown.style.display = 'none';
                 }
             }
-        }
-
-        function showLogoutModal() {
-            document.getElementById('profileDropdown').style.display = 'none';
-            Swal.fire({
-                title: 'Logout?',
-                text: 'Are you sure you want to logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#1a3876',
-                cancelButtonColor: '#666',
-                confirmButtonText: 'Yes, Logout',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'logout.php';
-                }
-            });
         }
 
         function closeModal(modalId) {

@@ -11,7 +11,7 @@ require_once 'db.php';
 
 // Start session without redirecting (API must always return JSON)
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    require_once 'session_init.php';
 }
 
 // Discard any stray output (PHP notices, etc.) before sending JSON
@@ -31,7 +31,17 @@ if (!$user_id) {
 }
 
 // Get notifications for the current user
-$stmt = $conn->prepare("SELECT id, title, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20");
+$hasTypeColumn = false;
+$typeCheck = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
+if ($typeCheck && $typeCheck->num_rows > 0) {
+    $hasTypeColumn = true;
+}
+
+$selectSql = $hasTypeColumn
+    ? "SELECT id, title, message, type, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 30"
+    : "SELECT id, title, message, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 30";
+
+$stmt = $conn->prepare($selectSql);
 if (!$stmt) {
     echo json_encode(['notifications' => []]);
     exit;
@@ -47,8 +57,10 @@ if ($result) {
             'id' => (int)($row['id'] ?? 0),
             'title' => $row['title'] ?? '',
             'message' => $row['message'] ?? '',
+            'type' => $row['type'] ?? 'info',
             'is_read' => (bool)($row['is_read'] ?? 0),
-            'created_at' => date('M j, Y g:i A', strtotime($row['created_at'] ?? 'now'))
+            'created_at' => date('M j, Y g:i A', strtotime($row['created_at'] ?? 'now')),
+            'created_at_iso' => date('c', strtotime($row['created_at'] ?? 'now'))
         ];
     }
 }

@@ -36,7 +36,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     
     $jobseeker_id = intval($input['jobseeker_id']);
-    $company_name = isset($input['company_name']) ? $conn->real_escape_string($input['company_name']) : 'the employer';
+    $company_name = 'the employer';
+    if (!empty($input['company_names']) && is_array($input['company_names'])) {
+        $parts = array_map('trim', array_filter($input['company_names']));
+        $company_name = $parts ? implode(', ', $parts) : 'the employer';
+    } elseif (!empty($input['company_name'])) {
+        $company_name = trim($input['company_name']);
+    }
     
     // Get jobseeker data
     $sql = "SELECT firstname, surname, email FROM jobseeker WHERE id = $jobseeker_id";
@@ -52,7 +58,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             exit;
         }
         
-        $subject = "WorkConnect - Your Application Has Been Forwarded to " . $company_name;
+        $subject = "WorkConnect - Your Application Has Been Referred to " . $company_name;
         
         $message = "
         <!DOCTYPE html>
@@ -237,12 +243,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <div class='success-icon'>✓</div>
                     </div>
                     
-                    <h2 class='success-title'>Application Forwarded Successfully</h2>
+                    <h2 class='success-title'>Application Referred Successfully</h2>
                     
                     <p class='greeting'>Dear " . htmlspecialchars($jobseeker_name) . ",</p>
                     
                     <p class='message-text'>
-                        Great news! Your job application has been reviewed and accepted by our team. We are pleased to inform you that your application has been successfully forwarded to <span class='company-name'>" . htmlspecialchars($company_name) . "</span> for their consideration.
+                        Great news! Your job application has been reviewed and accepted by our team. We are pleased to inform you that your application has been successfully referred to <span class='company-name'>" . htmlspecialchars($company_name) . "</span> for their consideration.
                     </p>
                     
                     <div class='highlight-box'>
@@ -272,7 +278,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 <div class='footer'>
                     <p><strong>WorkConnect</strong></p>
-                    <p>Department of Labor and Employment</p>
+                    <p>Public Employment Service Office</p>
                     <p>National Skills Registration Program</p>
                     <div class='copyright'>
                         <p>This is an automated message. Please do not reply to this email.</p>

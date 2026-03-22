@@ -299,8 +299,13 @@ body {
   margin-bottom: 20px;
 }
 
-.signup-btn:hover {
+.signup-btn:hover:not(:disabled) {
   background: #2c5aa0;
+}
+
+.signup-btn:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
 }
 
 .login-link {

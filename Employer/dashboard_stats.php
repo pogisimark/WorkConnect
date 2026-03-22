@@ -21,11 +21,24 @@ $new_applicants = $res3 ? intval($res3->fetch_assoc()['total']) : 0;
 $res4 = $conn->query("SELECT COUNT(*) as total FROM jobseeker WHERE application_status = 'accepted'");
 $placed_jobseekers = $res4 ? intval($res4->fetch_assoc()['total']) : 0;
 
+// Verified employer companies only (email verified — same rule as referrals / get_companies)
+$total_companies = 0;
+$evCol = @$conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
+if ($evCol && $evCol->num_rows > 0) {
+    $res5 = @$conn->query("SELECT COUNT(*) as total FROM company_users WHERE COALESCE(email_verified, 0) = 1");
+} else {
+    $res5 = @$conn->query("SELECT COUNT(*) as total FROM company_users");
+}
+if ($res5) {
+    $total_companies = intval($res5->fetch_assoc()['total']);
+}
+
 // Output
 $data = [
     'total_jobseekers' => $total_jobseekers,
     'skills_registered' => $skills_registered,
     'new_applicants' => $new_applicants,
-    'placed_jobseekers' => $placed_jobseekers
+    'placed_jobseekers' => $placed_jobseekers,
+    'total_companies' => $total_companies
 ];
 echo json_encode($data);

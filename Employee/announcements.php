@@ -479,6 +479,28 @@ if ($isIframe) {
     <script>
         let currentFilters = {};
         let announcements = [];
+
+        function showAnnouncementModal(title, html) {
+            if (window.self !== window.top) {
+                window.parent.postMessage({
+                    type: 'showModal',
+                    payload: { title: title, html: html }
+                }, '*');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('announcementModal').style.display = 'flex';
+        }
+
+        function hideAnnouncementModal() {
+            if (window.self !== window.top) {
+                window.parent.postMessage({ type: 'hideModal' }, '*');
+                return;
+            }
+            document.getElementById('announcementModal').style.display = 'none';
+        }
         
         // Load announcements
         function loadAnnouncements() {
@@ -580,9 +602,7 @@ if ($isIframe) {
             // Track view
             trackView(id);
             
-            // Show modal
-            document.getElementById('modalTitle').textContent = announcement.title;
-            document.getElementById('modalContent').innerHTML = `
+            const modalHtml = `
                 <div style="margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
                         <span style="background: #e3eaff; color: #233a8b; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
@@ -623,7 +643,7 @@ if ($isIframe) {
                     ` : ''}
                 </div>
             `;
-            document.getElementById('announcementModal').style.display = 'flex';
+            showAnnouncementModal(announcement.title, modalHtml);
             
             // Refresh announcements to update view count
             setTimeout(() => {
@@ -764,13 +784,13 @@ if ($isIframe) {
             document.getElementById('categoryFilter').addEventListener('change', applyFilters);
             document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
             document.getElementById('closeModalBtn').addEventListener('click', () => {
-                document.getElementById('announcementModal').style.display = 'none';
+                hideAnnouncementModal();
             });
             
             // Close modal when clicking outside
             window.addEventListener('click', (e) => {
                 if (e.target.id === 'announcementModal') {
-                    document.getElementById('announcementModal').style.display = 'none';
+                    hideAnnouncementModal();
                 }
             });
         });

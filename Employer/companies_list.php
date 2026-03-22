@@ -4,24 +4,41 @@ include 'session_protect.php';
 require_once 'db.php';
 
 $companies = [];
+$verified_company_count = 0;
 if ($conn) {
     $cols_check = $conn->query("SHOW COLUMNS FROM company_users");
     $has_created_at = false;
+    $has_email_verified = false;
     if ($cols_check) {
         while ($col = $cols_check->fetch_assoc()) {
-            if ($col['Field'] === 'created_at') { $has_created_at = true; break; }
+            if ($col['Field'] === 'created_at') { $has_created_at = true; }
+            if ($col['Field'] === 'email_verified') { $has_email_verified = true; }
         }
     }
     $select = "id, company_name, email";
     if ($has_created_at) $select .= ", created_at";
+    if ($has_email_verified) $select .= ", email_verified";
     $sql = "SELECT $select FROM company_users ORDER BY company_name ASC";
     $result = $conn->query($sql);
     if ($result) {
         while ($row = $result->fetch_assoc()) {
+            if ($has_email_verified && isset($row['email_verified']) && (int)$row['email_verified'] === 1) {
+                $verified_company_count++;
+            }
             $companies[] = $row;
         }
     }
+    if (!$has_email_verified) {
+        $verified_company_count = count($companies);
+    }
+    require_once __DIR__ . '/follow_up_pending_badge.php';
+    require_once __DIR__ . '/admin_company_follow_up_badge.php';
+    $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
+    $acfu_unread_count = acfu_get_unread_response_count($conn);
     $conn->close();
+} else {
+    $follow_up_pending_count = 0;
+    $acfu_unread_count = 0;
 }
 
 function formatDate($d) {
@@ -100,8 +117,8 @@ function formatDate($d) {
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
             <a href="job.php"> JOBSEEKERS</a>
-            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS</a>
-            <a href="request_follow_up.php"> REQUEST FOLLOW UP</a>
+            <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
+            <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php" class="active"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
@@ -114,13 +131,13 @@ function formatDate($d) {
             <div class="page-header">
                 <div>
                     <h2>Companies</h2>
-                    <p>All companies currently registered in the system</p>
+                    <p>Registered companies; count badge shows <strong>verified</strong> (email confirmed) accounts.</p>
                 </div>
                 <div class="search-wrap">
                     <input type="text" id="companySearch" placeholder="Search by name or email..." autocomplete="off">
                     <div class="count-badge">
-                        <div class="num" id="companyCount"><?php echo count($companies); ?></div>
-                        <div class="label">Companies</div>
+                        <div class="num" id="companyCount"><?php echo (int) $verified_company_count; ?></div>
+                        <div class="label">Verified</div>
                     </div>
                 </div>
             </div>
@@ -137,15 +154,26 @@ function formatDate($d) {
                             <th>No.</th>
                             <th>Company Name</th>
                             <th>Email</th>
+                            <th>Status</th>
                             <th>Date Registered</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($companies as $i => $c): ?>
-                        <tr class="company-row" data-name="<?php echo htmlspecialchars(strtolower($c['company_name'] ?? '')); ?>" data-email="<?php echo htmlspecialchars(strtolower($c['email'] ?? '')); ?>">
+                        <tr class="company-row" data-name="<?php echo htmlspecialchars(strtolower($c['company_name'] ?? '')); ?>" data-email="<?php echo htmlspecialchars(strtolower($c['email'] ?? '')); ?>" data-verified="<?php echo (isset($c['email_verified']) && (int)$c['email_verified'] === 1) ? '1' : '0'; ?>">
                             <td><?php echo $i + 1; ?></td>
                             <td><?php echo htmlspecialchars($c['company_name'] ?? '—'); ?></td>
                             <td><a href="mailto:<?php echo htmlspecialchars($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo htmlspecialchars($c['email'] ?? '—'); ?></a></td>
+                            <td><?php
+                                $ev = isset($c['email_verified']) ? (int)$c['email_verified'] : null;
+                                if ($ev === 1) {
+                                    echo '<span style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Verified</span>';
+                                } elseif ($ev === 0) {
+                                    echo '<span style="background:#fff3e0;color:#e65100;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Pending</span>';
+                                } else {
+                                    echo '<span style="color:#888;">—</span>';
+                                }
+                            ?></td>
                             <td><?php echo formatDate($c['created_at'] ?? null); ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -193,7 +221,7 @@ function formatDate($d) {
                     var email = row.getAttribute('data-email') || '';
                     var match = !term || name.indexOf(term) >= 0 || email.indexOf(term) >= 0;
                     row.style.display = match ? '' : 'none';
-                    if (match) visible++;
+                    if (match && row.getAttribute('data-verified') === '1') visible++;
                 });
                 var countEl = document.getElementById('companyCount');
                 if (countEl) countEl.textContent = visible;
