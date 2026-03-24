@@ -563,55 +563,177 @@ $conn->close();
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
             overflow-y: auto;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         
         .modal-content {
             background-color: white;
-            margin: 20px auto;
-            padding: 30px;
-            border-radius: 12px;
+            margin: 40px auto;
+            padding: 0;
+            border-radius: 16px;
             width: 90%;
             max-width: 900px;
             max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: slideDown 0.4s ease-out;
+            display: flex;
+            flex-direction: column;
         }
         
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
+            padding: 20px 30px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
         }
         
         .modal-header h2 {
             color: #1a3876;
             margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-header h2 i {
+            color: #e53e3e;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 20px 30px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
         
         .close-btn {
-            background: none;
+            background: #edf2f7;
             border: none;
-            font-size: 2rem;
-            color: #999;
+            font-size: 1.2rem;
+            color: #4a5568;
             cursor: pointer;
             padding: 0;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s;
+            border-radius: 10px;
+            transition: all 0.2s;
         }
         
         .close-btn:hover {
-            background: #f0f0f0;
-            color: #333;
+            background: #e2e8f0;
+            color: #1a202c;
+            transform: rotate(90deg);
+        }
+
+        /* Rejection Specific Styles */
+        .rejection-info-box {
+            background: #fff5f5;
+            border-left: 4px solid #feb2b2;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            color: #c53030;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .rejection-info-box i {
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .reason-tags-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .reason-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .reason-tag {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .reason-tag:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #1e293b;
+        }
+
+        .reason-tag.active {
+            background: #1a3876;
+            border-color: #1a3876;
+            color: white;
+        }
+
+        .rejection-textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        .rejection-textarea:focus {
+            outline: none;
+            border-color: #1a3876;
+            box-shadow: 0 0 0 4px rgba(26, 56, 118, 0.1);
+        }
+
+        .rejection-textarea::placeholder {
+            color: #a0aec0;
         }
         
         .details-section {
@@ -935,28 +1057,46 @@ $conn->close();
 
     <!-- Rejection Reason Modal -->
     <div id="rejectionModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
-                <h2>Reject Application</h2>
+                <h2><i class="fas fa-user-times"></i> Reject Application</h2>
                 <button class="close-btn" onclick="closeModal('rejectionModal')">&times;</button>
             </div>
-            <div style="padding: 20px;">
-                <p style="margin-bottom: 15px; color: #666;">Please provide a reason for rejecting this application. This will be sent to the jobseeker via email.</p>
-                <form id="rejectionForm">
+            <form id="rejectionForm">
+                <div class="modal-body">
+                    <div class="rejection-info-box">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            Please provide a clear reason for rejection. This feedback helps the jobseeker and will be included in their notification email.
+                        </div>
+                    </div>
+
                     <input type="hidden" id="rejectApplicationId" value="">
                     <input type="hidden" id="rejectJobseekerId" value="">
                     <input type="hidden" id="rejectJobId" value="">
                     <input type="hidden" id="rejectJobTitle" value="">
-                    <div style="margin-bottom: 20px;">
-                        <label for="rejectionReason" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Rejection Reason *</label>
-                        <textarea id="rejectionReason" name="rejectionReason" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-height: 120px; resize: vertical; font-family: inherit;" placeholder="Enter the reason for rejection..."></textarea>
+
+                    <label class="reason-tags-label">Quick Selection:</label>
+                    <div class="reason-tags-container">
+                        <div class="reason-tag" onclick="setRejectionReason('Does not meet minimum educational requirements')">Education mismatch</div>
+                        <div class="reason-tag" onclick="setRejectionReason('Insufficient work experience in this field')">Insufficient experience</div>
+                        <div class="reason-tag" onclick="setRejectionReason('Technical skills do not match job requirements')">Skill mismatch</div>
+                        <div class="reason-tag" onclick="setRejectionReason('Location is too far from the worksite')">Location mismatch</div>
+                        <div class="reason-tag" onclick="setRejectionReason('The position has already been filled')">Position filled</div>
                     </div>
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="closeModal('rejectionModal')">Cancel</button>
-                        <button type="submit" class="btn btn-reject">Submit Rejection</button>
+
+                    <div style="margin-bottom: 5px;">
+                        <label for="rejectionReason" style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">Detailed Reason *</label>
+                        <textarea id="rejectionReason" name="rejectionReason" class="rejection-textarea" required placeholder="Type your detailed feedback here..."></textarea>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;" onclick="closeModal('rejectionModal')">Cancel</button>
+                    <button type="submit" class="btn btn-reject" style="padding: 10px 24px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(229, 62, 62, 0.2);">
+                        <i class="fas fa-paper-plane"></i> Confirm Rejection
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -977,7 +1117,33 @@ $conn->close();
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
+            // Clear tags and textarea if it's the rejection modal
+            if (modalId === 'rejectionModal') {
+                document.getElementById('rejectionReason').value = '';
+                document.querySelectorAll('.reason-tag').forEach(tag => tag.classList.remove('active'));
+            }
         }
+
+        function setRejectionReason(reason) {
+            const textarea = document.getElementById('rejectionReason');
+            textarea.value = reason;
+            
+            // Update active state of tags
+            document.querySelectorAll('.reason-tag').forEach(tag => {
+                if (tag.innerText.trim() === reason || tag.getAttribute('onclick').includes(reason)) {
+                    tag.classList.add('active');
+                } else {
+                    tag.classList.remove('active');
+                }
+            });
+            
+            textarea.focus();
+        }
+
+        // Add event listener to textarea to remove active state from tags if manually edited
+        document.getElementById('rejectionReason').addEventListener('input', function() {
+            document.querySelectorAll('.reason-tag').forEach(tag => tag.classList.remove('active'));
+        });
 
         function viewResume(resumeFile) {
             const modal = document.getElementById('resumeModal');

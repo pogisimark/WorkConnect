@@ -38,7 +38,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
         $form_error = "Password must be at least 8 characters long, contain at least 1 capital letter and 1 number.";
     } else {
         // Get company user info (ONLY from company_password_resets table)
-        $stmt = $conn->prepare("SELECT pr.user_id FROM company_password_resets pr WHERE pr.token = ? AND pr.expires_at > NOW()");
+        $stmt = $conn->prepare("SELECT pr.user_id, cu.password as current_password 
+                               FROM company_password_resets pr 
+                               JOIN company_users cu ON pr.user_id = cu.id 
+                               WHERE pr.token = ? AND pr.expires_at > NOW()");
         $stmt->bind_param("s", $token);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -46,21 +49,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
         if ($result->num_rows > 0) {
             $user_data = $result->fetch_assoc();
             $user_id = $user_data['user_id'];
+            $current_password = $user_data['current_password'];
             
-            // Update password in company_users table (NOT employee_users)
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE company_users SET password = ? WHERE id = ?");
-            $stmt->bind_param("si", $hashed_password, $user_id);
-            
-            if ($stmt->execute()) {
-                // Delete used token from company_password_resets table
-                $stmt = $conn->prepare("DELETE FROM company_password_resets WHERE token = ?");
-                $stmt->bind_param("s", $token);
-                $stmt->execute();
-                
-                $success_message = "Password has been reset successfully. You can now login with your new password.";
+            // Check if new password is same as current password
+            if (password_verify($new_password, $current_password)) {
+                $form_error = "New password cannot be the same as your current password.";
             } else {
-                $form_error = "Failed to update password. Please try again.";
+                // Update password in company_users table (NOT employee_users)
+                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("UPDATE company_users SET password = ? WHERE id = ?");
+                $stmt->bind_param("si", $hashed_password, $user_id);
+                
+                if ($stmt->execute()) {
+                    // Delete used token from company_password_resets table
+                    $stmt = $conn->prepare("DELETE FROM company_password_resets WHERE token = ?");
+                    $stmt->bind_param("s", $token);
+                    $stmt->execute();
+                    
+                    $success_message = "Password has been reset successfully. You can now login with your new password.";
+                } else {
+                    $form_error = "Failed to update password. Please try again.";
+                }
             }
         } else {
             $form_error = "Invalid or expired reset token.";

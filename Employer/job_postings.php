@@ -1085,10 +1085,18 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
                             
                         case 'delete_job':
                             $id = $_POST['job_id'];
-                            $stmt = $conn->prepare("DELETE FROM job_postings WHERE id=?");
+                            // Soft-delete the job posting to preserve historical application data
+                            $stmt = $conn->prepare("UPDATE job_postings SET status='Deleted' WHERE id=?");
                             $stmt->bind_param("i", $id);
                             
                             if ($stmt->execute()) {
+                                // Mark linked applications as Withdrawn if they were still pending
+                                $stmt_apps = $conn->prepare("UPDATE job_applications_extended SET status = 'Withdrawn' WHERE job_posting_id = ? AND status IN ('Applied', 'Viewed', 'Interview')");
+                                if ($stmt_apps) {
+                                    $stmt_apps->bind_param("i", $id);
+                                    $stmt_apps->execute();
+                                    $stmt_apps->close();
+                                }
                                 $success_message = "Job posting deleted successfully!";
                             } else {
                                 $error_message = "Error deleting job posting: " . $conn->error;
@@ -1176,10 +1184,18 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
                                 $placeholders = str_repeat('?,', count($job_ids) - 1) . '?';
                             }
                             
-                            $stmt = $conn->prepare("DELETE FROM job_postings WHERE id IN ($placeholders)");
+                            // Soft-delete the job postings
+                            $stmt = $conn->prepare("UPDATE job_postings SET status='Deleted' WHERE id IN ($placeholders)");
                             $stmt->bind_param(str_repeat('i', count($job_ids)), ...$job_ids);
                             
                             if ($stmt->execute()) {
+                                // Mark linked applications as Withdrawn if they were still pending
+                                $stmt_apps = $conn->prepare("UPDATE job_applications_extended SET status = 'Withdrawn' WHERE job_posting_id IN ($placeholders) AND status IN ('Applied', 'Viewed', 'Interview')");
+                                if ($stmt_apps) {
+                                    $stmt_apps->bind_param(str_repeat('i', count($job_ids)), ...$job_ids);
+                                    $stmt_apps->execute();
+                                    $stmt_apps->close();
+                                }
                                 $success_message = count($job_ids) . " job(s) deleted successfully!";
                             } else {
                                 $error_message = "Error deleting jobs: " . $conn->error;
@@ -1191,17 +1207,19 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
             }
 
             // Get all job postings (company-created only when company_id column exists)
-            $stmt = $conn->prepare("SELECT * FROM job_postings" . $job_postings_where . " ORDER BY created_at DESC");
+            $where_clause = $job_postings_where ? $job_postings_where . " AND status != 'Deleted'" : " WHERE status != 'Deleted'";
+            $stmt = $conn->prepare("SELECT * FROM job_postings" . $where_clause . " ORDER BY created_at DESC");
             $stmt->execute();
             $job_postings = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();
 
             // Get job posting statistics
+            $stats_where = $job_postings_where ? $job_postings_where . " AND status != 'Deleted'" : " WHERE status != 'Deleted'";
             $stats_query = "SELECT 
                 COUNT(*) as total_jobs,
                 SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) as active_jobs,
                 SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as closed_jobs
-                FROM job_postings" . $job_postings_where;
+                FROM job_postings" . $stats_where;
             $stats_result = $conn->query($stats_query);
             $stats = $stats_result->fetch_assoc();
 

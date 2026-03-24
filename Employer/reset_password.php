@@ -46,19 +46,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($new_password !== $confirm_password) {
         $error_message = 'Passwords do not match.';
     } else {
-        // Hash the new password
-        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+        // Check if new password is same as current password
+        $stmt = $conn->prepare("SELECT password FROM admin_accounts WHERE username = ?");
+        $stmt->bind_param('s', $reset_username);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $admin = $result->fetch_assoc();
         
-        // Update password in database
-        $stmt = $conn->prepare("UPDATE admin_accounts SET password = ? WHERE username = ?");
-        $stmt->bind_param('ss', $hashed_password, $reset_username);
-        
-        if ($stmt->execute()) {
-            // Redirect to login page with success message
-            header('Location: login.html?success=password_reset');
-            exit;
+        if ($admin && password_verify($new_password, $admin['password'])) {
+            $error_message = 'New password cannot be the same as your current password.';
         } else {
-            $error_message = 'Failed to reset password. Please try again.';
+            // Hash the new password
+            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+            
+            // Update password in database
+            $stmt = $conn->prepare("UPDATE admin_accounts SET password = ? WHERE username = ?");
+            $stmt->bind_param('ss', $hashed_password, $reset_username);
+            
+            if ($stmt->execute()) {
+                // Redirect to login page with success message
+                header('Location: login.html?success=password_reset');
+                exit;
+            } else {
+                $error_message = 'Failed to reset password. Please try again.';
+            }
         }
         $stmt->close();
     }

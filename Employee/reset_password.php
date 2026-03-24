@@ -37,7 +37,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
     } elseif (!preg_match('/^(?=.*[A-Z])(?=.*\d).{8,}$/', $new_password)) {
         $form_error = "Password must be at least 8 characters long, contain at least 1 capital letter and 1 number.";
     } else {
-        $stmt = $conn->prepare("SELECT pr.user_id FROM password_resets pr WHERE pr.token = ? AND pr.expires_at > NOW()");
+        $stmt = $conn->prepare("SELECT pr.user_id, eu.password as current_password 
+                               FROM password_resets pr 
+                               JOIN employee_users eu ON pr.user_id = eu.id 
+                               WHERE pr.token = ? AND pr.expires_at > NOW()");
         $stmt->bind_param("s", $token);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -45,19 +48,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
         if ($result->num_rows > 0) {
             $user_data = $result->fetch_assoc();
             $user_id = $user_data['user_id'];
+            $current_password = $user_data['current_password'];
             
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE employee_users SET password = ? WHERE id = ?");
-            $stmt->bind_param("si", $hashed_password, $user_id);
-            
-            if ($stmt->execute()) {
-                $stmt = $conn->prepare("DELETE FROM password_resets WHERE token = ?");
-                $stmt->bind_param("s", $token);
-                $stmt->execute();
-                
-                $success_message = "Password has been reset successfully. You can now login with your new password.";
+            // Check if new password is same as current password
+            if (password_verify($new_password, $current_password)) {
+                $form_error = "New password cannot be the same as your current password.";
             } else {
-                $form_error = "Failed to update password. Please try again.";
+                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("UPDATE employee_users SET password = ? WHERE id = ?");
+                $stmt->bind_param("si", $hashed_password, $user_id);
+                
+                if ($stmt->execute()) {
+                    $stmt = $conn->prepare("DELETE FROM password_resets WHERE token = ?");
+                    $stmt->bind_param("s", $token);
+                    $stmt->execute();
+                    
+                    $success_message = "Password has been reset successfully. You can now login with your new password.";
+                } else {
+                    $form_error = "Failed to update password. Please try again.";
+                }
             }
         } else {
             $form_error = "Invalid or expired reset token.";

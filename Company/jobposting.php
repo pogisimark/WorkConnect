@@ -274,6 +274,7 @@ $conn->close();
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="../assets/css/Company-sidebar.css?v=<?php echo time(); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/company-logout.js?v=1"></script>
     <style>
@@ -997,6 +998,53 @@ $conn->close();
         .profile-dropdown-item:last-child {
             border-bottom: none;
         }
+
+        /* TomSelect Custom Styles to match form */
+        .ts-wrapper.form-control, .ts-control {
+            border: 1px solid #ddd !important;
+            border-radius: 6px !important;
+            padding: 12px !important;
+            font-size: 14px !important;
+            box-shadow: none !important;
+            transition: border-color 0.3s !important;
+            height: auto !important;
+            min-height: 45px !important;
+            background-color: #fff !important;
+        }
+        
+        .ts-wrapper.focus .ts-control {
+            border-color: #1a3876 !important;
+            outline: none !important;
+        }
+        
+        .ts-dropdown {
+            border-radius: 6px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            z-index: 1000 !important;
+        }
+
+        .ts-control input {
+            font-size: 14px !important;
+        }
+        
+        /* COMPLETELY hide the original select elements */
+        select.ts-hidden-accessible {
+            display: none !important;
+            visibility: hidden !important;
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            z-index: -1 !important;
+        }
+
+        /* Prevent double borders and fix alignment */
+        .form-group select {
+            display: none;
+        }
+        .form-group .ts-wrapper {
+            display: block;
+            width: 100%;
+        }
         
         .profile-dropdown-item.logout {
             color: #f44336;
@@ -1240,19 +1288,214 @@ $conn->close();
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="location">Location *</label>
-                                <input type="text" id="location" name="location" required placeholder="e.g., Manila, Quezon City">
+                                <label for="job_province">Province *</label>
+                                <select id="job_province" name="job_province" required>
+                                    <option value="" selected disabled hidden>Select province</option>
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label for="job_type">Job Type *</label>
-                                <select id="job_type" name="job_type" required>
-                                    <option value="Full-time">Full-time</option>
-                                    <option value="Part-time">Part-time</option>
-                                    <option value="Contract">Contract</option>
-                                    <option value="Internship">Internship</option>
+                                <label for="job_city">Municipality/City *</label>
+                                <select id="job_city" name="job_city" required>
+                                    <option value="" selected disabled hidden>Select municipality/city</option>
                                 </select>
                             </div>
                         </div>
+                        <input type="hidden" id="location" name="location">
+                        
+                        <div class="form-group">
+                            <label for="job_type">Job Type *</label>
+                            <select id="job_type" name="job_type" required>
+                                <option value="Full-time">Full-time</option>
+                                <option value="Part-time">Part-time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Internship">Internship</option>
+                            </select>
+                        </div>
+                        
+                        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                // Common configuration for TomSelect to match NSRP style
+                                const commonConfig = {
+                                    create: false,
+                                    allowEmptyOption: true,
+                                    closeAfterSelect: true,
+                                    openOnFocus: true,
+                                    maxOptions: 1000,
+                                    onItemAdd: function() {
+                                        this.close();
+                                        this.setTextboxValue('');
+                                        this.blur();
+                                    },
+                                    render: {
+                                        option: function(data, escape) {
+                                            return '<div>' + escape(data.name || data.text) + '</div>';
+                                        },
+                                        item: function(data, escape) {
+                                            return '<div>' + escape(data.name || data.text) + '</div>';
+                                        }
+                                    }
+                                };
+
+                                // Initialize TomSelect for Province and City
+                                const provinceSelect = new TomSelect('#job_province', {
+                                    ...commonConfig,
+                                    valueField: 'name',
+                                    labelField: 'name',
+                                    searchField: ['name'],
+                                    placeholder: 'Select province',
+                                    onChange: function(value) {
+                                        updateCityDropdown(value);
+                                        updateLocationHidden();
+                                    }
+                                });
+
+                                const citySelect = new TomSelect('#job_city', {
+                                    ...commonConfig,
+                                    valueField: 'name',
+                                    labelField: 'name',
+                                    searchField: ['name'],
+                                    placeholder: 'Select municipality/city',
+                                    onChange: function(value) {
+                                        updateLocationHidden();
+                                    }
+                                });
+
+                                // Initialize TomSelect for Job Type and Status for consistency
+                                new TomSelect('#job_type', { ...commonConfig, placeholder: 'Select job type' });
+                                new TomSelect('#status', { ...commonConfig, placeholder: 'Select status' });
+
+                                // PH Provinces list matching NSRP form
+                                const PH_PROVINCES = [
+                                    { code: '012800000', name: 'Ilocos Norte' },
+                                    { code: '012900000', name: 'Ilocos Sur' },
+                                    { code: '013300000', name: 'La Union' },
+                                    { code: '015500000', name: 'Pangasinan' },
+                                    { code: '020900000', name: 'Batanes' },
+                                    { code: '021500000', name: 'Cagayan' },
+                                    { code: '023100000', name: 'Isabela' },
+                                    { code: '025000000', name: 'Nueva Vizcaya' },
+                                    { code: '025700000', name: 'Quirino' },
+                                    { code: '030800000', name: 'Bataan' },
+                                    { code: '031400000', name: 'Bulacan' },
+                                    { code: '034900000', name: 'Nueva Ecija' },
+                                    { code: '035400000', name: 'Pampanga' },
+                                    { code: '036900000', name: 'Tarlac' },
+                                    { code: '037100000', name: 'Zambales' },
+                                    { code: '037700000', name: 'Aurora' },
+                                    { code: '041000000', name: 'Batangas' },
+                                    { code: '042100000', name: 'Cavite' },
+                                    { code: '043400000', name: 'Laguna' },
+                                    { code: '045600000', name: 'Quezon' },
+                                    { code: '045800000', name: 'Rizal' },
+                                    { code: '174000000', name: 'Marinduque' },
+                                    { code: '175100000', name: 'Occidental Mindoro' },
+                                    { code: '175200000', name: 'Oriental Mindoro' },
+                                    { code: '175300000', name: 'Palawan' },
+                                    { code: '175900000', name: 'Romblon' },
+                                    { code: '050500000', name: 'Albay' },
+                                    { code: '051600000', name: 'Camarines Norte' },
+                                    { code: '051700000', name: 'Camarines Sur' },
+                                    { code: '052000000', name: 'Catanduanes' },
+                                    { code: '054100000', name: 'Masbate' },
+                                    { code: '056200000', name: 'Sorsogon' },
+                                    { code: '060400000', name: 'Aklan' },
+                                    { code: '060600000', name: 'Antique' },
+                                    { code: '061900000', name: 'Capiz' },
+                                    { code: '063000000', name: 'Iloilo' },
+                                    { code: '064500000', name: 'Negros Occidental' },
+                                    { code: '067900000', name: 'Guimaras' },
+                                    { code: '071200000', name: 'Bohol' },
+                                    { code: '072200000', name: 'Cebu' },
+                                    { code: '074600000', name: 'Negros Oriental' },
+                                    { code: '076100000', name: 'Siquijor' },
+                                    { code: '082600000', name: 'Eastern Samar' },
+                                    { code: '083700000', name: 'Leyte' },
+                                    { code: '084800000', name: 'Northern Samar' },
+                                    { code: '086000000', name: 'Samar' },
+                                    { code: '086400000', name: 'Southern Leyte' },
+                                    { code: '087800000', name: 'Biliran' },
+                                    { code: '097200000', name: 'Zamboanga Del Norte' },
+                                    { code: '097300000', name: 'Zamboanga Del Sur' },
+                                    { code: '098300000', name: 'Zamboanga Sibugay' },
+                                    { code: '101300000', name: 'Bukidnon' },
+                                    { code: '101800000', name: 'Camiguin' },
+                                    { code: '103500000', name: 'Lanao Del Norte' },
+                                    { code: '104200000', name: 'Misamis Occidental' },
+                                    { code: '104300000', name: 'Misamis Oriental' },
+                                    { code: '112300000', name: 'Davao Del Norte' },
+                                    { code: '112400000', name: 'Davao Del Sur' },
+                                    { code: '112500000', name: 'Davao Oriental' },
+                                    { code: '118200000', name: 'Davao De Oro' },
+                                    { code: '118600000', name: 'Davao Occidental' },
+                                    { code: '124700000', name: 'Cotabato' },
+                                    { code: '126300000', name: 'South Cotabato' },
+                                    { code: '126500000', name: 'Sultan Kudarat' },
+                                    { code: '128000000', name: 'Sarangani' },
+                                    { code: '140100000', name: 'Abra' },
+                                    { code: '141100000', name: 'Benguet' },
+                                    { code: '142700000', name: 'Ifugao' },
+                                    { code: '143200000', name: 'Kalinga' },
+                                    { code: '144400000', name: 'Mountain Province' },
+                                    { code: '148100000', name: 'Apayao' },
+                                    { code: '160200000', name: 'Agusan Del Norte' },
+                                    { code: '160300000', name: 'Agusan Del Sur' },
+                                    { code: '166700000', name: 'Surigao Del Norte' },
+                                    { code: '166800000', name: 'Surigao Del Sur' },
+                                    { code: '168500000', name: 'Dinagat Islands' },
+                                    { code: '150700000', name: 'Basilan' },
+                                    { code: '153600000', name: 'Lanao Del Sur' },
+                                    { code: '153800000', name: 'Maguindanao' },
+                                    { code: '156600000', name: 'Sulu' },
+                                    { code: '157000000', name: 'Tawi-Tawi' },
+                                    { code: '130000000', name: 'Metro Manila (NCR)' }
+                                ];
+
+                                // Load Provinces from local list instead of multiple API calls
+                                const options = PH_PROVINCES.sort((a, b) => a.name.localeCompare(b.name))
+                                    .map(p => ({ name: p.name, code: p.code }));
+                                provinceSelect.addOptions(options);
+
+                                function updateCityDropdown(provinceName) {
+                                    citySelect.clear();
+                                    citySelect.clearOptions();
+                                    if (!provinceName) return;
+
+                                    // Find province code from local list
+                                    const province = PH_PROVINCES.find(p => p.name === provinceName);
+                                    if (!province) return;
+
+                                    const provinceCode = province.code;
+                                    let url = '';
+                                    if (provinceCode === '130000000') {
+                                        // Special case for Metro Manila
+                                        url = 'https://psgc.gitlab.io/api/regions/130000000/cities-municipalities/';
+                                    } else {
+                                        url = `https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`;
+                                    }
+
+                                    fetch(url)
+                                        .then(res => res.json())
+                                        .then(cities => {
+                                            citySelect.addOptions(cities.sort((a, b) => a.name.localeCompare(b.name))
+                                                .map(c => ({ name: c.name })));
+                                        })
+                                        .catch(err => {
+                                            console.error('Error fetching cities:', err);
+                                        });
+                                }
+
+                                function updateLocationHidden() {
+                                    const province = provinceSelect.getValue();
+                                    const city = citySelect.getValue();
+                                    if (province && city) {
+                                        document.getElementById('location').value = `${city}, ${province}`;
+                                    } else {
+                                        document.getElementById('location').value = '';
+                                    }
+                                }
+                            });
+                        </script>
                         
                         <div class="form-row">
                             <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">

@@ -1207,44 +1207,30 @@ $conn->close();
                                                     <i class="fas fa-map-marker-alt"></i> Location Match
                                                 </div>
                                                 <div class="breakdown-score"><?php echo round($breakdown['location_score']); ?>%</div>
-                                                <?php if (!empty($breakdown['matched_locations'])): ?>
-                                                    <div class="breakdown-details">
-                                                        <strong>Your preference:</strong> 
-                                                        <?php 
-                                                        $userLocations = array_filter([
-                                                            $nrspData['local1'] ?? '',
-                                                            $nrspData['local2'] ?? '',
-                                                            $nrspData['local3'] ?? ''
-                                                        ]);
-                                                        echo htmlspecialchars(implode(', ', $userLocations));
-                                                        ?>
-                                                        <br>
-                                                        <strong>Matches:</strong> <?php echo htmlspecialchars(implode(', ', $breakdown['matched_locations'])); ?>
-                                                        <?php if ($breakdown['location_score'] >= 75 && $breakdown['location_score'] < 100): ?>
-                                                            <br><small style="color: #28a745;"><i class="fas fa-robot"></i> AI detected nearby location</small>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <div class="breakdown-details">
-                                                        <strong>Your preference:</strong> 
-                                                        <?php 
-                                                        $userLocations = array_filter([
-                                                            $nrspData['local1'] ?? '',
-                                                            $nrspData['local2'] ?? '',
-                                                            $nrspData['local3'] ?? ''
-                                                        ]);
-                                                        echo !empty($userLocations) ? htmlspecialchars(implode(', ', $userLocations)) : 'Not specified';
-                                                        ?>
-                                                        <br>
-                                                        <span style="color: #dc3545;">No location match</span>
-                                                        <?php if (!empty($breakdown['location_distance_km'])): ?>
-                                                            <span title="Estimated distance from your preferred location to this job location (AI geocoding)." style="margin-left: 6px; color: #6c757d; cursor: help;">
-                                                                <i class="fas fa-info-circle"></i>
-                                                            </span>
-                                                            <br><small style="color: #6c757d;">Approx distance: <?php echo htmlspecialchars($breakdown['location_distance_km']); ?> km</small>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php endif; ?>
+                                                <div class="breakdown-details">
+                                                    <?php if (!empty($breakdown['is_nearby_current'])): ?>
+                                                        <span style="color: #28a745; font-weight: 600;">
+                                                            <i class="fas fa-home"></i> Proximity to Current Address
+                                                        </span>
+                                                        <br>This score is calculated based on the distance (<?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km) from your registered home address to the job location.
+                                                    <?php elseif ($breakdown['location_score'] > 0): ?>
+                                                        <span style="color: #233a8b; font-weight: 600;">
+                                                            <i class="fas fa-map-marker-alt"></i> Match with Preferred Location
+                                                        </span>
+                                                        <br>This score is based on how close the job is to one of your preferred work locations (Approx. <?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km).
+                                                    <?php else: ?>
+                                                        <span style="color: #dc3545; font-weight: 600;">
+                                                            <i class="fas fa-times-circle"></i> No Location Match
+                                                        </span>
+                                                        <br>The job location is outside your preferred areas and current address range.
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if (!empty($breakdown['location_distance_km'])): ?>
+                                                        <div style="margin-top: 5px; font-weight: 500; color: #666;">
+                                                            Approx. distance: <?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                             
                                             <div class="breakdown-item">

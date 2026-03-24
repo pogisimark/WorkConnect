@@ -250,7 +250,7 @@ class JobMatchingAlgorithm {
             // Additional skills for comprehensive coverage
             'welding' => ['welder', 'welding', 'weld', 'arc welding', 'mig', 'tig', 'stick welding', 'fabrication', 'metal work', 'steel'],
             'cooking' => ['cook', 'chef', 'cooking', 'culinary', 'kitchen', 'food preparation', 'sous chef', 'line cook', 'pastry', 'baking', 'grill', 'sauté', 'prep cook'],
-            'teaching' => ['teacher', 'teaching', 'instructor', 'educator', 'tutor', 'professor', 'lecturer', 'curriculum', 'lesson planning', 'classroom management', 'education'],
+            'teaching' => ['teacher', 'teaching', 'instructor', 'educator', 'tutor', 'professor', 'lecturer', 'curriculum development', 'classroom management'],
             'nursing' => ['nurse', 'nursing', 'patient care', 'medical', 'healthcare', 'rn', 'lpn', 'cna', 'patient', 'clinical', 'hospital', 'clinic'],
             'accounting' => ['accountant', 'accounting', 'bookkeeping', 'financial', 'audit', 'tax', 'cpa', 'payroll', 'billing', 'accounts payable', 'accounts receivable', 'general ledger'],
             'marketing' => ['marketing', 'advertising', 'promotion', 'brand', 'social media', 'digital marketing', 'seo', 'sem', 'ppc', 'content marketing', 'email marketing', 'campaign'],
@@ -675,10 +675,19 @@ class JobMatchingAlgorithm {
 
         // Calculate percentage
         $matchedCount = count($matchedSkills);
+        $totalSkills = max(1, $totalSkills);
+        
+        // Base score is percentage of matched skills
+        $baseScore = ($matchedCount / $totalSkills) * 100;
+        
+        // Final score calculation:
         if ($matchedCount > 0) {
-            $finalScore = 100; // requested: any strong skill match => 100%
+            // Any relevant skill match is a strong indicator of fit.
+            // We give 100% if there is at least one solid match, as requested.
+            $finalScore = 100;
         } else {
-            $finalScore = (float)($aiSkillResult['score'] ?? 0); // considerable semantic match => lower
+            // AI might have found a weak semantic match
+            $finalScore = (float)($aiSkillResult['score'] ?? 0);
         }
         
         return [
@@ -718,37 +727,36 @@ class JobMatchingAlgorithm {
             }
         }
         
+        // Jobseeker's CURRENT ADDRESS (highest priority)
+        $currentProvince = $jobSeeker['province'] ?? '';
+        $currentMunicipality = $jobSeeker['municipality'] ?? '';
+        $userCurrentLocation = null;
+        if (!empty($currentProvince) && !empty($currentMunicipality)) {
+            $userCurrentLocation = $currentMunicipality . ', ' . $currentProvince;
+        }
+        
         $jobLocation = trim((string)($jobPosting['location'] ?? ''));
         
-        if (empty($preferredLocations)) {
-            return ['score' => 70, 'matched_locations' => []]; // Default score if no location preferences
+        if (empty($preferredLocations) && empty($userCurrentLocation)) {
+            return ['score' => 70, 'matched_locations' => [], 'is_nearby_current' => false];
         }
 
-        // Expand "City, Province" into multiple matchable variants to leverage dropdown data.
+        // Expand "City, Province" into multiple matchable variants
         $expandedLocations = [];
         foreach ($preferredLocations as $location) {
             $location = trim((string)$location);
-            if ($this->isNullLike($location)) {
-                continue;
-            }
+            if ($this->isNullLike($location)) continue;
             $expandedLocations[] = $location;
             $parts = array_values(array_filter(array_map('trim', explode(',', $location))));
             if (count($parts) >= 2) {
-                $city = $parts[0];
-                $province = $parts[count($parts) - 1];
-                if (!$this->isNullLike($city)) {
-                    $expandedLocations[] = $city;
-                }
-                if (!$this->isNullLike($province)) {
-                    $expandedLocations[] = $province;
-                }
-                $expandedLocations[] = $city . ', ' . $province;
+                $expandedLocations[] = $parts[0];
+                $expandedLocations[] = $parts[count($parts) - 1];
             }
         }
         $preferredLocations = array_values(array_unique(array_filter($expandedLocations)));
         
-        // Use AI-powered location matching with proximity
-        return AIJobMatcher::matchLocationWithProximity($preferredLocations, $jobLocation);
+        // Use AI-powered location matching with prioritized logic
+        return AIJobMatcher::matchLocationWithProximity($preferredLocations, $jobLocation, $userCurrentLocation);
     }
     
     /**

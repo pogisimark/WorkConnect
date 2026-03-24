@@ -1167,7 +1167,7 @@ $conn->close();
     }
     .local-location-row {
       display: grid;
-      grid-template-columns: 28px 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
       align-items: center;
       margin-bottom: 4px;
@@ -2659,7 +2659,6 @@ $conn->close();
             <div class="form-row">
               <label class="pref-section-title">Local (specify cities/municipalities):<span class="required-asterisk">*</span></label>
               <div class="local-location-row">
-                <span class="local-location-index">1.</span>
                 <select id="local1_province" class="local-province-select">
                   <option value="" selected disabled hidden>1. Select province</option>
                 </select>
@@ -2669,7 +2668,6 @@ $conn->close();
                 <input type="hidden" name="local1" id="local1" required>
               </div>
               <div class="local-location-row">
-                <span class="local-location-index">2.</span>
                 <select id="local2_province" class="local-province-select">
                   <option value="" selected disabled hidden>2. Select province (optional)</option>
                 </select>
@@ -2679,7 +2677,6 @@ $conn->close();
                 <input type="hidden" name="local2" id="local2">
               </div>
               <div class="local-location-row">
-                <span class="local-location-index">3.</span>
                 <select id="local3_province" class="local-province-select">
                   <option value="" selected disabled hidden>3. Select province (optional)</option>
                 </select>
@@ -3368,12 +3365,13 @@ $conn->close();
   }
 
   function formatOccupationValue(value) {
+    if (!value || String(value).toLowerCase() === 'n/a') return '';
     const cleaned = (value || '')
       .replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
-    if (!cleaned) return '';
+    if (!cleaned || cleaned === 'n a') return '';
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
 
@@ -5769,9 +5767,58 @@ $conn->close();
     }
   });
 
-  // Skills others field validation - only allow letters and commas
+  // Skills others field validation - only allow letters and commas, and format as Title case per segment
   document.querySelector('input[name="skill_others"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]/g, '');
+    // Save cursor position
+    const start = this.selectionStart;
+    let originalValue = this.value;
+    
+    // Only allow valid characters
+    let value = originalValue.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ,\s]/g, '');
+    
+    // Split by comma
+    let parts = value.split(',');
+    
+    // Format each segment
+    let formattedParts = parts.map((part, index) => {
+      // Trim only the leading space, keep trailing space if user just typed it
+      let trimmed = part.trimStart();
+      if (trimmed.length > 0) {
+        // Capitalize the first letter of each word within the segment
+        let formatted = trimmed.split(' ').map(word => {
+          if (word.length > 0) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+          }
+          return word;
+        }).join(' ');
+        
+        // Add a single space before the segment if it's not the first segment
+        return (index > 0 ? ' ' : '') + formatted;
+      }
+      return part; // Return original if it's just spaces
+    });
+    
+    // Join back and update input value
+    let newValue = formattedParts.join(',');
+    
+    // Ensure only one space after each comma
+    newValue = newValue.replace(/,\s*/g, ', ');
+    
+    // Remove any trailing space if the original didn't have one (to allow typing a comma)
+    if (!originalValue.endsWith(' ') && newValue.endsWith(' ')) {
+      newValue = newValue.trimEnd();
+    }
+    
+    this.value = newValue;
+    
+    // Restore cursor position if it was at the end
+    if (start >= originalValue.length) {
+      this.setSelectionRange(newValue.length, newValue.length);
+    } else {
+      // If cursor was in the middle, try to keep it in the same relative position
+      // This is simpler than calculating the exact shift
+      this.setSelectionRange(start, start);
+    }
   });
 
   // TIN field validation - only allow numbers and automatically format with hyphens
@@ -6302,6 +6349,11 @@ $conn->close();
         confirmButtonText: 'OK',
         confirmButtonColor: '#ff9800'
       });
+    } else {
+      // Allow paste and then trigger input event for formatting
+      setTimeout(() => {
+        this.dispatchEvent(new Event('input'));
+      }, 0);
     }
   });
   document.getElementById('tin').addEventListener('paste', function(event) {
@@ -6870,12 +6922,13 @@ $conn->close();
     }
   }
 
-  // E-Signature Upload Functionality
+  // E-Signature Upload Functionality with AI-like Verification
   document.getElementById('esignature').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const preview = document.getElementById('esignaturePreview');
     const image = document.getElementById('esignatureImage');
     const filename = document.getElementById('esignatureFilename');
+    const input = this;
     
     if (file) {
       // Validate file type
@@ -6901,12 +6954,99 @@ $conn->close();
         return;
       }
       
-      // Show preview
+      // AI-like Verification using Canvas Analysis
       const reader = new FileReader();
-      reader.onload = function(e) {
-        image.src = e.target.result;
-        filename.textContent = file.name;
-        preview.style.display = 'flex';
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          // Create a temporary canvas for analysis
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Downscale for faster processing
+          const MAX_WIDTH = 300;
+          const scale = Math.min(1, MAX_WIDTH / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          let darkPixels = 0;
+          let lightPixels = 0;
+          let totalPixels = data.length / 4;
+          
+          // Analyze pixel intensities
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            
+            // Grayscale intensity (0-255)
+            const intensity = (r + g + b) / 3;
+            
+            if (intensity < 140) { // Dark pixel (Ink - increased threshold for photos)
+              darkPixels++;
+            } else if (intensity > 160) { // Light pixel (Paper/Background - lowered for greyish photos)
+              lightPixels++;
+            }
+          }
+          
+          const inkRatio = (darkPixels / totalPixels) * 100;
+          const backgroundRatio = (lightPixels / totalPixels) * 100;
+          
+          console.log(`Signature Analysis: Ink Ratio: ${inkRatio.toFixed(2)}%, Background Ratio: ${backgroundRatio.toFixed(2)}%`);
+          
+          // RELAXED HEURISTICS:
+          // 1. A signature should have a relatively low ink-to-paper ratio
+          // 2. A background should be dominant but doesn't have to be pure white
+          
+          let isVerified = true;
+          let errorMessage = '';
+          
+          if (inkRatio > 45) { // Increased from 35
+            isVerified = false;
+            errorMessage = 'The image appears too dense to be a signature. Please ensure you are uploading a handwritten signature on a plain background.';
+          } else if (backgroundRatio < 30) { // Lowered from 40
+            isVerified = false;
+            errorMessage = 'The background is not clear enough. Please upload a signature with a clean, light-colored background.';
+          } else if (inkRatio < 0.3) { // Lowered from 0.5
+            isVerified = false;
+            errorMessage = 'The image seems empty or too faint. Please ensure your signature is clearly visible.';
+          }
+          
+          if (!isVerified) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Signature Verification Failed',
+              text: errorMessage,
+              showCancelButton: true,
+              confirmButtonText: 'Try Anyway',
+              cancelButtonText: 'Reselect Image',
+              confirmButtonColor: '#ff9800',
+              cancelButtonColor: '#d33'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // User wants to proceed anyway
+                image.src = event.target.result;
+                filename.textContent = file.name;
+                preview.style.display = 'flex';
+              } else {
+                // User wants to reselect
+                input.value = '';
+                preview.style.display = 'none';
+              }
+            });
+          } else {
+            // Success - proceed with preview
+            image.src = event.target.result;
+            filename.textContent = file.name;
+            preview.style.display = 'flex';
+          }
+        };
+        img.src = event.target.result;
       };
       reader.readAsDataURL(file);
     } else {

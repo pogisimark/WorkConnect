@@ -1844,14 +1844,14 @@ if ($conn) {
             
             
             allJobseekers.forEach(jobseeker => {
-                // Add occupation1, occupation2, occupation3 if they exist and are not empty/n/a
-                if (jobseeker.occupation1 && jobseeker.occupation1 !== 'n/a' && jobseeker.occupation1.trim() !== '') {
+                // Add occupation1, occupation2, occupation3 if they exist and are not empty/n/a/N a
+                if (jobseeker.occupation1 && jobseeker.occupation1.toLowerCase() !== 'n/a' && jobseeker.occupation1.toLowerCase() !== 'n a' && jobseeker.occupation1.trim() !== '') {
                     occupations.add(jobseeker.occupation1.trim());
                 }
-                if (jobseeker.occupation2 && jobseeker.occupation2 !== 'n/a' && jobseeker.occupation2.trim() !== '') {
+                if (jobseeker.occupation2 && jobseeker.occupation2.toLowerCase() !== 'n/a' && jobseeker.occupation2.toLowerCase() !== 'n a' && jobseeker.occupation2.trim() !== '') {
                     occupations.add(jobseeker.occupation2.trim());
                 }
-                if (jobseeker.occupation3 && jobseeker.occupation3 !== 'n/a' && jobseeker.occupation3.trim() !== '') {
+                if (jobseeker.occupation3 && jobseeker.occupation3.toLowerCase() !== 'n/a' && jobseeker.occupation3.toLowerCase() !== 'n a' && jobseeker.occupation3.trim() !== '') {
                     occupations.add(jobseeker.occupation3.trim());
                 }
             });
