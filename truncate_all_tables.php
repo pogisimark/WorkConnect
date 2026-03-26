@@ -15,7 +15,7 @@ date_default_timezone_set('Asia/Manila');
 //   Announcement (5): announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks
 //   Resume new (4): resumes_new, resume_work_experience, resume_education, resume_certifications
 
-$host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
+$host = "workconnect.cp28esmqk7aq.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
 $pass = "Pogisimark";
 $db_name = "WorkConnect";

@@ -93,7 +93,7 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 }
 
 // Database connection and backend processing
-$host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
+$host = "workconnect.cp28esmqk7aq.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
 $pass = "Pogisimark";
 $db   = "WorkConnect";

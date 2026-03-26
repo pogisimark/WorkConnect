@@ -12,7 +12,7 @@
 //   Announcement (5): announcements, announcement_attachments, announcement_tags, announcement_views, announcement_clicks
 //   Resume new (4): resumes_new, resume_work_experience, resume_education, resume_certifications
 
-$host = "workconnect.ct26qyouyans.ap-southeast-2.rds.amazonaws.com";
+$host = "workconnect.cp28esmqk7aq.ap-southeast-2.rds.amazonaws.com";
 $user = "admin";
 $pass = "Pogisimark";
 $db_name = "WorkConnect";
@@ -771,7 +771,7 @@ $sql = "CREATE TABLE IF NOT EXISTS announcement_views (
     viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     ip_address VARCHAR(45) NULL,
     FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES jobseeker(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES employee_users(id) ON DELETE SET NULL,
     INDEX idx_announcement_views_announcement_id (announcement_id)
 )";
 if ($conn->query($sql) === TRUE) {
@@ -788,7 +788,7 @@ $sql = "CREATE TABLE IF NOT EXISTS announcement_clicks (
     clicked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     click_type VARCHAR(50) NOT NULL,
     FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES jobseeker(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES employee_users(id) ON DELETE SET NULL,
     INDEX idx_announcement_clicks_announcement_id (announcement_id)
 )";
 if ($conn->query($sql) === TRUE) {
