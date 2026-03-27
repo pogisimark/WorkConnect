@@ -145,7 +145,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <!DOCTYPE html>
         <html>
         <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
             <meta charset='UTF-8'>
             <title>Jobseeker Referral Details</title>
             <style>
@@ -286,6 +286,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($jobseeker['self_type_transport'] && ($jobseeker['self_type_transport'] === 1 || $jobseeker['self_type_transport'] === '1')) $message .= "<div class='field'><strong>Transport:</strong> <span>" . formatBoolean($jobseeker['self_type_transport']) . "</span></div>";
                 if ($jobseeker['self_type_domestic'] && ($jobseeker['self_type_domestic'] === 1 || $jobseeker['self_type_domestic'] === '1')) $message .= "<div class='field'><strong>Domestic Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_domestic']) . "</span></div>";
                 if ($jobseeker['self_type_fisherfolk'] && ($jobseeker['self_type_fisherfolk'] === 1 || $jobseeker['self_type_fisherfolk'] === '1')) $message .= "<div class='field'><strong>Fisherfolk:</strong> <span>" . formatBoolean($jobseeker['self_type_fisherfolk']) . "</span></div>";
+                if ($jobseeker['self_type_freelancer'] && ($jobseeker['self_type_freelancer'] === 1 || $jobseeker['self_type_freelancer'] === '1')) $message .= "<div class='field'><strong>Freelancer:</strong> <span>" . formatBoolean($jobseeker['self_type_freelancer']) . "</span></div>";
+                if ($jobseeker['self_type_artisan'] && ($jobseeker['self_type_artisan'] === 1 || $jobseeker['self_type_artisan'] === '1')) $message .= "<div class='field'><strong>Artisan/Craft Worker:</strong> <span>" . formatBoolean($jobseeker['self_type_artisan']) . "</span></div>";
                 if ($jobseeker['self_type_others'] && ($jobseeker['self_type_others'] === 1 || $jobseeker['self_type_others'] === '1') && $jobseeker['other_jobs']) $message .= "<div class='field'><strong>Other Job/s:</strong> <span>" . $jobseeker['other_jobs'] . "</span></div>";
             }
             if ($jobseeker['employment_type_self'] && ($jobseeker['employment_type_self'] === 1 || $jobseeker['employment_type_self'] === '1')) {
@@ -300,12 +302,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $message .= "<div class='field'><strong>Employment Status:</strong> <span>Unemployed</span></div>";
             if ($jobseeker['unemployed_months']) $message .= "<div class='field'><strong>Duration Looking for Work:</strong> <span>" . $jobseeker['unemployed_months'] . " months</span></div>";
             if ($jobseeker['unemployed_type_first'] && ($jobseeker['unemployed_type_first'] === 1 || $jobseeker['unemployed_type_first'] === '1')) $message .= "<div class='field'><strong>First-time Jobseeker/Graduate:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_first']) . "</span></div>";
-            if ($jobseeker['unemployed_type_local'] && ($jobseeker['unemployed_type_local'] === 1 || $jobseeker['unemployed_type_local'] === '1')) $message .= "<div class='field'><strong>Local Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_local']) . "</span></div>";
+            if ($jobseeker['unemployed_type_local'] && ($jobseeker['unemployed_type_local'] === 1 || $jobseeker['unemployed_type_local'] === '1')) $message .= "<div class='field'><strong>Terminated/Laid off due to calamity:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_local']) . "</span></div>";
             if ($jobseeker['unemployed_type_resigned'] && ($jobseeker['unemployed_type_resigned'] === 1 || $jobseeker['unemployed_type_resigned'] === '1')) $message .= "<div class='field'><strong>Resigned:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_resigned']) . "</span></div>";
             if ($jobseeker['unemployed_type_finished'] && ($jobseeker['unemployed_type_finished'] === 1 || $jobseeker['unemployed_type_finished'] === '1')) $message .= "<div class='field'><strong>Finished Contract (OFW):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_finished']) . "</span></div>";
             if ($jobseeker['unemployed_type_public'] && ($jobseeker['unemployed_type_public'] === 1 || $jobseeker['unemployed_type_public'] === '1')) $message .= "<div class='field'><strong>Public Contract:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_public']) . "</span></div>";
             if ($jobseeker['unemployed_type_retired'] && ($jobseeker['unemployed_type_retired'] === 1 || $jobseeker['unemployed_type_retired'] === '1')) $message .= "<div class='field'><strong>Retired:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_retired']) . "</span></div>";
             if ($jobseeker['unemployed_type_terminated'] && ($jobseeker['unemployed_type_terminated'] === 1 || $jobseeker['unemployed_type_terminated'] === '1')) $message .= "<div class='field'><strong>Terminated/Laid off (Local):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_terminated']) . "</span></div>";
+            if ($jobseeker['unemployed_type_terminated_abroad'] && ($jobseeker['unemployed_type_terminated_abroad'] === 1 || $jobseeker['unemployed_type_terminated_abroad'] === '1')) {
+                $message .= "<div class='field'><strong>Terminated/Laid off (Abroad):</strong> <span>" . formatBoolean($jobseeker['unemployed_type_terminated_abroad']) . "</span></div>";
+                if (!empty($jobseeker['terminated_country']) && strtolower($jobseeker['terminated_country']) !== 'n/a') {
+                    $message .= "<div class='field'><strong>Specify Country:</strong> <span>" . $jobseeker['terminated_country'] . "</span></div>";
+                }
+            }
+            if ($jobseeker['unemployed_type_others'] && ($jobseeker['unemployed_type_others'] === 1 || $jobseeker['unemployed_type_others'] === '1')) {
+                $message .= "<div class='field'><strong>Others:</strong> <span>" . formatBoolean($jobseeker['unemployed_type_others']) . "</span></div>";
+                if (!empty($jobseeker['unemployed_other_specify']) && strtolower($jobseeker['unemployed_other_specify']) !== 'n/a') {
+                    $message .= "<div class='field'><strong>Please Specify:</strong> <span>" . $jobseeker['unemployed_other_specify'] . "</span></div>";
+                }
+            }
         }
         
         if ($jobseeker['ofw']) $message .= "<div class='field'><strong>OFW:</strong> <span>" . $jobseeker['ofw'] . "</span></div>";

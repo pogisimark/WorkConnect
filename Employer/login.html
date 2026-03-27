@@ -678,6 +678,18 @@
     <script>
     // Handle URL parameters for success/error messages
     window.addEventListener('DOMContentLoaded', function() {
+        // If admin session already exists, skip login page.
+        fetch('session_check.php', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d && d.isLoggedIn) {
+                    window.location.href = 'Dashboard.php';
+                }
+            })
+            .catch(function() {
+                // Ignore check errors; keep login page usable.
+            });
+
         const urlParams = new URLSearchParams(window.location.search);
         const success = urlParams.get('success');
         const error = urlParams.get('error');

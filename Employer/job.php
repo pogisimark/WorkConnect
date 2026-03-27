@@ -4,9 +4,11 @@ date_default_timezone_set('Asia/Manila');
 include 'session_protect.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/jobseeker_pending_badge.php';
 require_once __DIR__ . '/db.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
+$pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
 if ($conn) {
     $conn->close();
 }
@@ -14,7 +16,7 @@ if ($conn) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Jobseekers</title>
@@ -1154,6 +1156,8 @@ if ($conn) {
     }
 
     </style>
+    <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
 <div class="header" id="mainHeader">
@@ -1177,7 +1181,7 @@ if ($conn) {
         <div class="sidebar">
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
-            <a href="#" class="active"> JOBSEEKERS</a>
+            <a href="#" class="active"> JOBSEEKERS<?php echo js_pending_jobseekers_badge_html($pending_jobseekers_count); ?></a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
@@ -2462,6 +2466,8 @@ if ($conn) {
                     if (j.self_type_transport && (j.self_type_transport === 1 || j.self_type_transport === '1')) content += formatBooleanField('Transport', j.self_type_transport);
                     if (j.self_type_domestic && (j.self_type_domestic === 1 || j.self_type_domestic === '1')) content += formatBooleanField('Domestic Worker', j.self_type_domestic);
                     if (j.self_type_fisherfolk && (j.self_type_fisherfolk === 1 || j.self_type_fisherfolk === '1')) content += formatBooleanField('Fisherfolk', j.self_type_fisherfolk);
+                    if (j.self_type_freelancer && (j.self_type_freelancer === 1 || j.self_type_freelancer === '1')) content += formatBooleanField('Freelancer', j.self_type_freelancer);
+                    if (j.self_type_artisan && (j.self_type_artisan === 1 || j.self_type_artisan === '1')) content += formatBooleanField('Artisan/Craft Worker', j.self_type_artisan);
                     if (j.self_type_others && (j.self_type_others === 1 || j.self_type_others === '1') && j.other_jobs) content += formatField('Other Job/s', j.other_jobs);
                 }
                 if (j.employment_type_self && (j.employment_type_self === 1 || j.employment_type_self === '1')) {
@@ -2474,12 +2480,24 @@ if ($conn) {
                 content += `<div class="employment-type"><strong>Unemployed</strong></div>`;
                 content += formatField('Duration Looking for Work', j.unemployed_months ? j.unemployed_months + ' months' : '');
                 if (j.unemployed_type_first && (j.unemployed_type_first === 1 || j.unemployed_type_first === '1')) content += formatBooleanField('First-time Jobseeker/Graduate', j.unemployed_type_first);
-                if (j.unemployed_type_local && (j.unemployed_type_local === 1 || j.unemployed_type_local === '1')) content += formatBooleanField('Local Contract', j.unemployed_type_local);
+                if (j.unemployed_type_local && (j.unemployed_type_local === 1 || j.unemployed_type_local === '1')) content += formatBooleanField('Terminated/Laid off due to calamity', j.unemployed_type_local);
                 if (j.unemployed_type_resigned && (j.unemployed_type_resigned === 1 || j.unemployed_type_resigned === '1')) content += formatBooleanField('Resigned', j.unemployed_type_resigned);
                 if (j.unemployed_type_finished && (j.unemployed_type_finished === 1 || j.unemployed_type_finished === '1')) content += formatBooleanField('Finished Contract (OFW)', j.unemployed_type_finished);
                 if (j.unemployed_type_public && (j.unemployed_type_public === 1 || j.unemployed_type_public === '1')) content += formatBooleanField('Public Contract', j.unemployed_type_public);
                 if (j.unemployed_type_retired && (j.unemployed_type_retired === 1 || j.unemployed_type_retired === '1')) content += formatBooleanField('Retired', j.unemployed_type_retired);
                 if (j.unemployed_type_terminated && (j.unemployed_type_terminated === 1 || j.unemployed_type_terminated === '1')) content += formatBooleanField('Terminated/Laid off (Local)', j.unemployed_type_terminated);
+                if (j.unemployed_type_terminated_abroad && (j.unemployed_type_terminated_abroad === 1 || j.unemployed_type_terminated_abroad === '1')) {
+                    content += formatBooleanField('Terminated/Laid off (Abroad)', j.unemployed_type_terminated_abroad);
+                    if (j.terminated_country && j.terminated_country !== 'n/a' && j.terminated_country !== '') {
+                        content += formatField('Specify Country', j.terminated_country);
+                    }
+                }
+                if (j.unemployed_type_others && (j.unemployed_type_others === 1 || j.unemployed_type_others === '1')) {
+                    content += formatBooleanField('Others', j.unemployed_type_others);
+                    if (j.unemployed_other_specify && j.unemployed_other_specify !== 'n/a' && j.unemployed_other_specify !== '') {
+                        content += formatField('Please Specify', j.unemployed_other_specify);
+                    }
+                }
             } else {
                 // If neither employed nor unemployed is clearly set, show a default message
                 content += `<div class="field-item"><strong>Employment Status:</strong> Not specified</div>`;

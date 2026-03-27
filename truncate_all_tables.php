@@ -23,7 +23,7 @@ $db_name = "WorkConnect";
 echo "<!DOCTYPE html>
 <html>
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <title>Truncate All Tables - WorkConnect</title>
     <style>
         body { 

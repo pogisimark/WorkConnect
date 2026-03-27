@@ -40,7 +40,7 @@ if ($token === '' || !preg_match('/^[a-f0-9]{64}$/i', $token)) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email verification - WorkConnect</title>

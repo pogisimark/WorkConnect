@@ -239,7 +239,7 @@ function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
     <!DOCTYPE html>
     <html lang='en'>
     <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
         <style>
@@ -719,6 +719,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $self_type_transport = getbool('self_type_transport');
     $self_type_domestic = getbool('self_type_domestic');
     $self_type_fisherfolk = getbool('self_type_fisherfolk');
+    $self_type_freelancer = getbool('self_type_freelancer');
+    $self_type_artisan = getbool('self_type_artisan');
     $self_type_others = getbool('self_type_others');
     $other_jobs = $conn->real_escape_string(getval('other_jobs'));
     $unemployed = getbool('unemployed');
@@ -730,7 +732,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $unemployed_type_public = getbool('unemployed_type_public');
     $unemployed_type_retired = getbool('unemployed_type_retired');
     $unemployed_type_terminated = getbool('unemployed_type_terminated');
+    $unemployed_type_terminated_abroad = getbool('unemployed_type_terminated_abroad');
+    $unemployed_type_others = getbool('unemployed_type_others');
     $terminated_country = $conn->real_escape_string(getval('terminated_country'));
+    $unemployed_other_specify = $conn->real_escape_string(getval('unemployed_other_specify'));
     $ofw = $conn->real_escape_string(getval('ofw'));
     $ofw_country = $conn->real_escape_string(getval('ofw_country'));
     $returnee = $conn->real_escape_string(getval('returnee'));
@@ -964,8 +969,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "UPDATE jobseeker SET 
             surname = '$surname', firstname = '$firstname', middlename = '$middlename', suffix = '$suffix', dob = '$dob', sex = '$sex', religion = '$religion', civilstatus = '$civilstatus', street = '$street', barangay = '$barangay', municipality = '$municipality', province = '$province', tin = '$tin', height = '$height', contact = '$contact', email = '$email',
             hasDisability = $hasDisability, disability_speech = $disability_speech, disability_hearing = $disability_hearing, disability_visual = $disability_visual, disability_mental = $disability_mental, disability_others = $disability_others, disability_other = '$disability_other',
-            employed = $employed, employment_type_wage = $employment_type_wage, employment_type_self = $employment_type_self, self_employed_specify = '$self_employed_specify', self_type_voluntary = $self_type_voluntary, self_type_vendor = $self_type_vendor, self_type_homebased = $self_type_homebased, self_type_transport = $self_type_transport, self_type_domestic = $self_type_domestic, self_type_fisherfolk = $self_type_fisherfolk, self_type_others = $self_type_others, other_jobs = '$other_jobs',
-            unemployed = $unemployed, unemployed_months = '$unemployed_months', unemployed_type_first = $unemployed_type_first, unemployed_type_local = $unemployed_type_local, unemployed_type_resigned = $unemployed_type_resigned, unemployed_type_finished = $unemployed_type_finished, unemployed_type_public = $unemployed_type_public, unemployed_type_retired = $unemployed_type_retired, unemployed_type_terminated = $unemployed_type_terminated, terminated_country = '$terminated_country',
+            employed = $employed, employment_type_wage = $employment_type_wage, employment_type_self = $employment_type_self, self_employed_specify = '$self_employed_specify', self_type_voluntary = $self_type_voluntary, self_type_vendor = $self_type_vendor, self_type_homebased = $self_type_homebased, self_type_transport = $self_type_transport, self_type_domestic = $self_type_domestic, self_type_fisherfolk = $self_type_fisherfolk, self_type_freelancer = $self_type_freelancer, self_type_artisan = $self_type_artisan, self_type_others = $self_type_others, other_jobs = '$other_jobs',
+            unemployed = $unemployed, unemployed_months = '$unemployed_months', unemployed_type_first = $unemployed_type_first, unemployed_type_local = $unemployed_type_local, unemployed_type_resigned = $unemployed_type_resigned, unemployed_type_finished = $unemployed_type_finished, unemployed_type_public = $unemployed_type_public, unemployed_type_retired = $unemployed_type_retired, unemployed_type_terminated = $unemployed_type_terminated, unemployed_type_terminated_abroad = $unemployed_type_terminated_abroad, unemployed_type_others = $unemployed_type_others, terminated_country = '$terminated_country', unemployed_other_specify = '$unemployed_other_specify',
             ofw = '$ofw', ofw_country = '$ofw_country', returnee = '$returnee', deployment_country = '$deployment_country', return_month = '$return_month', return_year = '$return_year', abroad = '$abroad', beneficiary = '$beneficiary', household_id = '$household_id',
             occupation1 = '$occupation1', occupation2 = '$occupation2', occupation3 = '$occupation3', fulltime = $fulltime, parttime = $parttime, local1 = '$local1', local2 = '$local2', local3 = '$local3', overseas1 = '$overseas1', overseas2 = '$overseas2', overseas3 = '$overseas3',
             english_read = $english_read, english_write = $english_write, english_speak = $english_speak, english_understand = $english_understand, filipino_read = $filipino_read, filipino_write = $filipino_write, filipino_speak = $filipino_speak, filipino_understand = $filipino_understand,
@@ -986,8 +991,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "INSERT INTO jobseeker (
             user_id, surname, firstname, middlename, suffix, dob, sex, religion, civilstatus, street, barangay, municipality, province, tin, height, contact, email,
             hasDisability, disability_speech, disability_hearing, disability_visual, disability_mental, disability_others, disability_other,
-            employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_others, other_jobs,
-            unemployed, unemployed_months, unemployed_type_first, unemployed_type_local, unemployed_type_resigned, unemployed_type_finished, unemployed_type_public, unemployed_type_retired, unemployed_type_terminated, terminated_country,
+            employed, employment_type_wage, employment_type_self, self_employed_specify, self_type_voluntary, self_type_vendor, self_type_homebased, self_type_transport, self_type_domestic, self_type_fisherfolk, self_type_freelancer, self_type_artisan, self_type_others, other_jobs,
+            unemployed, unemployed_months, unemployed_type_first, unemployed_type_local, unemployed_type_resigned, unemployed_type_finished, unemployed_type_public, unemployed_type_retired, unemployed_type_terminated, unemployed_type_terminated_abroad, unemployed_type_others, terminated_country, unemployed_other_specify,
             ofw, ofw_country, returnee, deployment_country, return_month, return_year, abroad, beneficiary, household_id,
             occupation1, occupation2, occupation3, fulltime, parttime, local1, local2, local3, overseas1, overseas2, overseas3,
             english_read, english_write, english_speak, english_understand, filipino_read, filipino_write, filipino_speak, filipino_understand,
@@ -1005,8 +1010,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ) VALUES (
             $user_id, '$surname', '$firstname', '$middlename', '$suffix', '$dob', '$sex', '$religion', '$civilstatus', '$street', '$barangay', '$municipality', '$province', '$tin', '$height', '$contact', '$email',
             $hasDisability, $disability_speech, $disability_hearing, $disability_visual, $disability_mental, $disability_others, '$disability_other',
-            $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_others, '$other_jobs',
-            $unemployed, '$unemployed_months', $unemployed_type_first, $unemployed_type_local, $unemployed_type_resigned, $unemployed_type_finished, $unemployed_type_public, $unemployed_type_retired, $unemployed_type_terminated, '$terminated_country',
+            $employed, $employment_type_wage, $employment_type_self, '$self_employed_specify', $self_type_voluntary, $self_type_vendor, $self_type_homebased, $self_type_transport, $self_type_domestic, $self_type_fisherfolk, $self_type_freelancer, $self_type_artisan, $self_type_others, '$other_jobs',
+            $unemployed, '$unemployed_months', $unemployed_type_first, $unemployed_type_local, $unemployed_type_resigned, $unemployed_type_finished, $unemployed_type_public, $unemployed_type_retired, $unemployed_type_terminated, $unemployed_type_terminated_abroad, $unemployed_type_others, '$terminated_country', '$unemployed_other_specify',
             '$ofw', '$ofw_country', '$returnee', '$deployment_country', '$return_month', '$return_year', '$abroad', '$beneficiary', '$household_id',
             '$occupation1', '$occupation2', '$occupation3', $fulltime, $parttime, '$local1', '$local2', '$local3', '$overseas1', '$overseas2', '$overseas3',
             $english_read, $english_write, $english_speak, $english_understand, $filipino_read, $filipino_write, $filipino_speak, $filipino_understand,
@@ -1050,7 +1055,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             
             if ($isUpdate) {
-                $message = $isResubmit ? 'Your NRSP form has been resubmitted successfully! Status changed to Pending.' : 'Your NRSP form has been saved successfully!';
+                $message = $isResubmit ? 'Your NSRP form has been resubmitted successfully! Status changed to Pending.' : 'Your NSRP form has been saved successfully!';
             } else {
                 $message = 'Registration saved successfully!';
             }
@@ -1058,10 +1063,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Create in-app notification for the submitter.
             $checkTypeColumn = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
             $hasTypeColumn = $checkTypeColumn && $checkTypeColumn->num_rows > 0;
-            $notifTitle = $isResubmit ? 'NRSP Form Resubmitted' : ($isUpdate ? 'NRSP Form Updated' : 'NRSP Form Submitted');
+            $notifTitle = $isResubmit ? 'NSRP Form Resubmitted' : ($isUpdate ? 'NSRP Form Updated' : 'NSRP Form Submitted');
             $notifMessage = $isResubmit
-                ? 'Your NRSP form has been resubmitted and is now pending review.'
-                : ($isUpdate ? 'Your NRSP form changes were saved successfully.' : 'Your NRSP form was submitted successfully and is pending review.');
+                ? 'Your NSRP form has been resubmitted and is now pending review.'
+                : ($isUpdate ? 'Your NSRP form changes were saved successfully.' : 'Your NSRP form was submitted successfully and is pending review.');
             if ($hasTypeColumn) {
                 $notifStmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'nrsp')");
                 if ($notifStmt) {
@@ -1337,6 +1342,67 @@ $conn->close();
       width: 100% !important;
       min-width: 0 !important;
     }
+
+    /* Employment step: keep specify inputs full-width without overlap */
+    #employedFields,
+    #selfTypeFields {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+    }
+    #employedFields label,
+    #selfTypeFields label {
+      flex: 0 1 auto;
+      max-width: 170px;
+    }
+    #employedFields input[name="self_employed_specify"],
+    #selfTypeFields input[name="other_jobs"] {
+      flex: 0 0 70%;
+      width: 70%;
+      max-width: 420px;
+      min-width: 0;
+      margin-left: 0;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+    #unemployedFields input[name="unemployed_months"],
+    #unemployedTypeFields input[name="terminated_country"],
+    #unemployedTypeFields input[name="unemployed_other_specify"] {
+      flex: 0 0 70%;
+      width: 70%;
+      max-width: 420px;
+      min-width: 0;
+      margin-left: 0;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+    #returneeFields #deployment_country,
+    #returneeFields .ts-wrapper {
+      flex: 0 0 70%;
+      width: 70%;
+      max-width: 420px;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    #ofwCountryGroup #ofw_country,
+    #ofwCountryGroup .ts-wrapper,
+    #householdIdGroup #household_id {
+      flex: 0 0 70%;
+      width: 70%;
+      max-width: 420px;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    #ofwCountryGroup,
+    #householdIdGroup {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 70%;
+      width: 70%;
+      max-width: 420px;
+      min-width: 220px;
+    }
     
     
     .progress-bar {
@@ -1365,6 +1431,9 @@ $conn->close();
     .progress-fill.section8 { width: 80%; }
     .progress-fill.section9 { width: 90%; }
     .progress-fill.section10 { width: 100%; }
+    .mobile-review-label {
+      display: none;
+    }
     
     .progress-steps {
       display: flex;
@@ -1664,6 +1733,89 @@ $conn->close();
         background-position: right 10px center !important;
         background-size: 16px !important;
         padding-right: 35px !important;
+      }
+
+      #employedFields input[name="self_employed_specify"],
+      #selfTypeFields input[name="other_jobs"] {
+        width: 100% !important;
+        min-width: 100% !important;
+        margin-left: 0 !important;
+        margin-top: 8px;
+      }
+
+      /* Mobile clarity: left-align only checkbox labels (do not force hidden labels visible) */
+      #employedFields,
+      #selfTypeFields,
+      #unemployedTypeFields {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: flex-start !important;
+        gap: 6px 10px !important;
+      }
+      #employedFields label:has(input[type="checkbox"]),
+      #selfTypeFields label:has(input[type="checkbox"]),
+      #unemployedTypeFields label:has(input[type="checkbox"]) {
+        display: inline-flex !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        width: auto !important;
+        text-align: left !important;
+        margin-bottom: 6px !important;
+      }
+
+      /* Mobile: keep OFW country / 4Ps field full width */
+      #ofwCountryGroup,
+      #householdIdGroup,
+      #ofwCountryGroup .ts-wrapper,
+      #householdIdGroup input {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+      }
+
+      /* Mobile: widen "Others" language dropdown */
+      #other_language,
+      #other_language-ts-control,
+      #section2_2 .form-group .ts-wrapper,
+      #section2_2 .form-group .ts-control {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Mobile readability for technical training + work experience */
+      #section3_1 .tech-training-grid,
+      #section3_3 .work-experience-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+      #section3_1 .tech-training-grid .header,
+      #section3_3 .work-experience-grid > div:not(.mobile-review-label) {
+        display: none !important;
+      }
+      .mobile-review-label {
+        display: block !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #2f3b52 !important;
+        margin: 2px 0 2px !important;
+        line-height: 1.2 !important;
+      }
+
+      /* Present Address TomSelect fields: force full-width on mobile */
+      #province,
+      #municipality,
+      #barangay,
+      #province-ts-control,
+      #municipality-ts-control,
+      #barangay-ts-control,
+      #section1_1 .form-group .ts-wrapper,
+      #section1_1 .form-group .ts-control {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
       
       /* Checkbox and radio button styling */
@@ -2507,6 +2659,8 @@ $conn->close();
               <label><input type="checkbox" name="self_type_transport" value="transport" disabled> Transport</label>
               <label><input type="checkbox" name="self_type_domestic" value="domestic" disabled> Domestic Worker</label>
               <label><input type="checkbox" name="self_type_fisherfolk" value="fisherfolk" disabled> Fisherfolk</label>
+              <label><input type="checkbox" name="self_type_freelancer" value="freelancer" disabled> Freelancer</label>
+              <label><input type="checkbox" name="self_type_artisan" value="artisan" disabled> Artisan/Craft Worker</label>
               <label><input type="checkbox" name="self_type_others" value="others" disabled> Others</label>
               <input type="text" name="other_jobs" placeholder="If others, specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,50}" maxlength="50" disabled>
             </div>
@@ -2517,27 +2671,30 @@ $conn->close();
               </label>
             </div>
             <div class="form-row indent" id="unemployedFields" style="pointer-events: none; opacity: 0.6;">
-              <label for="unemployed_months">How long looking for work? (months):</label>
+              <label for="unemployed_months">How long have you been looking for work? (months)</label>
               <input type="text" id="unemployed_months" name="unemployed_months" pattern="[0-9]{0,30}" maxlength="30" disabled>
             </div>
             <div class="form-row indent" id="unemployedTypeFields" style="pointer-events: none; opacity: 0.6;">
               <label><input type="checkbox" name="unemployed_type_first" value="first" disabled> First-time Jobseeker/Graduate</label>
-              <label><input type="checkbox" name="unemployed_type_local" value="local" disabled> Local Contract</label>
+              <label><input type="checkbox" name="unemployed_type_local" value="local" disabled> Terminated/Laid off due to calamity</label>
               <label><input type="checkbox" name="unemployed_type_resigned" value="resigned" disabled> Resigned</label>
               <label><input type="checkbox" name="unemployed_type_finished" value="finished" disabled> Finished contract (OFW)</label>
               <!-- <label><input type="checkbox" name="unemployed_type_public" value="public" disabled> Public Contract</label> -->
               <label><input type="checkbox" name="unemployed_type_retired" value="retired" disabled> Retired</label>
               <label><input type="checkbox" name="unemployed_type_terminated" value="terminated" disabled> Terminated/Laid off (local)</label>
-              <label for="terminated_country" style="display: none;">If terminated/laid off, country:</label>
+              <label><input type="checkbox" name="unemployed_type_terminated_abroad" value="terminated_abroad" disabled> Terminated/Laid off (abroad)</label>
+              <label for="terminated_country" style="display: none;">Specify country:</label>
               <input type="text" id="terminated_country" name="terminated_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,50}" maxlength="50" disabled style="display: none;">
+              <label><input type="checkbox" name="unemployed_type_others" value="others" disabled> Others:</label> 
+              <label for="unemployed_other_specify" style="display: none;"> Please specify:</label>
+              <input type="text" id="unemployed_other_specify" name="unemployed_other_specify" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ0-9\s\-\.]{0,50}" maxlength="50" disabled style="display: none;">
             </div>
             <div class="form-row">
               <label>Are you an OFW?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="ofw" value="yes" id="ofwYes"> Yes</label>
               <label><input type="radio" name="ofw" value="no" id="ofwNo"> No</label>
               <span id="ofwCountryGroup" style="display:none;">
-                <label for="ofw_country">Specify Country<span class="required-asterisk">*</span></label>
-                <input type="text" id="ofw_country" name="ofw_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
+                <select id="ofw_country" name="ofw_country"></select>
               </span>
             </div>
             <div class="form-row">
@@ -2546,8 +2703,8 @@ $conn->close();
               <label><input type="radio" name="returnee" value="no" id="returneeNo"> No</label>
             </div>
             <div class="form-row" id="returneeFields" style="display: none;">
-              <label for="deployment_country">Local country of deployment:<span class="required-asterisk">*</span></label>
-              <input type="text" id="deployment_country" name="deployment_country" pattern="[A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]{0,30}" maxlength="30">
+              <label for="deployment_country">Latest country of deployment:<span class="required-asterisk">*</span></label>
+              <select id="deployment_country" name="deployment_country"></select>
             </div>
             <div class="form-row" id="returneeReturnFields" style="display: none;">
               <div class="form-group">
@@ -2572,56 +2729,15 @@ $conn->close();
                 <label for="return_year">Year of return to Philippines:<span class="required-asterisk">*</span></label>
                 <select id="return_year" name="return_year">
                   <option value="">Select Year</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                  <option value="2022">2022</option>
-                  <option value="2021">2021</option>
-                  <option value="2020">2020</option>
-                  <option value="2019">2019</option>
-                  <option value="2018">2018</option>
-                  <option value="2017">2017</option>
-                  <option value="2016">2016</option>
-                  <option value="2015">2015</option>
-                  <option value="2014">2014</option>
-                  <option value="2013">2013</option>
-                  <option value="2012">2012</option>
-                  <option value="2011">2011</option>
-                  <option value="2010">2010</option>
-                  <option value="2009">2009</option>
-                  <option value="2008">2008</option>
-                  <option value="2007">2007</option>
-                  <option value="2006">2006</option>
-                  <option value="2005">2005</option>
-                  <option value="2004">2004</option>
-                  <option value="2003">2003</option>
-                  <option value="2002">2002</option>
-                  <option value="2001">2001</option>
-                  <option value="2000">2000</option>
-                  <option value="1999">1999</option>
-                  <option value="1998">1998</option>
-                  <option value="1997">1997</option>
-                  <option value="1996">1996</option>
-                  <option value="1995">1995</option>
-                  <option value="1994">1994</option>
-                  <option value="1993">1993</option>
-                  <option value="1992">1992</option>
-                  <option value="1991">1991</option>
-                  <option value="1990">1990</option>
                 </select>
               </div>
             </div>
             <div class="form-row">
-              <label>Are/were employed abroad in the Philippines:<span class="required-asterisk">*</span></label>
-              <label><input type="radio" name="abroad" value="yes"> Yes</label>
-              <label><input type="radio" name="abroad" value="no"> No</label>
-            </div>
-            <div class="form-row">
-              <label>Are you a job beneficiary?<span class="required-asterisk">*</span></label>
+              <label>Are you a 4Ps beneficiary?<span class="required-asterisk">*</span></label>
               <label><input type="radio" name="beneficiary" value="yes" id="beneficiaryYes"> Yes</label>
               <label><input type="radio" name="beneficiary" value="no" id="beneficiaryNo"> No</label>
               <span id="householdIdGroup" style="display:none;">
-                <label for="household_id">If yes, provide Household ID No.:<span class="required-asterisk">*</span></label>
-                <input type="text" id="household_id" name="household_id" pattern="[A-Za-z0-9\-]{0,20}">
+                <input type="text" id="household_id" name="household_id" placeholder="If yes, provide Household ID No." pattern="[A-Za-z0-9\-]{0,20}">
               </span>
             </div>
             </fieldset>
@@ -2688,11 +2804,11 @@ $conn->close();
               </div>
             </div>
             <div class="form-row">
-              <label class="pref-section-title">Overseas (specify countries):<span class="required-asterisk">*</span></label>
+              <label class="pref-section-title">Overseas (specify countries):</label>
             </div>
             <div class="form-row stacked-pref-inputs">
-              <select id="overseas1" name="overseas1" required>
-                <option value="" selected disabled hidden>1. Select country</option>
+              <select id="overseas1" name="overseas1">
+                <option value="" selected disabled hidden>1. Select country (optional)</option>
               </select>
               <select id="overseas2" name="overseas2">
                 <option value="" selected disabled hidden>2. Select country (optional)</option>
@@ -2898,7 +3014,7 @@ $conn->close();
           <div id="section3_3" class="form-section" style="display:none;">
             <fieldset>
               <legend>VIII. WORK EXPERIENCE <span style="font-weight:normal;">(limit to 10 year period, start with the most recent employment/Leave blank if not applicable)</span></legend>
-            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 10px;">
+            <div class="work-experience-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 10px;">
               <div style="font-weight:bold;">Company Name</div>
               <div style="font-weight:bold;">Address</div>
               <div style="font-weight:bold;">Position</div>
@@ -2908,17 +3024,35 @@ $conn->close();
               <input type="text" name="company_address_1" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_1" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_1" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="status_1" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <select name="status_1" style="width:100%;height:38px;">
+                <option value="" selected disabled hidden>Status</option>
+                <option value="Permanent">Permanent</option>
+                <option value="Contractual">Contractual</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Probationary">Probationary</option>
+              </select>
               <input type="text" name="company_name_2" placeholder="Company Name" style="width:100%;height:38px;" pattern=".{0,50}" maxlength="50">
               <input type="text" name="company_address_2" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_2" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_2" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="status_2" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <select name="status_2" style="width:100%;height:38px;">
+                <option value="" selected disabled hidden>Status</option>
+                <option value="Permanent">Permanent</option>
+                <option value="Contractual">Contractual</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Probationary">Probationary</option>
+              </select>
               <input type="text" name="company_name_3" placeholder="Company Name" style="width:100%;height:38px;" pattern=".{0,50}" maxlength="50">
               <input type="text" name="company_address_3" placeholder="Address" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="position_3" placeholder="Position" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
               <input type="text" name="months_3" placeholder="Months" style="width:100%;height:38px;" pattern="[0-9]*" maxlength="10">
-              <input type="text" name="status_3" placeholder="Status" style="width:100%;height:38px;" pattern="[A-Za-z0-9\s\-\.()]*" maxlength="50">
+              <select name="status_3" style="width:100%;height:38px;">
+                <option value="" selected disabled hidden>Status</option>
+                <option value="Permanent">Permanent</option>
+                <option value="Contractual">Contractual</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Probationary">Probationary</option>
+              </select>
             </div>
             </fieldset>
             <div class="form-actions">
@@ -3861,6 +3995,211 @@ $conn->close();
     syncOverseasDuplicateOptions();
   }
 
+  function initDeploymentCountryDropdown() {
+    const selectEl = document.getElementById('deployment_country');
+    if (!selectEl || selectEl.tomselect) return;
+
+    const ts = new TomSelect(selectEl, {
+      create: false,
+      allowEmptyOption: true,
+      closeAfterSelect: true,
+      openOnFocus: true,
+      maxOptions: 10000,
+      placeholder: 'Select country',
+      searchField: ['text'],
+      sortField: { field: 'text', direction: 'asc' },
+      onDropdownOpen: function() {
+        if (this.dropdown_content) {
+          this.dropdown_content.scrollTop = 0;
+        }
+      },
+      onItemAdd: function() {
+        this.close();
+        this.setTextboxValue('');
+        this.blur();
+      }
+    });
+
+    COUNTRY_OPTIONS.forEach(country => {
+      ts.addOption({ value: country, text: country });
+    });
+    ts.refreshOptions(false);
+  }
+
+  function populateReturnYearOptions() {
+    const selectEl = document.getElementById('return_year');
+    if (!selectEl) return;
+    const selectedYear = (selectEl.value || '').trim();
+    const currentYear = new Date().getFullYear();
+    const minYear = 1990;
+
+    selectEl.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Select Year';
+    selectEl.appendChild(placeholder);
+
+    for (let year = currentYear; year >= minYear; year--) {
+      const opt = document.createElement('option');
+      opt.value = String(year);
+      opt.textContent = String(year);
+      selectEl.appendChild(opt);
+    }
+
+    if (selectedYear && Array.from(selectEl.options).some((o) => o.value === selectedYear)) {
+      selectEl.value = selectedYear;
+    }
+  }
+
+  function applyMobileFriendlyFieldLabels() {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+    const setInputPlaceholder = function(name, mobileText, desktopText) {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (!el) return;
+      if (isMobile) {
+        el.setAttribute('placeholder', mobileText);
+      } else {
+        el.setAttribute('placeholder', desktopText);
+      }
+    };
+
+    const ensureMobileReviewLabel = function(name, labelText) {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (!el || !el.parentNode) return;
+      const parent = el.parentNode;
+      let labelEl = parent.querySelector(`.mobile-review-label[data-for="${name}"]`);
+      if (!labelEl) {
+        labelEl = document.createElement('div');
+        labelEl.className = 'mobile-review-label';
+        labelEl.setAttribute('data-for', name);
+        parent.insertBefore(labelEl, el);
+      }
+      labelEl.textContent = labelText;
+      labelEl.style.display = isMobile ? 'block' : 'none';
+    };
+
+    // Section 3.1 Technical training placeholders
+    // On mobile, keep placeholders minimal because persistent labels are shown.
+    setInputPlaceholder('training_course_1', '', 'Course 1');
+    setInputPlaceholder('training_hours_1', '', 'Hours');
+    setInputPlaceholder('training_institution_1', '', 'Institution');
+    setInputPlaceholder('training_skills_1', '', 'Skills');
+    setInputPlaceholder('training_cert_1', '', 'Certificate');
+    setInputPlaceholder('training_course_2', '', 'Course 2');
+    setInputPlaceholder('training_hours_2', '', 'Hours');
+    setInputPlaceholder('training_institution_2', '', 'Institution');
+    setInputPlaceholder('training_skills_2', '', 'Skills');
+    setInputPlaceholder('training_cert_2', '', 'Certificate');
+    setInputPlaceholder('training_course_3', '', 'Course 3');
+    setInputPlaceholder('training_hours_3', '', 'Hours');
+    setInputPlaceholder('training_institution_3', '', 'Institution');
+    setInputPlaceholder('training_skills_3', '', 'Skills');
+    setInputPlaceholder('training_cert_3', '', 'Certificate');
+
+    // Section 3.3 Work experience placeholders
+    // On mobile, keep placeholders minimal because persistent labels are shown.
+    setInputPlaceholder('company_name_1', '', 'Company Name');
+    setInputPlaceholder('company_address_1', '', 'Address');
+    setInputPlaceholder('position_1', '', 'Position');
+    setInputPlaceholder('months_1', '', 'Months');
+    setInputPlaceholder('company_name_2', '', 'Company Name');
+    setInputPlaceholder('company_address_2', '', 'Address');
+    setInputPlaceholder('position_2', '', 'Position');
+    setInputPlaceholder('months_2', '', 'Months');
+    setInputPlaceholder('company_name_3', '', 'Company Name');
+    setInputPlaceholder('company_address_3', '', 'Address');
+    setInputPlaceholder('position_3', '', 'Position');
+    setInputPlaceholder('months_3', '', 'Months');
+
+    ['status_1', 'status_2', 'status_3'].forEach(function(name, idx) {
+      const sel = document.querySelector(`select[name="${name}"]`);
+      if (!sel || !sel.options || !sel.options.length) return;
+      sel.options[0].text = isMobile ? 'Select status' : 'Status';
+    });
+
+    // Mobile review labels (remain visible even when value exists)
+    ensureMobileReviewLabel('training_course_1', 'Course 1 - Training/Vocational Course');
+    ensureMobileReviewLabel('training_hours_1', 'Course 1 - Hours of Training');
+    ensureMobileReviewLabel('training_institution_1', 'Course 1 - Training Institution');
+    ensureMobileReviewLabel('training_skills_1', 'Course 1 - Skills Acquired');
+    ensureMobileReviewLabel('training_cert_1', 'Course 1 - Certificates Received');
+    ensureMobileReviewLabel('training_course_2', 'Course 2 - Training/Vocational Course');
+    ensureMobileReviewLabel('training_hours_2', 'Course 2 - Hours of Training');
+    ensureMobileReviewLabel('training_institution_2', 'Course 2 - Training Institution');
+    ensureMobileReviewLabel('training_skills_2', 'Course 2 - Skills Acquired');
+    ensureMobileReviewLabel('training_cert_2', 'Course 2 - Certificates Received');
+    ensureMobileReviewLabel('training_course_3', 'Course 3 - Training/Vocational Course');
+    ensureMobileReviewLabel('training_hours_3', 'Course 3 - Hours of Training');
+    ensureMobileReviewLabel('training_institution_3', 'Course 3 - Training Institution');
+    ensureMobileReviewLabel('training_skills_3', 'Course 3 - Skills Acquired');
+    ensureMobileReviewLabel('training_cert_3', 'Course 3 - Certificates Received');
+
+    ensureMobileReviewLabel('company_name_1', 'Work 1 - Company Name');
+    ensureMobileReviewLabel('company_address_1', 'Work 1 - Address');
+    ensureMobileReviewLabel('position_1', 'Work 1 - Position');
+    ensureMobileReviewLabel('months_1', 'Work 1 - Number of Months');
+    ensureMobileReviewLabel('status_1', 'Work 1 - Status');
+    ensureMobileReviewLabel('company_name_2', 'Work 2 - Company Name');
+    ensureMobileReviewLabel('company_address_2', 'Work 2 - Address');
+    ensureMobileReviewLabel('position_2', 'Work 2 - Position');
+    ensureMobileReviewLabel('months_2', 'Work 2 - Number of Months');
+    ensureMobileReviewLabel('status_2', 'Work 2 - Status');
+    ensureMobileReviewLabel('company_name_3', 'Work 3 - Company Name');
+    ensureMobileReviewLabel('company_address_3', 'Work 3 - Address');
+    ensureMobileReviewLabel('position_3', 'Work 3 - Position');
+    ensureMobileReviewLabel('months_3', 'Work 3 - Number of Months');
+    ensureMobileReviewLabel('status_3', 'Work 3 - Status');
+  }
+
+  function setNameIntegrityLock(locked) {
+    ['middlename', 'suffix'].forEach(function(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.readOnly = !!locked;
+      if (locked) {
+        input.style.backgroundColor = '#f5f5f5';
+        input.style.cursor = 'not-allowed';
+        input.title = 'Locked after submission for data integrity.';
+      } else {
+        input.style.backgroundColor = '';
+        input.style.cursor = '';
+        input.removeAttribute('title');
+      }
+    });
+  }
+
+  function initOfwCountryDropdown() {
+    const selectEl = document.getElementById('ofw_country');
+    if (!selectEl || selectEl.tomselect) return;
+
+    const ts = new TomSelect(selectEl, {
+      create: false,
+      allowEmptyOption: true,
+      closeAfterSelect: true,
+      openOnFocus: true,
+      maxOptions: 10000,
+      placeholder: 'Specify Country',
+      searchField: ['text'],
+      sortField: { field: 'text', direction: 'asc' },
+      onDropdownOpen: function() {
+        if (this.dropdown_content) {
+          this.dropdown_content.scrollTop = 0;
+        }
+      },
+      onItemAdd: function() {
+        this.close();
+        this.setTextboxValue('');
+        this.blur();
+      }
+    });
+
+    COUNTRY_OPTIONS.forEach(country => {
+      ts.addOption({ value: country, text: country });
+    });
+    ts.refreshOptions(false);
+  }
+
   function initOtherLanguageDropdown() {
     const selectEl = document.getElementById('other_language');
     if (!selectEl || selectEl.tomselect) return;
@@ -4222,8 +4561,10 @@ $conn->close();
       const selfEmployed = document.querySelector('input[name="employment_type_self"]');
       const selfEmployedSpecify = document.querySelector('input[name="self_employed_specify"]');
       const unemployedMonths = document.getElementById('unemployed_months');
-      const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
+      const terminatedAbroadCheckbox = document.querySelector('input[name="unemployed_type_terminated_abroad"]');
       const terminatedCountry = document.getElementById('terminated_country');
+      const unemployedOtherCheckbox = document.querySelector('input[name="unemployed_type_others"]');
+      const unemployedOtherSpecify = document.getElementById('unemployed_other_specify');
       const ofwYes = document.getElementById('ofwYes');
       const ofwNo = document.getElementById('ofwNo');
       const ofwCountry = document.getElementById('ofw_country');
@@ -4232,8 +4573,6 @@ $conn->close();
       const deploymentCountry = document.getElementById('deployment_country');
       const returnMonth = document.getElementById('return_month');
       const returnYear = document.getElementById('return_year');
-      const abroadYes = document.querySelector('input[name="abroad"][value="yes"]');
-      const abroadNo = document.querySelector('input[name="abroad"][value="no"]');
       const beneficiaryYes = document.getElementById('beneficiaryYes');
       const beneficiaryNo = document.getElementById('beneficiaryNo');
       const householdId = document.getElementById('household_id');
@@ -4330,7 +4669,7 @@ $conn->close();
         }
         
         // Check if at least one unemployed type is selected
-        const unemployedTypes = document.querySelectorAll('input[name^="unemployed_type_"]:not([name="unemployed_type_others"])');
+        const unemployedTypes = document.querySelectorAll('input[name^="unemployed_type_"]');
         let hasUnemployedType = false;
         unemployedTypes.forEach(type => {
           if (type.checked) hasUnemployedType = true;
@@ -4347,11 +4686,21 @@ $conn->close();
           return; // Prevent navigation
         }
         
-        // If terminated/laid off is selected, check if country field has value
-        if (terminatedCheckbox.checked && !terminatedCountry.value.trim()) {
+        // If terminated/laid off (abroad) is selected, check if country field has value
+        if (terminatedAbroadCheckbox.checked && !terminatedCountry.value.trim()) {
           Swal.fire({
             title: 'Termination Country Required!',
             text: 'Please specify the country where you were terminated/laid off.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ff9800'
+          });
+          return; // Prevent navigation
+        }
+        if (unemployedOtherCheckbox.checked && !unemployedOtherSpecify.value.trim()) {
+          Swal.fire({
+            title: 'Other Details Required!',
+            text: 'Please specify details for "Others".',
             icon: 'warning',
             confirmButtonText: 'OK',
             confirmButtonColor: '#ff9800'
@@ -4410,23 +4759,11 @@ $conn->close();
         }
       }
       
-      // Check employed abroad selection
-      if (!abroadYes.checked && !abroadNo.checked) {
-        Swal.fire({
-          title: 'Employment Abroad Status Required!',
-          text: 'Please select whether you are/were employed abroad in the Philippines.',
-          icon: 'warning',
-          confirmButtonText: 'OK',
-          confirmButtonColor: '#ff9800'
-        });
-        return; // Prevent navigation
-      }
-      
-      // Check job beneficiary selection
+      // Check 4Ps beneficiary selection
       if (!beneficiaryYes.checked && !beneficiaryNo.checked) {
         Swal.fire({
-          title: 'Job Beneficiary Status Required!',
-          text: 'Please select whether you are a job beneficiary or not.',
+          title: '4Ps Beneficiary Status Required!',
+          text: 'Please select whether you are a 4Ps beneficiary or not.',
           icon: 'warning',
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff9800'
@@ -4434,7 +4771,7 @@ $conn->close();
         return; // Prevent navigation
       }
       
-      // If job beneficiary is Yes, check if household ID is provided
+      // If 4Ps beneficiary is Yes, check if household ID is provided
       if (beneficiaryYes.checked && !householdId.value.trim()) {
         Swal.fire({
           title: 'Household ID Required!',
@@ -4453,7 +4790,6 @@ $conn->close();
       const parttime = document.querySelector('input[name="parttime"]');
       const occupation1 = document.querySelector('[name="occupation1"]');
       const local1 = document.querySelector('input[name="local1"]');
-      const overseas1 = document.querySelector('[name="overseas1"]');
       
       // Check if at least one employment type is selected (full-time or part-time)
       if (!fulltime.checked && !parttime.checked) {
@@ -4509,17 +4845,6 @@ $conn->close();
         }
       }
       
-      // Check if at least one overseas work location is provided
-      if (!overseas1.value.trim()) {
-        Swal.fire({
-          title: 'Overseas Work Location Required!',
-          text: 'Please provide at least one overseas work location (country).',
-          icon: 'warning',
-          confirmButtonText: 'OK',
-          confirmButtonColor: '#ff9800'
-        });
-        return; // Prevent navigation
-      }
     }
     
     // Check for education section validation when moving from section2_3 (education section)
@@ -4906,8 +5231,10 @@ $conn->close();
     const selfEmployed = document.querySelector('input[name="employment_type_self"]');
     const selfEmployedSpecify = document.querySelector('input[name="self_employed_specify"]');
     const unemployedMonths = document.getElementById('unemployed_months');
-    const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
-    const terminatedCountry = document.getElementById('terminated_country');
+      const terminatedAbroadCheckbox = document.querySelector('input[name="unemployed_type_terminated_abroad"]');
+      const terminatedCountry = document.getElementById('terminated_country');
+      const unemployedOtherCheckbox = document.querySelector('input[name="unemployed_type_others"]');
+      const unemployedOtherSpecify = document.getElementById('unemployed_other_specify');
     const ofwYes = document.getElementById('ofwYes');
     const ofwNo = document.getElementById('ofwNo');
     const ofwCountry = document.getElementById('ofw_country');
@@ -4916,8 +5243,6 @@ $conn->close();
     const deploymentCountry = document.getElementById('deployment_country');
     const returnMonth = document.getElementById('return_month');
     const returnYear = document.getElementById('return_year');
-    const abroadYes = document.querySelector('input[name="abroad"][value="yes"]');
-    const abroadNo = document.querySelector('input[name="abroad"][value="no"]');
     const beneficiaryYes = document.getElementById('beneficiaryYes');
     const beneficiaryNo = document.getElementById('beneficiaryNo');
     const householdId = document.getElementById('household_id');
@@ -4939,7 +5264,7 @@ $conn->close();
       if (!unemployedMonths.value.trim()) {
         return { valid: false, message: 'Please specify how long you have been looking for work (in months).' };
       }
-      const unemployedTypes = document.querySelectorAll('input[name^="unemployed_type_"]:not([name="unemployed_type_others"])');
+      const unemployedTypes = document.querySelectorAll('input[name^="unemployed_type_"]');
       let hasUnemployedType = false;
       unemployedTypes.forEach(type => {
         if (type.checked) hasUnemployedType = true;
@@ -4947,8 +5272,11 @@ $conn->close();
       if (!hasUnemployedType) {
         return { valid: false, message: 'Please select at least one unemployment type.' };
       }
-      if (terminatedCheckbox.checked && !terminatedCountry.value.trim()) {
+      if (terminatedAbroadCheckbox.checked && !terminatedCountry.value.trim()) {
         return { valid: false, message: 'Please specify the country where you were terminated/laid off.' };
+      }
+      if (unemployedOtherCheckbox.checked && !unemployedOtherSpecify.value.trim()) {
+        return { valid: false, message: 'Please specify details for "Others".' };
       }
     }
     
@@ -4968,12 +5296,8 @@ $conn->close();
       }
     }
     
-    if (!abroadYes.checked && !abroadNo.checked) {
-      return { valid: false, message: 'Please select whether you are/were employed abroad in the Philippines.' };
-    }
-    
     if (!beneficiaryYes.checked && !beneficiaryNo.checked) {
-      return { valid: false, message: 'Please select whether you are a job beneficiary or not.' };
+      return { valid: false, message: 'Please select whether you are a 4Ps beneficiary or not.' };
     }
     if (beneficiaryYes.checked && !householdId.value.trim()) {
       return { valid: false, message: 'Please provide your Household ID number.' };
@@ -5007,10 +5331,6 @@ $conn->close();
         return { valid: false, message: `Please select the municipality/city for Local preference #${i}.` };
       }
     }
-    if (!overseas1.value.trim()) {
-      return { valid: false, message: 'Please provide at least one overseas work location (country).' };
-    }
-    
     return { valid: true, message: '' };
   }
   
@@ -5289,7 +5609,10 @@ $conn->close();
     const unemployedTypeFields = document.getElementById('unemployedTypeFields');
     const terminatedCountryLabel = document.querySelector('label[for="terminated_country"]');
     const terminatedCountryInput = document.getElementById('terminated_country');
-    const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
+    const terminatedAbroadCheckbox = document.querySelector('input[name="unemployed_type_terminated_abroad"]');
+    const unemployedOtherCheckbox = document.querySelector('input[name="unemployed_type_others"]');
+    const unemployedOtherLabel = document.querySelector('label[for="unemployed_other_specify"]');
+    const unemployedOtherInput = document.getElementById('unemployed_other_specify');
     
     if (unemployed.checked) {
       unemployedFields.style.pointerEvents = '';
@@ -5300,7 +5623,7 @@ $conn->close();
       unemployedTypeFields.querySelectorAll('input').forEach(i => i.disabled = false);
       
       // Show/hide terminated country field based on terminated checkbox
-      if (terminatedCheckbox.checked) {
+      if (terminatedAbroadCheckbox && terminatedAbroadCheckbox.checked) {
         terminatedCountryLabel.style.display = '';
         terminatedCountryInput.style.display = '';
         terminatedCountryInput.disabled = false;
@@ -5309,6 +5632,16 @@ $conn->close();
         terminatedCountryInput.style.display = 'none';
         terminatedCountryInput.disabled = true;
         terminatedCountryInput.value = '';
+      }
+      if (unemployedOtherCheckbox && unemployedOtherCheckbox.checked) {
+        unemployedOtherLabel.style.display = '';
+        unemployedOtherInput.style.display = '';
+        unemployedOtherInput.disabled = false;
+      } else {
+        unemployedOtherLabel.style.display = 'none';
+        unemployedOtherInput.style.display = 'none';
+        unemployedOtherInput.disabled = true;
+        unemployedOtherInput.value = '';
       }
     } else {
       unemployedFields.style.pointerEvents = 'none';
@@ -5321,6 +5654,10 @@ $conn->close();
       terminatedCountryInput.style.display = 'none';
       terminatedCountryInput.disabled = true;
       terminatedCountryInput.value = '';
+      unemployedOtherLabel.style.display = 'none';
+      unemployedOtherInput.style.display = 'none';
+      unemployedOtherInput.disabled = true;
+      unemployedOtherInput.value = '';
     }
   }
 
@@ -5360,8 +5697,8 @@ $conn->close();
       employedCheckbox.disabled = false;
     }
   });
-  // Terminated checkbox triggers show/hide of country field
-  document.querySelector('input[name="unemployed_type_terminated"]').addEventListener('change', function() {
+  // Terminated abroad checkbox triggers show/hide of country field
+  document.querySelector('input[name="unemployed_type_terminated_abroad"]').addEventListener('change', function() {
     const terminatedCountryLabel = document.querySelector('label[for="terminated_country"]');
     const terminatedCountryInput = document.getElementById('terminated_country');
     
@@ -5374,6 +5711,21 @@ $conn->close();
       terminatedCountryInput.style.display = 'none';
       terminatedCountryInput.disabled = true;
       terminatedCountryInput.value = '';
+    }
+  });
+  // Unemployed others checkbox triggers show/hide of specify field
+  document.querySelector('input[name="unemployed_type_others"]').addEventListener('change', function() {
+    const othersLabel = document.querySelector('label[for="unemployed_other_specify"]');
+    const othersInput = document.getElementById('unemployed_other_specify');
+    if (this.checked) {
+      othersLabel.style.display = '';
+      othersInput.style.display = '';
+      othersInput.disabled = false;
+    } else {
+      othersLabel.style.display = 'none';
+      othersInput.style.display = 'none';
+      othersInput.disabled = true;
+      othersInput.value = '';
     }
   });
   // Self-employed checkbox triggers selfTypeFields and selfSpecify
@@ -5421,7 +5773,7 @@ $conn->close();
   // Others checkboxes and textboxes
   setupOthersCheckbox('disability_others', 'disability_other');
   setupOthersCheckbox('self_type_others', 'other_jobs');
-  setupOthersCheckbox('unemployed_type_others', 'terminated_country');
+  setupOthersCheckbox('unemployed_type_others', 'unemployed_other_specify');
 
   // OFW radio logic
   document.getElementById('ofwYes').addEventListener('change', toggleOfwCountry);
@@ -5495,6 +5847,9 @@ $conn->close();
 
   // Address fields validation - street field limit to 50 characters, others to 40
   document.getElementById('street').addEventListener('input', function() {
+    if (this.value.length > 0) {
+      this.value = this.value.charAt(0).toUpperCase() + this.value.slice(1);
+    }
     if (this.value.length > 50) {
       this.value = this.value.substring(0, 50);
     }
@@ -5568,26 +5923,10 @@ $conn->close();
       this.value = this.value.substring(0, 50);
     }
   });
-
-  // OFW country field validation - only allow letters and Filipino characters
-  document.getElementById('ofw_country').addEventListener('input', function() {
-    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    
-    // Limit to maximum 30 characters
-    if (this.value.length > 30) {
-      this.value = this.value.substring(0, 30);
-    }
-  });
-
-  // Deployment country field validation - only allow letters and Filipino characters
-  document.getElementById('deployment_country').addEventListener('input', function() {
-    // Remove any characters that are not letters, spaces, hyphens, periods, or Filipino special characters
-    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ\s\-\.]/g, '');
-    
-    // Limit to maximum 30 characters
-    if (this.value.length > 30) {
-      this.value = this.value.substring(0, 30);
+  document.getElementById('unemployed_other_specify').addEventListener('input', function() {
+    this.value = this.value.replace(/[^A-Za-zñÑáÁéÉíÍóÓúÚüÜ0-9\s\-\.]/g, '');
+    if (this.value.length > 50) {
+      this.value = this.value.substring(0, 50);
     }
   });
 
@@ -5685,12 +6024,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_1"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 50) {
-      this.value = this.value.substring(0, 50);
-    }
-  });
 
   document.querySelector('input[name="company_name_2"]').addEventListener('input', function() {
     if (this.value.length > 50) {
@@ -5712,12 +6045,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_2"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 50) {
-      this.value = this.value.substring(0, 50);
-    }
-  });
 
   document.querySelector('input[name="company_name_3"]').addEventListener('input', function() {
     if (this.value.length > 50) {
@@ -5739,12 +6066,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_3"]').addEventListener('input', function() {
-    this.value = this.value.replace(/[^A-Za-z0-9()\s\-\.]/g, '');
-    if (this.value.length > 50) {
-      this.value = this.value.substring(0, 50);
-    }
-  });
 
   // Months fields (numeric only, max 10 characters)
   document.querySelector('input[name="months_1"]').addEventListener('input', function() {
@@ -5919,9 +6240,7 @@ $conn->close();
     }
   });
   document.getElementById('terminated_country').addEventListener('paste', preventInvalidPaste);
-  document.getElementById('ofw_country').addEventListener('paste', preventInvalidPaste);
-  document.getElementById('deployment_country').addEventListener('paste', preventInvalidPaste);
-  
+  document.getElementById('unemployed_other_specify').addEventListener('paste', preventInvalidPaste);
   // Job preference fields paste event listeners
   // occupation fields are select+search (TomSelect), no direct paste handler needed
   // local1/local2/local3 are hidden combined fields generated from dropdown selections.
@@ -6117,25 +6436,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_1"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 50);
-    }
-  });
 
   document.querySelector('input[name="company_name_2"]').addEventListener('paste', function(event) {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
@@ -6186,25 +6486,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_2"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 50);
-    }
-  });
 
   document.querySelector('input[name="company_name_3"]').addEventListener('paste', function(event) {
     const pastedText = (event.clipboardData || window.clipboardData).getData('text');
@@ -6255,25 +6536,6 @@ $conn->close();
     }
   });
 
-  document.querySelector('input[name="status_3"]').addEventListener('paste', function(event) {
-    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-    const validPattern = /^[A-Za-z0-9()\s\-\.]*$/;
-    
-    if (!validPattern.test(pastedText)) {
-      event.preventDefault();
-      Swal.fire({
-        title: 'Invalid Characters!',
-        text: 'Only letters, numbers, parentheses (), spaces, hyphens, and periods are allowed.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-    } else if (pastedText.length > 50) {
-      event.preventDefault();
-      const input = event.target;
-      input.value = pastedText.substring(0, 50);
-    }
-  });
 
   // Months fields paste event listeners (numeric only)
   document.querySelector('input[name="months_1"]').addEventListener('paste', function(event) {
@@ -6874,10 +7136,19 @@ $conn->close();
     if (ofwYes && ofwYes.checked) {
       ofwCountryGroup.style.display = '';
       ofwCountry.disabled = false;
+      if (ofwCountry.tomselect) {
+        ofwCountry.tomselect.enable();
+      }
     } else {
       ofwCountryGroup.style.display = 'none';
       ofwCountry.disabled = true;
-      ofwCountry.value = '';
+      if (ofwCountry.tomselect) {
+        ofwCountry.tomselect.disable();
+        ofwCountry.tomselect.clear(true);
+        ofwCountry.tomselect.setTextboxValue('');
+      } else {
+        ofwCountry.value = '';
+      }
     }
   }
 
@@ -6894,13 +7165,24 @@ $conn->close();
       returneeFields.style.display = '';
       returneeReturnFields.style.display = '';
       deploymentCountry.disabled = false;
+      if (deploymentCountry.tomselect) {
+        deploymentCountry.tomselect.enable();
+      }
       returnMonth.disabled = false;
       returnYear.disabled = false;
     } else {
       returneeFields.style.display = 'none';
       returneeReturnFields.style.display = 'none';
       deploymentCountry.disabled = true;
-      deploymentCountry.value = '';
+      if (deploymentCountry.tomselect) {
+        deploymentCountry.tomselect.disable();
+      }
+      if (deploymentCountry.tomselect) {
+        deploymentCountry.tomselect.clear(true);
+        deploymentCountry.tomselect.setTextboxValue('');
+      } else {
+        deploymentCountry.value = '';
+      }
       returnMonth.disabled = true;
       returnMonth.value = '';
       returnYear.disabled = true;
@@ -6977,19 +7259,39 @@ $conn->close();
           
           let darkPixels = 0;
           let lightPixels = 0;
-          let totalPixels = data.length / 4;
+          let colorfulPixels = 0;
+          let edgeDarkPixels = 0;
+          const totalPixels = data.length / 4;
+          const w = canvas.width;
+          const h = canvas.height;
+          const edgeMargin = Math.max(8, Math.floor(Math.min(w, h) * 0.04));
+          let minX = w, minY = h, maxX = -1, maxY = -1;
           
           // Analyze pixel intensities
-          for (let i = 0; i < data.length; i += 4) {
+          for (let i = 0, p = 0; i < data.length; i += 4, p++) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
+            const x = p % w;
+            const y = Math.floor(p / w);
             
             // Grayscale intensity (0-255)
             const intensity = (r + g + b) / 3;
+            const chroma = Math.max(r, g, b) - Math.min(r, g, b);
             
-            if (intensity < 140) { // Dark pixel (Ink - increased threshold for photos)
+            if (chroma > 40 && intensity > 40 && intensity < 230) {
+              colorfulPixels++;
+            }
+
+            if (intensity < 140) { // Dark pixel (possible ink)
               darkPixels++;
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+              if (x < edgeMargin || x >= w - edgeMargin || y < edgeMargin || y >= h - edgeMargin) {
+                edgeDarkPixels++;
+              }
             } else if (intensity > 160) { // Light pixel (Paper/Background - lowered for greyish photos)
               lightPixels++;
             }
@@ -6997,25 +7299,53 @@ $conn->close();
           
           const inkRatio = (darkPixels / totalPixels) * 100;
           const backgroundRatio = (lightPixels / totalPixels) * 100;
+          const colorfulRatio = (colorfulPixels / totalPixels) * 100;
+          const bboxWidth = maxX >= minX ? (maxX - minX + 1) : 0;
+          const bboxHeight = maxY >= minY ? (maxY - minY + 1) : 0;
+          const bboxWidthRatio = bboxWidth > 0 ? (bboxWidth / w) * 100 : 0;
+          const bboxHeightRatio = bboxHeight > 0 ? (bboxHeight / h) * 100 : 0;
+          const edgeInkRatio = darkPixels > 0 ? (edgeDarkPixels / darkPixels) * 100 : 0;
           
-          console.log(`Signature Analysis: Ink Ratio: ${inkRatio.toFixed(2)}%, Background Ratio: ${backgroundRatio.toFixed(2)}%`);
+          console.log(`Signature Analysis: Ink=${inkRatio.toFixed(2)}%, BG=${backgroundRatio.toFixed(2)}%, Color=${colorfulRatio.toFixed(2)}%, BBoxW=${bboxWidthRatio.toFixed(2)}%, BBoxH=${bboxHeightRatio.toFixed(2)}%, EdgeInk=${edgeInkRatio.toFixed(2)}%`);
           
-          // RELAXED HEURISTICS:
-          // 1. A signature should have a relatively low ink-to-paper ratio
-          // 2. A background should be dominant but doesn't have to be pure white
-          
+          // Balanced heuristics:
+          // - allow camera photos and different signature styles
+          // - strongly reject obvious non-signatures (posters/selfies/very dense scenes)
           let isVerified = true;
           let errorMessage = '';
-          
-          if (inkRatio > 45) { // Increased from 35
+
+          // Hard fails for clearly invalid uploads.
+          if (inkRatio > 55 || colorfulRatio > 65 || backgroundRatio < 18) {
             isVerified = false;
-            errorMessage = 'The image appears too dense to be a signature. Please ensure you are uploading a handwritten signature on a plain background.';
-          } else if (backgroundRatio < 30) { // Lowered from 40
-            isVerified = false;
-            errorMessage = 'The background is not clear enough. Please upload a signature with a clean, light-colored background.';
-          } else if (inkRatio < 0.3) { // Lowered from 0.5
-            isVerified = false;
-            errorMessage = 'The image seems empty or too faint. Please ensure your signature is clearly visible.';
+            errorMessage = 'This file looks like a regular photo/poster, not a signature on paper. Please upload a clearer signature image.';
+          } else {
+            // Soft scoring: tolerate variation, fail only when multiple red flags combine.
+            let riskScore = 0;
+
+            if (inkRatio > 42) riskScore += 2;
+            else if (inkRatio > 34) riskScore += 1;
+
+            if (inkRatio < 0.06) riskScore += 2;
+            else if (inkRatio < 0.12) riskScore += 1;
+
+            if (backgroundRatio < 24) riskScore += 2;
+            else if (backgroundRatio < 30) riskScore += 1;
+
+            if (colorfulRatio > 50) riskScore += 2;
+            else if (colorfulRatio > 38) riskScore += 1;
+
+            if (edgeInkRatio > 60) riskScore += 2;
+            else if (edgeInkRatio > 48) riskScore += 1;
+
+            if (bboxHeightRatio > 85) riskScore += 2;
+            else if (bboxHeightRatio > 75) riskScore += 1;
+
+            if (bboxWidthRatio < 6 || bboxHeightRatio < 3) riskScore += 2; // too tiny/empty crop
+
+            if (riskScore >= 4) {
+              isVerified = false;
+              errorMessage = 'The uploaded image does not look like a clean signature sample. Please use a plain background and make the signature clearly visible.';
+            }
           }
           
           if (!isVerified) {
@@ -7168,8 +7498,14 @@ $conn->close();
     initOccupationDropdowns();
     initLocalWorkLocationDropdowns();
     initOverseasDropdowns();
+    initOfwCountryDropdown();
+    initDeploymentCountryDropdown();
+    populateReturnYearOptions();
     initOtherLanguageDropdown();
     initCourseDropdown();
+    applyMobileFriendlyFieldLabels();
+    setNameIntegrityLock(false);
+    window.addEventListener('resize', applyMobileFriendlyFieldLabels);
     const levelSelectEl = document.getElementById('levelSelect');
     const levelReachedEl = document.getElementById('level_reached');
     if (levelSelectEl) {
@@ -7224,6 +7560,7 @@ $conn->close();
       'other_jobs': nrsp.other_jobs || '',
       'unemployed_months': nrsp.unemployed_months || '',
       'terminated_country': nrsp.terminated_country || '',
+      'unemployed_other_specify': nrsp.unemployed_other_specify || '',
       'ofw_country': nrsp.ofw_country || '',
       'returnee': nrsp.returnee,
       'deployment_country': nrsp.deployment_country || '',
@@ -7325,6 +7662,26 @@ $conn->close();
         ensureSelectValue(selectEl, rawValue);
       }
     });
+    const deploymentCountryEl = document.getElementById('deployment_country');
+    const savedDeploymentCountry = asDisplayText(fields.deployment_country, '');
+    if (deploymentCountryEl && savedDeploymentCountry) {
+      if (deploymentCountryEl.tomselect) {
+        deploymentCountryEl.tomselect.addOption({ value: savedDeploymentCountry, text: savedDeploymentCountry });
+        deploymentCountryEl.tomselect.setValue(savedDeploymentCountry, true);
+      } else {
+        ensureSelectValue(deploymentCountryEl, savedDeploymentCountry);
+      }
+    }
+    const ofwCountryEl = document.getElementById('ofw_country');
+    const savedOfwCountry = asDisplayText(fields.ofw_country, '');
+    if (ofwCountryEl && savedOfwCountry) {
+      if (ofwCountryEl.tomselect) {
+        ofwCountryEl.tomselect.addOption({ value: savedOfwCountry, text: savedOfwCountry });
+        ofwCountryEl.tomselect.setValue(savedOfwCountry, true);
+      } else {
+        ensureSelectValue(ofwCountryEl, savedOfwCountry);
+      }
+    }
 
     const courseSelectEl = document.getElementById('course');
     const savedCourse = asDisplayText(fields.course, '');
@@ -7377,6 +7734,8 @@ $conn->close();
       'self_type_transport': nrsp.self_type_transport,
       'self_type_domestic': nrsp.self_type_domestic,
       'self_type_fisherfolk': nrsp.self_type_fisherfolk,
+      'self_type_freelancer': nrsp.self_type_freelancer,
+      'self_type_artisan': nrsp.self_type_artisan,
       'self_type_others': nrsp.self_type_others,
       'unemployed': nrsp.unemployed,
       'unemployed_type_first': nrsp.unemployed_type_first,
@@ -7386,6 +7745,8 @@ $conn->close();
       'unemployed_type_public': nrsp.unemployed_type_public,
       'unemployed_type_retired': nrsp.unemployed_type_retired,
       'unemployed_type_terminated': nrsp.unemployed_type_terminated,
+      'unemployed_type_terminated_abroad': nrsp.unemployed_type_terminated_abroad,
+      'unemployed_type_others': nrsp.unemployed_type_others,
       'fulltime': nrsp.fulltime,
       'parttime': nrsp.parttime,
       'english_read': nrsp.english_read,
@@ -7490,6 +7851,7 @@ $conn->close();
       
       if (data.success && data.nrsp_data) {
         const nrsp = data.nrsp_data;
+        setNameIntegrityLock(true);
         
         // Populate ALL form fields comprehensively
         populateFormFields(nrsp);
@@ -7551,17 +7913,30 @@ $conn->close();
           }
         }
         
-        // Handle terminated checkbox toggle
-        if (nrsp.unemployed_type_terminated == 1) {
-          const terminatedCheckbox = document.querySelector('input[name="unemployed_type_terminated"]');
-          if (terminatedCheckbox) {
-            terminatedCheckbox.checked = true;
+        // Handle terminated abroad and unemployed others checkbox toggles
+        if (nrsp.unemployed_type_terminated_abroad == 1) {
+          const terminatedAbroadCheckbox = document.querySelector('input[name="unemployed_type_terminated_abroad"]');
+          if (terminatedAbroadCheckbox) {
+            terminatedAbroadCheckbox.checked = true;
             const terminatedCountryLabel = document.querySelector('label[for="terminated_country"]');
             const terminatedCountryInput = document.getElementById('terminated_country');
             if (terminatedCountryLabel && terminatedCountryInput) {
               terminatedCountryLabel.style.display = '';
               terminatedCountryInput.style.display = '';
               terminatedCountryInput.disabled = false;
+            }
+          }
+        }
+        if (nrsp.unemployed_type_others == 1) {
+          const unemployedOthersCheckbox = document.querySelector('input[name="unemployed_type_others"]');
+          if (unemployedOthersCheckbox) {
+            unemployedOthersCheckbox.checked = true;
+            const unemployedOtherLabel = document.querySelector('label[for="unemployed_other_specify"]');
+            const unemployedOtherInput = document.getElementById('unemployed_other_specify');
+            if (unemployedOtherLabel && unemployedOtherInput) {
+              unemployedOtherLabel.style.display = '';
+              unemployedOtherInput.style.display = '';
+              unemployedOtherInput.disabled = false;
             }
           }
         }
@@ -7689,6 +8064,7 @@ $conn->close();
           }
         }
       } else {
+        setNameIntegrityLock(false);
         Swal.fire({
           title: 'Error',
           text: data.message || 'Failed to load NRSP form data.',

@@ -4,14 +4,16 @@ date_default_timezone_set('Asia/Manila');
 include 'session_protect.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/jobseeker_pending_badge.php';
 require_once __DIR__ . '/db.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
+$pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Job Postings</title>
@@ -382,7 +384,7 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
         .search-bar input {
             width: 100%;
             max-width: 100%;
-            padding: 12px 40px 12px 40px;
+            padding: 12px 56px 12px 40px;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
@@ -397,14 +399,19 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
         
         .clear-search {
             position: absolute;
-            right: 8px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
             color: #666;
             cursor: pointer;
-            padding: 4px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 4px;
             transition: all 0.3s;
         }
@@ -908,7 +915,7 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
                 width: 100%;
                 max-width: 100%;
                 box-sizing: border-box;
-                padding: 12px 36px 12px 40px;
+                padding: 12px 52px 12px 40px;
             }
             
             .table-scroll-wrapper {
@@ -1007,6 +1014,8 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
             }
         }
     </style>
+    <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
 <div class="header" id="mainHeader">
@@ -1031,7 +1040,7 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
         <div class="sidebar">
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php" class="active"> JOB POSTINGS</a>
-            <a href="job.php"> JOBSEEKERS</a>
+            <a href="job.php"> JOBSEEKERS<?php echo js_pending_jobseekers_badge_html($pending_jobseekers_count); ?></a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>

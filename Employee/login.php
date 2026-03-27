@@ -5,6 +5,12 @@ require_once 'employee_verification_schema.php';
 
 ensureEmployeeVerificationSchema($conn);
 
+// If already authenticated, don't show login form again.
+if (isset($_SESSION['user_id']) && isset($_SESSION['email'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
 $error_message = '';
 $show_verify_swal = false;
 $verify_swal_email = '';
@@ -50,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - WorkConnect</title>

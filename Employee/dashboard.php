@@ -64,11 +64,12 @@ $conn->close();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-dashboard.css?v=<?php echo time(); ?>">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Global SweetAlert entry point for iframe children.
@@ -1463,6 +1464,45 @@ $conn->close();
         display: flex;
         flex-direction: column;
     }
+
+    /* Match Company sidebar visual style */
+    .sidebar-nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 25px;
+        color: #333;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+        border-left: 3px solid transparent;
+    }
+    .sidebar-nav a i {
+        font-size: 18px;
+        width: 20px;
+        text-align: center;
+    }
+    .sidebar-nav a:hover {
+        background: #e9ecef;
+        border-left-color: #1a3876;
+    }
+    .sidebar-nav a.active {
+        background: #1a3876;
+        color: #fff;
+        border-left-color: #ffcb05;
+        font-weight: 600;
+    }
+    .sidebar-nav a.logout {
+        color: #f44336;
+        margin-top: auto;
+    }
+    .sidebar-nav a.logout:hover {
+        background: #ffebee;
+        border-left-color: #f44336;
+    }
+    .sidebar-nav a.logout i {
+        color: #f44336;
+    }
     
     /* Hide mobile sidebar on desktop */
     @media (min-width: 769px) {
@@ -1607,6 +1647,11 @@ $conn->close();
         width: 96%;
         max-width: 100%;
     }
+
+    #apply-container {
+        width: 100%;
+        max-width: 100%;
+    }
     
     #apply-iframe {
         border: none;
@@ -1633,8 +1678,8 @@ $conn->close();
         display: block;
         width: 100%;
         max-width: 100%;
-        min-height: 200vh; /* Ensure iframe has enough height for content */
-        height: auto; /* Fixed height to prevent scrollbar issues */
+        min-height: 0;
+        height: auto;
         
         border-radius: 8px;
     }
@@ -1683,6 +1728,23 @@ $conn->close();
     
     /* Mobile responsive adjustments for recommended jobs */
     @media (max-width: 768px) {
+        #apply-section {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        #apply-container {
+            height: calc(100vh - 140px);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        #apply-iframe {
+            min-height: 100% !important;
+            height: 100% !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
         #recommended-jobs-container {
             margin: 0;
             border-radius: 0;
@@ -1690,7 +1752,7 @@ $conn->close();
         }
         
         #recommended-jobs-iframe {
-            min-height: 100vh;
+            min-height: 0;
             height: auto;
             border-radius: 0;
         }
@@ -2257,14 +2319,14 @@ $conn->close();
         <!-- Desktop Sidebar -->
         <div class="sidebar desktop-nav">
             <ul class="sidebar-nav">
-                <li><a href="#dashboard" class="active" onclick="showSection('dashboard')">Dashboard</a></li>
-                <li><a href="#recommended_jobs" onclick="showSection('recommended_jobs')">Recommended Jobs <span class="badge" id="jobBadge" style="display:none;">New</span></a></li>
+                <li><a href="#dashboard" class="active" onclick="showSection('dashboard')"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#recommended_jobs" onclick="showSection('recommended_jobs')"><i class="fas fa-briefcase"></i> Recommended Jobs <span class="badge" id="jobBadge" style="display:none;">New</span></a></li>
                 <!--<li><a href="#resume" onclick="showSection('resume')">Resume Builder</a></li>-->
-                <li><a href="#apply" onclick="showSection('apply')">NSRP Registration</a></li>
-                <li><a href="#follow_up" onclick="showSection('follow_up')">Request follow-up</a></li>
-                <li><a href="#announcements" onclick="showSection('announcements')">Announcements</a></li>
-                <li><a href="#profile" onclick="showSection('profile')">Profile</a></li>
-                <li><a href="#" onclick="showLogoutModal()">Logout</a></li>
+                <li><a href="#apply" onclick="showSection('apply')"><i class="fas fa-file-alt"></i> NSRP Registration</a></li>
+                <li><a href="#follow_up" onclick="showSection('follow_up')"><i class="fas fa-comment-dots"></i> Request follow-up</a></li>
+                <li><a href="#announcements" onclick="showSection('announcements')"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><a href="#profile" onclick="showSection('profile')"><i class="fas fa-user"></i> Profile</a></li>
+                <li><a href="#" class="logout" onclick="showLogoutModal()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </div>
 
@@ -2432,7 +2494,7 @@ $conn->close();
                     </div>
                     <!-- Facebook Link -->
                     <div class="facebook-link-container">
-                        <a href="https://www.facebook.com/share/1GrpFP7Xqr/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="facebook-link">
+                        <a href="https://www.facebook.com/NorzagarayPESO2021?rdid=NI8HgiwxTPYigG4o&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1862uYXDHX%2F#" target="_blank" rel="noopener noreferrer" class="facebook-link">
                             <span class="facebook-link-icon">📘</span>
                             <span class="facebook-link-text">Follow Us on Facebook</span>
                         </a>
@@ -2485,7 +2547,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading application form for your session...</p>
                     </div>
-                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no" style="border-radius: 8px; border: none; height: auto;"></iframe>
+                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto;"></iframe>
                 </div>
             </div>
 
@@ -2576,7 +2638,7 @@ $conn->close();
                 </div>
                 <!-- Facebook Link -->
                 <div class="facebook-link-container" style="margin-top: 20px;">
-                    <a href="https://www.facebook.com/share/1GrpFP7Xqr/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="facebook-link">
+                    <a href="https://www.facebook.com/NorzagarayPESO2021?rdid=NI8HgiwxTPYigG4o&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1862uYXDHX%2F#" target="_blank" rel="noopener noreferrer" class="facebook-link">
                         <span class="facebook-link-icon">📘</span>
                         <span class="facebook-link-text">Follow Us on Facebook</span>
                     </a>
@@ -2719,10 +2781,23 @@ $conn->close();
             const iframe = document.getElementById('apply-iframe');
             if (!iframe) return;
 
-            const minH = 200;
+            const minH = 120;
             let intervalId = null;
             let lastAppliedHeight = 0;
             let resizeObserver = null;
+            const isMobileView = function () {
+                return window.matchMedia('(max-width: 768px)').matches;
+            };
+            const applyMobileHeight = function () {
+                const container = document.getElementById('apply-container');
+                const mobileH = Math.max(420, window.innerHeight - 140);
+                if (container) {
+                    container.style.height = mobileH + 'px';
+                    container.style.overflow = 'hidden';
+                }
+                iframe.style.height = mobileH + 'px';
+                iframe.style.minHeight = mobileH + 'px';
+            };
 
             const applyHeight = function (heightPx, force) {
                 const h = Math.max(minH, Math.round(Number(heightPx) || 0));
@@ -2733,6 +2808,10 @@ $conn->close();
             };
 
             const measureHeight = function (force) {
+                if (isMobileView()) {
+                    applyMobileHeight();
+                    return;
+                }
                 if (force) lastAppliedHeight = 0;
                 try {
                     const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
@@ -2765,8 +2844,14 @@ $conn->close();
                 } catch (e) { /* ResizeObserver unsupported */ }
             };
 
-            iframe.setAttribute('scrolling', 'no');
-            iframe.style.overflow = 'hidden';
+            if (isMobileView()) {
+                iframe.setAttribute('scrolling', 'yes');
+                iframe.style.overflow = 'auto';
+                applyMobileHeight();
+            } else {
+                iframe.setAttribute('scrolling', 'no');
+                iframe.style.overflow = 'hidden';
+            }
 
             iframe.addEventListener('load', function () {
                 measureHeight(true);
@@ -2779,6 +2864,20 @@ $conn->close();
             });
 
             const onViewportChange = function () {
+                const container = document.getElementById('apply-container');
+                if (isMobileView()) {
+                    iframe.setAttribute('scrolling', 'yes');
+                    iframe.style.overflow = 'auto';
+                    applyMobileHeight();
+                } else {
+                    if (container) {
+                        container.style.height = '';
+                        container.style.overflow = '';
+                    }
+                    iframe.setAttribute('scrolling', 'no');
+                    iframe.style.overflow = 'hidden';
+                    iframe.style.minHeight = '';
+                }
                 measureHeight(true);
                 [80, 280, 600].forEach(function (ms) {
                     setTimeout(function () { measureHeight(true); }, ms);
@@ -2838,8 +2937,42 @@ $conn->close();
                 if (intervalId) clearInterval(intervalId);
                 intervalId = setInterval(measureHeight, 800);
             });
-            window.addEventListener('resize', measureHeight);
+            const onViewportChange = function () {
+                // Clear sticky inline constraints after device-mode switches.
+                iframe.style.minHeight = '';
+                iframe.style.maxHeight = '';
+                iframe.style.height = '';
+                iframe.setAttribute('scrolling', 'no');
+                iframe.style.overflow = 'hidden';
+                measureHeight();
+                [80, 280, 600].forEach(function (ms) {
+                    setTimeout(measureHeight, ms);
+                });
+            };
+            window.addEventListener('resize', onViewportChange);
+            window.addEventListener('orientationchange', onViewportChange);
             measureHeight();
+        }
+
+        function forceResizeIframe(iframeId, minHeight) {
+            const iframe = document.getElementById(iframeId);
+            if (!iframe) return;
+            try {
+                const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+                if (!doc) return;
+                const body = doc.body;
+                const html = doc.documentElement;
+                const contentHeight = Math.max(
+                    body ? body.scrollHeight : 0,
+                    body ? body.offsetHeight : 0,
+                    html ? html.scrollHeight : 0,
+                    html ? html.offsetHeight : 0
+                );
+                const safeHeight = Math.max(minHeight || 200, Number(contentHeight) || 0);
+                iframe.style.height = safeHeight + 'px';
+            } catch (e) {
+                // Ignore cross-document measurement failures.
+            }
         }
         
         // Function to handle recommended jobs iframe loading
@@ -2910,15 +3043,19 @@ $conn->close();
                     /* Iframe was display:none — remeasure height so parent scroll matches full form */
                     setTimeout(function () {
                         if (typeof window._wcResizeApplyIframe === 'function') window._wcResizeApplyIframe();
+                        forceResizeIframe('apply-iframe', 120);
                     }, 50);
                     setTimeout(function () {
                         if (typeof window._wcResizeApplyIframe === 'function') window._wcResizeApplyIframe();
+                        forceResizeIframe('apply-iframe', 120);
                     }, 400);
                 }
                 
                 // If showing recommended jobs section, hide loading indicator after delay
                 if (section === 'recommended_jobs') {
                     hideRecommendedJobsLoadingIndicator();
+                    setTimeout(function () { forceResizeIframe('recommended-jobs-iframe', 200); }, 60);
+                    setTimeout(function () { forceResizeIframe('recommended-jobs-iframe', 200); }, 350);
                 }
                 
                 // If showing resume section, hide loading indicator after delay
@@ -3233,7 +3370,7 @@ $conn->close();
 
             if (type === 'announcement' || title.includes('announcement')) return { icon: '📢', label: 'Announcement' };
             if (type === 'follow_up' || title.includes('follow-up')) return { icon: '💬', label: 'Follow-up' };
-            if (type === 'nrsp' || title.includes('nrsp')) return { icon: '📝', label: 'NRSP' };
+            if (type === 'nrsp' || title.includes('nrsp')) return { icon: '📝', label: 'NSRP' };
             if (type === 'application' || title.includes('application') || title.includes('accepted') || title.includes('rejected') || title.includes('referred')) {
                 return { icon: '📄', label: 'Application' };
             }
@@ -3255,6 +3392,11 @@ $conn->close();
             if (diffDay < 7) return `${diffDay}d ago`;
             return fallback || date.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
         }
+
+        function normalizeNSRPText(text) {
+            if (text == null) return '';
+            return String(text).replace(/\bNRSP\b/gi, 'NSRP');
+        }
         
         function loadNotifications() {
             const notificationList = document.getElementById('notificationList');
@@ -3274,6 +3416,8 @@ $conn->close();
                             if (!notification.is_read) unreadCount++;
                             const meta = getNotificationMeta(notification);
                             const displayTime = formatNotificationTime(notification.created_at_iso, notification.created_at);
+                            const normalizedTitle = normalizeNSRPText(notification.title || '');
+                            const normalizedMessage = normalizeNSRPText(notification.message || '');
                             
                             const notificationItem = document.createElement('div');
                             notificationItem.className = `notification-item ${!notification.is_read ? 'unread' : ''}`;
@@ -3282,8 +3426,8 @@ $conn->close();
                                     <span class="notification-type">${meta.icon} ${escapeHtml(meta.label)}</span>
                                     <span class="notification-time">${escapeHtml(displayTime || '')}</span>
                                 </div>
-                                <div class="notification-title">${escapeHtml(notification.title || '')}</div>
-                                <div class="notification-message">${formatNotificationMessage(notification.message || '')}</div>
+                                <div class="notification-title">${escapeHtml(normalizedTitle)}</div>
+                                <div class="notification-message">${formatNotificationMessage(normalizedMessage)}</div>
                                 <div class="notification-time">${escapeHtml(notification.created_at || '')}</div>
                             `;
                             notificationItem.onclick = () => markAsRead(notification.id);
@@ -3349,9 +3493,9 @@ $conn->close();
 
             // NSRP: iframe height = full form content; parent dashboard scrolls only (no double scrollbar).
             setupApplyIframeAutoResize();
-            setupIframeAutoResize('recommended-jobs-iframe', 900);
-            setupIframeAutoResize('resume-iframe', 900);
-            setupIframeAutoResize('announcements-iframe', 700);
+            setupIframeAutoResize('recommended-jobs-iframe', 200);
+            setupIframeAutoResize('resume-iframe', 300);
+            setupIframeAutoResize('announcements-iframe', 300);
 
             // Hamburger menu & slide-out sidebar (mobile)
             const hamburgerMenu = document.getElementById('hamburgerMenu');

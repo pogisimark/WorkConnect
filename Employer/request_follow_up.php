@@ -4,14 +4,16 @@ include 'session_protect.php';
 require_once 'db.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/jobseeker_pending_badge.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
+$pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
 $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request Follow Up - WorkConnect</title>
@@ -74,6 +76,8 @@ $conn->close();
         .status-filter-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
         #statusFilterAc { padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; min-width: 140px; }
     </style>
+    <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
 <div class="header" id="mainHeader">
@@ -91,7 +95,7 @@ $conn->close();
         <div class="sidebar">
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
-            <a href="job.php"> JOBSEEKERS</a>
+            <a href="job.php"> JOBSEEKERS<?php echo js_pending_jobseekers_badge_html($pending_jobseekers_count); ?></a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
             <a href="request_follow_up.php" class="active"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>

@@ -2,9 +2,11 @@
 include 'session_protect.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
+require_once __DIR__ . '/jobseeker_pending_badge.php';
 require_once __DIR__ . '/db.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
+$pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
 if ($conn) {
     $conn->close();
 }
@@ -12,7 +14,7 @@ if ($conn) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Add Account</title>
@@ -516,36 +518,38 @@ if ($conn) {
             }
         }
     </style>
+    <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
-<div class="header" id="mainHeader" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background: #233a8b; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; height: 64px; box-sizing: border-box; max-width: 100vw; overflow: hidden;">
-        <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
-            <button class="hamburger-menu" id="hamburgerMenu" style="display: none; background: none; border: none; cursor: pointer; padding: 8px; margin-right: 8px; z-index: 1001; flex-shrink: 0;">
-                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
-                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
-                <span style="display: block; width: 25px; height: 3px; background: #fff; margin: 5px 0; transition: 0.3s; border-radius: 2px;"></span>
+<div class="header" id="mainHeader">
+        <div style="display: flex; align-items: center;">
+            <button class="hamburger-menu" id="hamburgerMenu">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
-            <span class="header-title" id="headerTitle" style="font-size: 1rem; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; max-width: 150px;">WorkConnect</span>
+            <span class="header-title" id="headerTitle">WorkConnect</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px; margin-left: 8px; flex-shrink: 0;" id="adminSection">
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 20px;" id="adminSection">
             <div style="width: 28px; height: 28px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #233a8b; font-weight: bold;">
                 👤
             </div>
-            <span id="adminUsername" style="font-size: 0.75rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">Welcome, Admin</span>
+            <span id="adminUsername" style="font-size: 1rem; font-weight: 500;">Admin</span>
         </div>
     </div>
     <div class="layout">
         <div class="sidebar">
             <a href="Dashboard.php"> DASHBOARD</a>
             <a href="job_postings.php"> JOB POSTINGS</a>
-            <a href="job.php"> JOBSEEKERS</a>
+            <a href="job.php"> JOBSEEKERS<?php echo js_pending_jobseekers_badge_html($pending_jobseekers_count); ?></a>
             <a href="follow_up_requests.php"> FOLLOW-UP REQUESTS<?php echo fu_follow_up_badge_html($follow_up_pending_count); ?></a>
             <a href="request_follow_up.php"> REQUEST FOLLOW UP<span class="acfu-sidebar-badge"><?php echo acfu_unread_badge_html($acfu_unread_count); ?></span></a>
             <a href="skill.php"> SKILL REGISTRY</a>
             <a href="companies_list.php"> COMPANIES</a>
             <a href="btec.php"> BTEC MONTHLY REPORT</a>
-            <a href="#" class="active"> ADD ACCOUNT</a>
+            <a href="add.php" class="active"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
             <a href="announcement.php"> ANNOUNCEMENTS</a>
             <a href="logout.php" class="logout"> Logout</a>
@@ -649,16 +653,16 @@ if ($conn) {
                     hamburgerMenu.style.visibility = 'visible';
                     
                     // Adjust title size for mobile - make smaller
-                    headerTitle.style.fontSize = '1rem';
+                    headerTitle.style.fontSize = '0.9rem';
                     headerTitle.style.whiteSpace = 'nowrap';
                     headerTitle.style.overflow = 'hidden';
                     headerTitle.style.textOverflow = 'ellipsis';
-                    headerTitle.style.maxWidth = '150px';
+                    headerTitle.style.maxWidth = '100px';
                     
                     // Adjust admin section for mobile - make smaller
                     adminSection.style.marginRight = '8px';
                     adminSection.style.gap = '4px';
-                    adminSection.style.fontSize = '0.75rem';
+                    adminSection.style.fontSize = '0.8rem';
                     adminSection.style.maxWidth = '120px';
                     adminSection.style.overflow = 'hidden';
                     adminSection.style.textOverflow = 'ellipsis';
@@ -737,15 +741,15 @@ if ($conn) {
                     
                     // Apply inline styles immediately
                     if (headerTitle) {
-                        headerTitle.style.fontSize = '1rem';
-                        headerTitle.style.maxWidth = '150px';
+                        headerTitle.style.fontSize = '0.9rem';
+                        headerTitle.style.maxWidth = '100px';
                         headerTitle.style.overflow = 'hidden';
                         headerTitle.style.textOverflow = 'ellipsis';
                         headerTitle.style.whiteSpace = 'nowrap';
                     }
                     
                     if (adminUsername) {
-                        adminUsername.style.fontSize = '0.75rem';
+                        adminUsername.style.fontSize = '0.8rem';
                         adminUsername.style.maxWidth = '120px';
                         adminUsername.style.overflow = 'hidden';
                         adminUsername.style.textOverflow = 'ellipsis';
@@ -786,75 +790,6 @@ if ($conn) {
             // Apply immediately
             applyMobileStyles();
             removeWelcomeText();
-            
-            // Force mobile styles immediately
-            if (window.innerWidth <= 768) {
-                const header = document.getElementById('mainHeader');
-                const hamburgerMenu = document.getElementById('hamburgerMenu');
-                const headerTitle = document.getElementById('headerTitle');
-                const logo = document.querySelector('img');
-                const leftSection = header.querySelector('div:first-child');
-                const adminSection = document.getElementById('adminSection');
-                
-                // Force mobile header layout
-                header.style.display = 'flex';
-                header.style.flexDirection = 'row';
-                header.style.justifyContent = 'space-between';
-                header.style.alignItems = 'center';
-                header.style.padding = '12px 20px';
-                header.style.height = '64px';
-                header.style.overflow = 'hidden';
-                
-                // Force left section layout
-                if (leftSection) {
-                    leftSection.style.display = 'flex';
-                    leftSection.style.flexDirection = 'row';
-                    leftSection.style.alignItems = 'center';
-                    leftSection.style.flex = '1';
-                    leftSection.style.minWidth = '0';
-                }
-                
-                // Force hamburger menu to show
-                hamburgerMenu.style.display = 'block';
-                hamburgerMenu.style.visibility = 'visible';
-                hamburgerMenu.style.marginRight = '8px';
-                hamburgerMenu.style.flexShrink = '0';
-                
-                // Force logo styles
-                if (logo) {
-                    logo.style.height = '32px';
-                    logo.style.marginRight = '8px';
-                    logo.style.flexShrink = '0';
-                }
-                
-                // Force title styles
-                headerTitle.style.fontSize = '1rem';
-                headerTitle.style.flex = '1';
-                headerTitle.style.minWidth = '0';
-                headerTitle.style.overflow = 'hidden';
-                headerTitle.style.textOverflow = 'ellipsis';
-                headerTitle.style.whiteSpace = 'nowrap';
-                
-                // Force admin section layout
-                if (adminSection) {
-                    adminSection.style.display = 'flex';
-                    adminSection.style.flexDirection = 'row';
-                    adminSection.style.alignItems = 'center';
-                    adminSection.style.gap = '6px';
-                    adminSection.style.marginLeft = '8px';
-                    adminSection.style.flexShrink = '0';
-                }
-                
-                // Force admin username styles
-                const adminUsername = document.getElementById('adminUsername');
-                if (adminUsername) {
-                    adminUsername.style.fontSize = '0.75rem';
-                    adminUsername.style.maxWidth = '100px';
-                    adminUsername.style.overflow = 'hidden';
-                    adminUsername.style.textOverflow = 'ellipsis';
-                    adminUsername.style.whiteSpace = 'nowrap';
-                }
-            }
             
             // Initial check
             handleMobileHeader();

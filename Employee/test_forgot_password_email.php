@@ -33,7 +33,7 @@ $subject = "Test Email from WorkConnect Forgot Password";
 $message = "
 <html>
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <title>Test Email</title>
 </head>
 <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>

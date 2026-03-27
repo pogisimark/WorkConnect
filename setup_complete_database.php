@@ -20,7 +20,7 @@ $db_name = "WorkConnect";
 echo "<!DOCTYPE html>
 <html>
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <title>WorkConnect Database Setup</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
@@ -137,6 +137,8 @@ $sql = "CREATE TABLE IF NOT EXISTS jobseeker (
     self_type_transport TINYINT(1) DEFAULT 0,
     self_type_domestic TINYINT(1) DEFAULT 0,
     self_type_fisherfolk TINYINT(1) DEFAULT 0,
+    self_type_freelancer TINYINT(1) DEFAULT 0,
+    self_type_artisan TINYINT(1) DEFAULT 0,
     self_type_others TINYINT(1) DEFAULT 0,
     other_jobs VARCHAR(255),
     unemployed TINYINT(1) DEFAULT 0,
@@ -148,7 +150,10 @@ $sql = "CREATE TABLE IF NOT EXISTS jobseeker (
     unemployed_type_public TINYINT(1) DEFAULT 0,
     unemployed_type_retired TINYINT(1) DEFAULT 0,
     unemployed_type_terminated TINYINT(1) DEFAULT 0,
+    unemployed_type_terminated_abroad TINYINT(1) DEFAULT 0,
+    unemployed_type_others TINYINT(1) DEFAULT 0,
     terminated_country VARCHAR(100),
+    unemployed_other_specify VARCHAR(100),
     ofw VARCHAR(50),
     ofw_country VARCHAR(100),
     returnee VARCHAR(50),

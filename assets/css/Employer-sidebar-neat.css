@@ -1,0 +1,216 @@
+/* Unified Employer/Admin sidebar polish (style-only overrides) */
+
+/* Keep header/sidebar sizing consistent with Dashboard */
+.header {
+    padding: 12px 20px !important;
+    height: 64px !important;
+    box-sizing: border-box !important;
+}
+
+.header img {
+    height: 48px !important;
+    margin-right: 16px !important;
+}
+
+.header-title {
+    font-size: 1.7rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+#adminSection {
+    gap: 8px !important;
+    margin-right: 20px !important;
+}
+
+#adminUsername {
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+}
+
+.layout {
+    min-height: calc(100vh - 64px) !important;
+    padding-top: 64px !important;
+}
+
+.sidebar {
+    background: #f8f9fa !important;
+    border-right: 1px solid #e0e0e0 !important;
+    width: 240px !important;
+    height: calc(100vh - 64px) !important;
+    top: 64px !important;
+    left: 0 !important;
+    padding: 20px 0 !important;
+}
+
+.sidebar a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin: 0 !important;
+    padding: 15px 25px !important;
+    color: #333 !important;
+    text-decoration: none !important;
+    font-weight: 650 !important;
+    text-transform: capitalize !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    transition: all 0.3s ease !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.sidebar a i {
+    font-size: 18px !important;
+    width: 20px !important;
+    text-align: center !important;
+}
+
+/* Add sidebar icons (works even on text-only links) */
+.sidebar a::before {
+    display: inline-flex;
+    width: 20px;
+    justify-content: center;
+    align-items: center;
+    margin-right: 2px;
+}
+.sidebar a[href*="Dashboard.php"]::before,
+.sidebar a.active[href="#"]::before {
+    content: "🏠";
+}
+.sidebar a[href*="job_postings.php"]::before {
+    content: "💼";
+}
+.sidebar a[href*="job.php"]::before {
+    content: "👥";
+}
+.sidebar a[href*="follow_up_requests.php"]::before {
+    content: "📩";
+}
+.sidebar a[href*="request_follow_up.php"]::before {
+    content: "📨";
+}
+.sidebar a[href*="skill.php"]::before {
+    content: "🛠️";
+}
+.sidebar a[href*="companies_list.php"]::before {
+    content: "🏢";
+}
+.sidebar a[href*="btec.php"]::before {
+    content: "📈";
+}
+.sidebar a[href*="add.php"]::before {
+    content: "➕";
+}
+.sidebar a[href*="analytics.php"]::before {
+    content: "📊";
+}
+.sidebar a[href*="announcement.php"]::before {
+    content: "📢";
+}
+.sidebar a.logout::before,
+.sidebar a[href*="logout.php"]::before {
+    content: "🚪";
+}
+
+.sidebar a:hover {
+    background: #e9ecef !important;
+    color: #1a3876 !important;
+    border-left-color: #1a3876 !important;
+}
+
+.sidebar a.active {
+    background: #1a3876 !important;
+    color: #fff !important;
+    border-left-color: #ffcb05 !important;
+    font-weight: 700 !important;
+}
+
+.sidebar a.logout {
+    margin-top: auto !important;
+    color: #f44336 !important;
+}
+
+.sidebar a.logout:hover {
+    background: #ffebee !important;
+    border-left-color: #f44336 !important;
+    color: #f44336 !important;
+}
+
+@media (max-width: 768px) {
+    .header img,
+    .header-title {
+        display: none !important;
+    }
+
+    .header {
+        min-height: 56px !important;
+    }
+
+    .header img {
+        height: 32px !important;
+        margin-right: 8px !important;
+    }
+
+    .header-title {
+        font-size: 1.2rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    #adminSection {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-right: 8px !important;
+        margin-left: 0 !important;
+    }
+
+    #adminUsername {
+        font-size: 0.8rem !important;
+        max-width: 120px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .layout {
+        flex-direction: column !important;
+        padding-top: 60px !important;
+    }
+
+    .header > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+    }
+
+    .sidebar {
+        position: fixed !important;
+        top: 56px !important;
+        left: -240px !important;
+        width: 240px !important;
+        height: calc(100vh - 56px) !important;
+        background: #f8f9fa !important;
+        padding: 20px 0 0 24px !important;
+        transition: left 0.3s ease !important;
+    }
+
+    /* Force uniform mobile sidebar text sizing across pages */
+    .sidebar a {
+        font-size: 0.9rem !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.2px !important;
+        line-height: 1.2 !important;
+    }
+
+    .sidebar a.active {
+        font-weight: 700 !important;
+    }
+}

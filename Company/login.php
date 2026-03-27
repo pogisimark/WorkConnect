@@ -14,6 +14,12 @@ require_once 'company_verification_schema.php';
 
 ensureCompanyVerificationSchema($conn);
 
+// If already authenticated, skip login page.
+if (isset($_SESSION['logged_in']) && isset($_SESSION['company_id']) && isset($_SESSION['email']) && isset($_SESSION['company_name'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
 $error_message = '';
 $show_verify_swal = false;
 $verify_swal_email = '';
@@ -66,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Login - WorkConnect</title>

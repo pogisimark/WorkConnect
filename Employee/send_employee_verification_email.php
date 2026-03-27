@@ -10,7 +10,7 @@ function sendEmployeeVerificationEmail(string $toEmail, string $firstname, strin
     $message = "
     <html>
     <head>
-    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png"><title>Verify Email</title></head>
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'><title>Verify Email</title></head>
     <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
 <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
             <h2 style='color: #1a3876;'>Verify your email</h2>
