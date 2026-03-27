@@ -75,15 +75,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - WorkConnect</title>
-    <link rel="icon" href="../assets/image/PESO Logo circle.png">
+    <link rel="icon" href="/assets/image/PESO Logo circle.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
@@ -369,7 +367,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="reset-container">
         <div class="logo-section">
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">

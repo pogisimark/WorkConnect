@@ -33,10 +33,10 @@ $subject = "Test Email from WorkConnect Forgot Password";
 $message = "
 <html>
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <title>Test Email</title>
 </head>
 <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-    <?php wc_render_ec2_logo_header(); ?>
 <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
         <h2 style='color: #1a3876;'>Test Email</h2>
         <p>This is a test email to verify that the PHPMailer configuration is working correctly.</p>
@@ -119,9 +119,6 @@ if ($response) {
 
 $conn->close();
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
-
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 h2, h3 { color: #1a3876; }

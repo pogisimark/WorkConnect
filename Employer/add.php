@@ -9,11 +9,10 @@ if ($conn) {
     $conn->close();
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Add Account</title>
@@ -519,7 +518,6 @@ if ($conn) {
     </style>
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="header" id="mainHeader" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; background: #233a8b; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; height: 64px; box-sizing: border-box; max-width: 100vw; overflow: hidden;">
         <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
             <button class="hamburger-menu" id="hamburgerMenu" style="display: none; background: none; border: none; cursor: pointer; padding: 8px; margin-right: 8px; z-index: 1001; flex-shrink: 0;">

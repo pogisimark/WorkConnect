@@ -9,11 +9,10 @@ if ($conn) {
     $conn->close();
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect Skill Registry</title>
@@ -1296,7 +1295,6 @@ if ($conn) {
 <!-- ...existing code... -->
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
             <button class="hamburger-menu" id="hamburgerMenu">

@@ -1,4 +1,3 @@
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
 <?php
 /**
  * Send announcement email to all jobseekers with valid email addresses.
@@ -57,6 +56,7 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
     <!DOCTYPE html>
     <html lang='en'>
     <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
         <style>
@@ -75,7 +75,6 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
         </style>
     </head>
     <body>
-        <?php wc_render_ec2_logo_header(); ?>
 <div class='email-wrapper'>
             <div class='header'>
                 <h1>WorkConnect</h1>

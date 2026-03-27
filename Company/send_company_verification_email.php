@@ -1,4 +1,3 @@
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
 <?php
 /**
  * Send WorkConnect company signup verification email.
@@ -10,9 +9,9 @@ function sendCompanyVerificationEmail(string $toEmail, string $companyName, stri
     $safeLink = htmlspecialchars($verifyLink, ENT_QUOTES, 'UTF-8');
     $message = "
     <html>
-    <head><title>Verify Email</title></head>
+    <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png"><title>Verify Email</title></head>
     <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-        <?php wc_render_ec2_logo_header(); ?>
 <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
             <h2 style='color: #1a3876;'>Verify your company email</h2>
             <p>Hello {$safeName},</p>

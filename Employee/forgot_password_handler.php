@@ -100,10 +100,10 @@ try {
             $message = "
             <html>
             <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
                 <title>Password Reset Request</title>
             </head>
             <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-                <?php wc_render_ec2_logo_header(); ?>
 <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
                     <h2 style='color: #1a3876;'>Password Reset Request</h2>
                     <p>Hello " . htmlspecialchars($user['firstname']) . ",</p>
@@ -174,5 +174,3 @@ try {
     ob_end_clean();
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-

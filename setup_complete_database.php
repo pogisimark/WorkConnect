@@ -20,6 +20,7 @@ $db_name = "WorkConnect";
 echo "<!DOCTYPE html>
 <html>
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <title>WorkConnect Database Setup</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
@@ -32,7 +33,6 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-<?php wc_render_ec2_logo_header(); ?>
 <div class='container'>
 <h1>🚀 WorkConnect Complete Database Setup</h1>";
 
@@ -932,6 +932,3 @@ echo "<div class='step' style='background: #d4edda; border-left-color: #28a745;'
 $conn->close();
 echo "</div></body></html>";
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
-

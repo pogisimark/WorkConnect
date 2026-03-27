@@ -239,6 +239,7 @@ function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
     <!DOCTYPE html>
     <html lang='en'>
     <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
         <meta charset='UTF-8'>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
         <style>
@@ -402,7 +403,6 @@ function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
         </style>
     </head>
     <body>
-        <?php wc_render_ec2_logo_header(); ?>
 <div class='email-wrapper'>
             <div class='header'>
                 <h1>WorkConnect</h1>
@@ -1097,8 +1097,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Close database connection
 $conn->close();
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

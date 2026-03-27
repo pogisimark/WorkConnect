@@ -23,6 +23,7 @@ $db_name = "WorkConnect";
 echo "<!DOCTYPE html>
 <html>
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <title>Truncate All Tables - WorkConnect</title>
     <style>
         body { 
@@ -122,7 +123,6 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-<?php wc_render_ec2_logo_header(); ?>
 <div class='container'>
 <h1>🗑️ Truncate All Tables - WorkConnect</h1>";
 
@@ -278,5 +278,3 @@ if (!$confirmed) {
 
 echo "</div></body></html>";
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-

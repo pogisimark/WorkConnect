@@ -145,6 +145,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <!DOCTYPE html>
         <html>
         <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
             <meta charset='UTF-8'>
             <title>Jobseeker Referral Details</title>
             <style>
@@ -243,7 +244,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </style>
         </head>
         <body>
-            <?php wc_render_ec2_logo_header(); ?>
 <div class='email-container'>
                 <div class='header'>
                     <h1>New Jobseeker Referral</h1>
@@ -543,5 +543,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $conn->close();
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-

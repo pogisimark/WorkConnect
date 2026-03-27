@@ -5,6 +5,7 @@ require_once 'db.php';
 echo "<!DOCTYPE html>
 <html lang='en'>
 <head>
+    <link rel='icon' type='image/png' href='/assets/image/PESO Logo circle.png'>
     <meta charset='UTF-8'>
     <title>Add Company ID Column</title>
     <style>
@@ -15,8 +16,7 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
-<h1>Add Company ID Column to Job Postings</h1>";
+    <h1>Add Company ID Column to Job Postings</h1>";
 
 // Check if column already exists
 $check = $conn->query("SHOW COLUMNS FROM job_postings LIKE 'company_id'");
@@ -58,6 +58,4 @@ echo "</body></html>";
 
 $conn->close();
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 

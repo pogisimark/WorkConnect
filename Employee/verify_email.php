@@ -37,18 +37,16 @@ if ($token === '' || !preg_match('/^[a-f0-9]{64}$/i', $token)) {
     $stmt->close();
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email verification - WorkConnect</title>
     <link rel="stylesheet" href="../assets/css/Employee-login.css">
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="login-container" style="max-width: 480px;">
         <div class="logo-section">
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">

@@ -75,12 +75,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
     }
 }
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - WorkConnect</title>
@@ -89,7 +87,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && empty($token_error)) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="login-container">
         <div class="logo-section">
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">

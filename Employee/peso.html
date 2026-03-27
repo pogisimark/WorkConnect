@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WorkConnect Peso</title>
@@ -289,24 +290,7 @@
 </head>
 <!-- ...existing code... -->
   <body>
-    <script>
-(function(){
-  var host=(window.location.hostname||'').toLowerCase();
-  if(!host||host==='localhost'||host==='::1'||host.indexOf('127.')===0||host.indexOf('local')!==-1||host.indexOf('xampp')!==-1){return;}
-  if(document.querySelector('.wc-ec2-logo-header')){return;}
-  var style=document.createElement('style');
-  style.textContent='body{padding-top:68px !important;}.wc-ec2-logo-header{position:fixed;top:0;left:0;right:0;height:68px;background:#1a3876;z-index:2147483000;display:flex;align-items:center;padding:10px 18px;box-sizing:border-box;box-shadow:0 2px 10px rgba(0,0,0,.2)}.wc-ec2-logo-header img{height:46px;width:auto;display:block;}';
-  document.head.appendChild(style);
-  var bar=document.createElement('div');
-  bar.className='wc-ec2-logo-header';
-  var img=document.createElement('img');
-  img.src='/assets/image/PESO Logo circle.png';
-  img.alt='WorkConnect Logo';
-  bar.appendChild(img);
-  document.body.insertBefore(bar, document.body.firstChild);
-})();
-</script>
-<div class="main-container">
+    <div class="main-container">
       <!-- HEADER -->
       <header>
         <div class="navbar">

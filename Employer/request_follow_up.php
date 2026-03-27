@@ -8,11 +8,10 @@ $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
 $conn->close();
 ?>
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/image/PESO Logo circle.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Request Follow Up - WorkConnect</title>
@@ -77,7 +76,6 @@ $conn->close();
     </style>
 </head>
 <body>
-    <?php wc_render_ec2_logo_header(); ?>
 <div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
             <button class="hamburger-menu" id="hamburgerMenu"><span></span><span></span><span></span></button>
