@@ -70,8 +70,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $message .= "3. " . $jobseeker['company_name_3'] . " - " . $jobseeker['position_3'] . " (" . $jobseeker['months_3'] . " months)\n";
         }
         
+        // Build absolute download URLs with HTTPS-aware scheme (supports reverse proxies).
+        $scheme = 'http';
+        if (
+            (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+            (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443')
+        ) {
+            $scheme = 'https';
+        }
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+            $scheme = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+        }
+        $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['REQUEST_URI'])), '/');
+
         if ($jobseeker['resume_file']) {
-            $resume_url = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/../uploads/resumes/" . $jobseeker['resume_file'];
+            $resume_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $basePath . "/../uploads/resumes/" . $jobseeker['resume_file'];
             $message .= "\nRESUME: " . $resume_url . "\n";
         }
         

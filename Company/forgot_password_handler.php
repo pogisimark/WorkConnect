@@ -98,8 +98,19 @@ try {
         $stmt->bind_param("isss", $company['id'], $email, $reset_token, $expires_at);
         
         if ($stmt->execute()) {
-            // Send email with reset link using PHPMailer
-            $reset_link = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=" . $reset_token;
+            // Send email with reset link using PHPMailer (HTTPS-aware; proxy friendly).
+            $scheme = 'http';
+            if (
+                (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443')
+            ) {
+                $scheme = 'https';
+            }
+            if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+                $scheme = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'])[0]));
+            }
+            $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['PHP_SELF'])), '/');
+            $reset_link = $scheme . "://" . $_SERVER['HTTP_HOST'] . $basePath . "/reset_password.php?token=" . $reset_token;
             
             $subject = "Password Reset Request - WorkConnect Company Account";
             $message = "
