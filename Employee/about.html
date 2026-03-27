@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WorkConnect about</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/Employee-about.css">
   <style>
     /* Mobile Header and Navigation */
@@ -154,81 +155,125 @@
         margin-bottom: 6px;
       }
     }
-    
-    /* Hide bottom navigation on desktop - be more specific */
-    .main-container > nav {
+    /* Dashboard-like hamburger + mobile sidebar */
+    .hamburger-menu {
       display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      margin-right: 12px;
+      z-index: 1101;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
     }
-    
-    /* Mobile Bottom Navigation - Copied from home.html with !important */
+
+    .hamburger-menu span {
+      display: block;
+      width: 24px;
+      height: 3px;
+      background: #fff;
+      margin: 3px 0;
+      transition: 0.3s;
+      border-radius: 2px;
+    }
+
+    .hamburger-menu.active span:nth-child(1) {
+      transform: rotate(-45deg) translate(-5px, 6px);
+    }
+
+    .hamburger-menu.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger-menu.active span:nth-child(3) {
+      transform: rotate(45deg) translate(-5px, -6px);
+    }
+
+    .mobile-sidebar-overlay {
+      display: none !important;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 1090;
+    }
+
+    .mobile-sidebar {
+      display: none !important;
+      flex-direction: column !important;
+      position: fixed !important;
+      top: 56px !important;
+      left: -200px !important;
+      width: 200px !important;
+      height: calc(100vh - 56px) !important;
+      background: #e3eaff !important;
+      z-index: 1100 !important;
+      transition: left 0.3s ease !important;
+      padding: 20px 0 0 16px !important;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.15) !important;
+      overflow-y: auto !important;
+      border-radius: 0 !important;
+    }
+
+    .mobile-sidebar.open {
+      left: 0 !important;
+    }
+
+    .mobile-sidebar a {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      text-align: left !important;
+      gap: 10px;
+      padding: 12px 16px !important;
+      margin: 0 10px 4px 0 !important;
+      border-radius: 8px !important;
+      transition: all 0.2s ease !important;
+      border-left: 3px solid transparent !important;
+      color: #333;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .mobile-sidebar a i {
+      width: 18px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .mobile-sidebar a:hover {
+      background: #d1dbfa !important;
+      color: #1a3876 !important;
+      border-left-color: #1a3876 !important;
+      padding-left: 20px !important;
+      transform: translateX(2px) !important;
+      box-shadow: 0 2px 8px rgba(26, 56, 118, 0.15) !important;
+    }
+
+    .mobile-sidebar a.active {
+      background: #1a3876 !important;
+      color: #fff !important;
+      border-left-color: #ffcb05 !important;
+      font-weight: 700 !important;
+    }
+
+    .mobile-sidebar a.login-link {
+      margin-top: auto !important;
+      margin-bottom: 20px !important;
+      color: #1a3876 !important;
+      font-weight: 700 !important;
+    }
+
     @media (max-width: 768px) {
-      nav {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background: #fff !important;
+      .hamburger-menu {
         display: flex !important;
-        justify-content: space-around !important;
-        padding: 8px 0 !important;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
-        z-index: 1000 !important;
-        min-height: 60px !important;
       }
-      
-      nav a {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        padding: 8px 12px !important;
-        text-decoration: none !important;
-        color: #666 !important;
-        font-size: 0.75rem !important;
-        transition: color 0.3s !important;
-        min-width: 60px !important;
-        justify-content: center !important;
-      }
-      
-      nav a:before {
-        content: '' !important;
-        font-size: 1.2rem !important;
-        margin-bottom: 4px !important;
-      }
-      
-      nav a[href="home.html"]:before { content: '🏠' !important; }
-      nav a[href="peso.html"]:before { content: '🏛️' !important; }
-      nav a[href="register.html"]:before { content: '📝' !important; }
-      nav a[href="about.html"]:before { content: 'ℹ️' !important; }
-      
-      nav a.active {
-        color: #1a3876 !important;
-      }
-      
-      .apply-btn {
-        background: #ffcb05 !important;
-        color: #1a3876 !important;
-        border: none !important;
-        padding: 8px 16px !important;
-        border-radius: 20px !important;
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        flex-shrink: 0 !important;
-        white-space: nowrap !important;
-        box-shadow: 0 2px 8px rgba(255,203,5,0.3) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        min-width: 60px !important;
-        text-decoration: none !important;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      nav {
-        padding: 6px 0 !important;
-        min-height: 55px !important;
-      }
+
+
       
       nav a {
         font-size: 0.7rem !important;
@@ -257,7 +302,7 @@
         overflow-x: hidden;
       }
       
-      nav a, .apply-btn {
+      nav a, .apply-btn, .mobile-sidebar a {
         min-height: 44px;
         display: flex;
         align-items: center;
@@ -280,6 +325,105 @@
         overflow-wrap: break-word;
       }
     }
+  
+    
+    
+    @media (max-width: 768px) {
+      .hamburger-menu {
+        display: flex !important;
+      }
+
+      .navbar > nav {
+        display: none !important;
+      }
+
+      .mobile-sidebar {
+        display: flex !important;
+      }
+
+      .mobile-sidebar-overlay {
+        display: none !important;
+      }
+    }
+
+    /* Match mobile header/icon/text sizing across Employee pages */
+    @media (max-width: 768px) {
+      .navbar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1200 !important;
+        background: #1a3876 !important;
+        padding: 12px 16px !important;
+        min-height: 56px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-direction: row !important;
+        gap: 0 !important;
+      }
+
+      .logo-brand {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        width: auto !important;
+      }
+
+      .logo {
+        height: 32px !important;
+        margin-right: 8px !important;
+        flex-shrink: 0 !important;
+      }
+
+      .brand {
+        font-size: 1.2rem !important;
+        line-height: 1 !important;
+      }
+
+      .hamburger-menu {
+        margin-right: 12px !important;
+        padding: 8px !important;
+      }
+
+      /* Add clear gap under fixed header */
+      .main-container {
+        padding-top: 64px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .navbar {
+        padding: 8px 12px !important;
+        min-height: 50px !important;
+      }
+
+      .logo {
+        height: 28px !important;
+        margin-right: 6px !important;
+      }
+
+      .brand {
+        font-size: 1rem !important;
+      }
+
+      .main-container {
+        padding-top: 58px !important;
+      }
+    }
+
+
+    /* Prevent background scroll while sidebar is open */
+    body.sidebar-open,
+    html.sidebar-open {
+      overflow: hidden !important;
+      height: 100vh !important;
+      touch-action: none;
+    }
+
   </style>
 </head>
 <body>
@@ -288,6 +432,7 @@
     <header>
       <div class="navbar">
   <div class="logo-brand">
+    <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button"><span></span><span></span><span></span></button>
     <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
     <span class="brand">WorkConnect</span>
   </div>
@@ -327,15 +472,61 @@
         <strong>To learn more about the Bureau of Local Employment and its services, visit the BLE official website.</strong>
       </p>
     </div>
-    
-    <!-- Mobile Bottom Navigation - Copied from home.html -->
-    <nav>
-      <a href="home.html">Home</a>
-      <a href="peso.html">Peso</a>
-      <a href="register.html">Register</a>
-      <a href="about.html" class="active">About</a>
-      <button class="apply-btn" onclick="window.location.href='login.php'">Login</button>
-    </nav>
+
+    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay"></div>
+        <aside class="mobile-sidebar" id="mobileSidebar" aria-label="Mobile navigation">
+      <a href="home.html"><i class="fas fa-home"></i> Home</a>
+      <a href="peso.html"><i class="fas fa-building-columns"></i> Peso</a>
+      <a href="register.html"><i class="fas fa-file-signature"></i> Register</a>
+      <a href="about.html" class="active"><i class="fas fa-circle-info"></i> About</a>
+      <a href="login.php" class="login-link"><i class="fas fa-sign-in-alt"></i> Login</a>
+    </aside>
+
 <!-- ...existing code... -->
-    </body>
+      <script>
+
+    // Mobile sidebar navigation toggle
+    (function () {
+      const menuBtn = document.getElementById('hamburgerMenu');
+      const sidebar = document.getElementById('mobileSidebar');
+      const overlay = document.getElementById('mobileSidebarOverlay');
+      if (!menuBtn || !sidebar || !overlay) return;
+
+      function openSidebar() {
+        sidebar.classList.add('open');
+        menuBtn.classList.add('active');
+        document.body.classList.add('sidebar-open');
+        document.documentElement.classList.add('sidebar-open');
+        overlay.style.display = 'block';
+      }
+
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        menuBtn.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
+        document.documentElement.classList.remove('sidebar-open');
+        overlay.style.display = 'none';
+      }
+
+      menuBtn.addEventListener('click', function () {
+        if (sidebar.classList.contains('open')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+
+      overlay.addEventListener('click', closeSidebar);
+      sidebar.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', closeSidebar);
+      });
+
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
+          closeSidebar();
+        }
+      });
+    })();
+  </script>
+</body>
 </html>
