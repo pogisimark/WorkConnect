@@ -1,3 +1,4 @@
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -458,7 +459,8 @@
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
+    <?php wc_render_ec2_logo_header(); ?>
+<!-- Loading Screen -->
     <div class="loading" id="loading">
         <div class="spinner"></div>
     </div>

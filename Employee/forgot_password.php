@@ -49,7 +49,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <title>Password Reset Request</title>
             </head>
             <body>
-                <h2>Password Reset Request</h2>
+                <?php wc_render_ec2_logo_header(); ?>
+<h2>Password Reset Request</h2>
                 <p>Hello " . htmlspecialchars($user['firstname']) . ",</p>
                 <p>You have requested to reset your password for your WorkConnect account.</p>
                 <p>Click the link below to reset your password:</p>
@@ -109,3 +110,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+

@@ -72,6 +72,8 @@ $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -511,7 +513,8 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="header">
+    <?php wc_render_ec2_logo_header(); ?>
+<div class="header">
         <div style="display: flex; align-items: center;">
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <span class="header-title">WorkConnect</span>

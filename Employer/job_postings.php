@@ -8,6 +8,8 @@ require_once __DIR__ . '/db.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1008,7 +1010,8 @@ $acfu_unread_count = acfu_get_unread_response_count($conn);
     </style>
 </head>
 <body>
-    <div class="header" id="mainHeader">
+    <?php wc_render_ec2_logo_header(); ?>
+<div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
             <button class="hamburger-menu" id="hamburgerMenu">
                 <span></span>

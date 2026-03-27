@@ -75,7 +75,8 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <div class='container'>
+    <?php wc_render_ec2_logo_header(); ?>
+<div class='container'>
         <h1>Reset Job Applications Table</h1>";
 
 // Check if table exists
@@ -125,4 +126,6 @@ echo "</div></body></html>";
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 

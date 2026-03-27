@@ -9,6 +9,8 @@ if ($conn) {
     $conn->close();
 }
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -824,7 +826,8 @@ if ($conn) {
     </style>
 </head>
 <body>
-    <div class="header" id="mainHeader">
+    <?php wc_render_ec2_logo_header(); ?>
+<div class="header" id="mainHeader">
         <div style="display: flex; align-items: center;">
             <button class="hamburger-menu" id="hamburgerMenu">
                 <span></span>

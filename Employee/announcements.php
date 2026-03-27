@@ -29,6 +29,8 @@ if ($isIframe) {
     }
 }
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -390,7 +392,8 @@ if ($isIframe) {
     </style>
 </head>
 <body>
-    <?php if (!$isIframe): ?>
+    <?php wc_render_ec2_logo_header(); ?>
+<?php if (!$isIframe): ?>
     <div class="header">
         <div style="display: flex; align-items: center;">
             <button class="hamburger-menu" id="hamburgerMenu">

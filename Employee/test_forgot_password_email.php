@@ -36,7 +36,8 @@ $message = "
     <title>Test Email</title>
 </head>
 <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+    <?php wc_render_ec2_logo_header(); ?>
+<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
         <h2 style='color: #1a3876;'>Test Email</h2>
         <p>This is a test email to verify that the PHPMailer configuration is working correctly.</p>
         <p>If you receive this email, the forgot password functionality should work properly.</p>
@@ -118,6 +119,8 @@ if ($response) {
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }

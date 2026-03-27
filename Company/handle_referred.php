@@ -337,7 +337,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </style>
                 </head>
                 <body>
-                    <div class='email-wrapper'>
+                    <?php wc_render_ec2_logo_header(); ?>
+<div class='email-wrapper'>
                         <div class='header'>
                             <h1>🎉 Congratulations!</h1>
                         </div>
@@ -676,3 +677,5 @@ if (isset($conn)) {
     $conn->close();
 }
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+

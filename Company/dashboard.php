@@ -230,6 +230,8 @@ $pending_admin_requests_count = company_admin_pending_request_count($conn, $comp
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -704,7 +706,8 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="dashboard-header">
+    <?php wc_render_ec2_logo_header(); ?>
+<div class="dashboard-header">
         <div class="logo-brand">
             <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
                 <span></span><span></span><span></span>

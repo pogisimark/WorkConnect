@@ -371,6 +371,8 @@ $stmt->close();
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -1532,7 +1534,8 @@ $conn->close();
     </style>
 </head>
 <body>
-        <div class="main-content">
+        <?php wc_render_ec2_logo_header(); ?>
+<div class="main-content">
             <div class="content-section">
                 <div class="welcome-card">
                     <h1><i class="fas fa-file-alt"></i> Resume Builder</h1>

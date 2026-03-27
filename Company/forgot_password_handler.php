@@ -108,7 +108,8 @@ try {
                 <title>Password Reset Request</title>
             </head>
             <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-                <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <?php wc_render_ec2_logo_header(); ?>
+<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
                     <h2 style='color: #1a3876;'>Password Reset Request</h2>
                     <p>Hello " . htmlspecialchars($company['company_name']) . ",</p>
                     <p>You have requested to reset your password for your WorkConnect Company account.</p>
@@ -190,3 +191,5 @@ try {
     ob_end_clean();
 }
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+

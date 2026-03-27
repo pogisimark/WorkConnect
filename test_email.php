@@ -8,7 +8,8 @@ $message = "
     <title>Test Email</title>
 </head>
 <body>
-    <h1>Email Test</h1>
+    <?php wc_render_ec2_logo_header(); ?>
+<h1>Email Test</h1>
     <p>This is a test email to verify that the mail function is working.</p>
     <p>If you receive this email, the mail function is configured correctly.</p>
 </body>
@@ -50,3 +51,5 @@ echo "<p>1. Configure SMTP in php.ini</p>";
 echo "<p>2. Use PHPMailer library</p>";
 echo "<p>3. Use a mail service like SendGrid or Mailgun</p>";
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+

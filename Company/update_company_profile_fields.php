@@ -49,7 +49,8 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <div class='container'>
+    <?php wc_render_ec2_logo_header(); ?>
+<div class='container'>
         <h1>Update Company Profile Fields</h1>";
 
 // Add columns to company_users table
@@ -110,4 +111,6 @@ echo "</div></body></html>";
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 

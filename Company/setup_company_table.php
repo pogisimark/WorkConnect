@@ -49,7 +49,8 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
-    <div class='container'>
+    <?php wc_render_ec2_logo_header(); ?>
+<div class='container'>
         <h1>Company Users Table Setup</h1>";
 
 // Create company_users table
@@ -77,4 +78,6 @@ echo "</div></body></html>";
 
 $conn->close();
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 

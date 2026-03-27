@@ -1,3 +1,4 @@
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
 <?php
 /**
  * Send WorkConnect employee signup verification email.
@@ -11,7 +12,8 @@ function sendEmployeeVerificationEmail(string $toEmail, string $firstname, strin
     <html>
     <head><title>Verify Email</title></head>
     <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <?php wc_render_ec2_logo_header(); ?>
+<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
             <h2 style='color: #1a3876;'>Verify your email</h2>
             <p>Hello {$safeName},</p>
             <p>Thank you for creating a WorkConnect account. Please verify your email address to activate your account and log in.</p>

@@ -1,3 +1,4 @@
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
 <?php
 /**
  * Send announcement email to all jobseekers with valid email addresses.
@@ -74,7 +75,8 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
         </style>
     </head>
     <body>
-        <div class='email-wrapper'>
+        <?php wc_render_ec2_logo_header(); ?>
+<div class='email-wrapper'>
             <div class='header'>
                 <h1>WorkConnect</h1>
                 <div class='tagline'>Connecting Talent with Opportunity</div>

@@ -69,6 +69,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -81,7 +83,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-    <div class="signup-container">
+    <?php wc_render_ec2_logo_header(); ?>
+<div class="signup-container">
         <div class="logo-section">
             <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
             <h1 class="brand">WorkConnect</h1>

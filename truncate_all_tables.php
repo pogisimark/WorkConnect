@@ -122,6 +122,7 @@ echo "<!DOCTYPE html>
     </style>
 </head>
 <body>
+<?php wc_render_ec2_logo_header(); ?>
 <div class='container'>
 <h1>🗑️ Truncate All Tables - WorkConnect</h1>";
 
@@ -277,3 +278,5 @@ if (!$confirmed) {
 
 echo "</div></body></html>";
 ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/ec2_logo_header.php'; ?>
+
