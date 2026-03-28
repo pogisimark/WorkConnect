@@ -13,6 +13,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
 
 // Check if this is being loaded in an iframe (from dashboard)
 $isIframe = isset($_GET['session_id']) && isset($_GET['user_id']) && isset($_GET['token']);
+// When embedded, parent dashboard shows fullscreen loader; skip duplicate iframe overlay
+$embedInDashboard = !empty($_GET['embed']);
 
 if ($isIframe) {
     // Validate session token for iframe security
@@ -227,6 +229,24 @@ function sendJsonResponse($success, $message, $data = null) {
     
     echo json_encode($response);
     exit;
+}
+
+/** Parse php.ini size values (e.g. "8M", "512K") to bytes */
+function wc_parse_ini_bytes($val) {
+    $val = trim((string) $val);
+    if ($val === '') {
+        return 0;
+    }
+    $last = strtolower($val[strlen($val) - 1]);
+    $num = (float) $val;
+    if ($last === 'g') {
+        $num *= 1024 * 1024 * 1024;
+    } elseif ($last === 'm') {
+        $num *= 1024 * 1024;
+    } elseif ($last === 'k') {
+        $num *= 1024;
+    }
+    return (int) round($num);
 }
 
 function sendSubmissionConfirmationEmail($to_email, $firstname, $surname) {
@@ -517,6 +537,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Debug: Log that we received a POST request
     error_log("POST request received");
+
+    // Mobile/large uploads: if body exceeds post_max_size, PHP discards $_POST/$_FILES — browser often shows a generic "network" error.
+    $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+    $postMaxBytes = wc_parse_ini_bytes(ini_get('post_max_size'));
+    if ($postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+        sendJsonResponse(false, 'Total upload is too large for the server (limit is about ' . ini_get('post_max_size') . '). Compress your e-signature photo or use a smaller resume file, then try again.');
+    }
+    if ($contentLength > 65536 && empty($_POST) && empty($_FILES)) {
+        sendJsonResponse(false, 'The server did not receive your form data. This usually means the total upload was too large or the connection dropped. Use a smaller e-signature image (under 2MB) and a stable connection, then try again.');
+    }
     
     // Simple test response first
     if (isset($_POST['test'])) {
@@ -595,18 +625,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $max_size = 5 * 1024 * 1024; // 5MB
         
         $file_info = pathinfo($_FILES['resume_file']['name']);
-        $ext = strtolower($file_info['extension']);
+        $ext = strtolower($file_info['extension'] ?? '');
         $file_size = $_FILES['resume_file']['size'];
-        $mime_type = $_FILES['resume_file']['type'];
+        $tmpR = $_FILES['resume_file']['tmp_name'];
         
         // Validate file extension
         if (!in_array($ext, $allowed_ext)) {
             sendJsonResponse(false, 'Invalid file type. Please upload PDF, DOC, or DOCX files only.');
         }
         
-        // Validate MIME type
-        if (!in_array($mime_type, $allowed_mime_types)) {
-            sendJsonResponse(false, 'Invalid file type detected. Please upload a valid file.');
+        // Validate MIME from file (mobile browsers often send application/octet-stream)
+        $detectedResumeMime = null;
+        if (is_uploaded_file($tmpR) && function_exists('finfo_open')) {
+            $fi = finfo_open(FILEINFO_MIME_TYPE);
+            if ($fi) {
+                $detectedResumeMime = finfo_file($fi, $tmpR);
+                finfo_close($fi);
+            }
+        }
+        $mime_type = $_FILES['resume_file']['type'] ?? '';
+        $mimeOkResume = in_array($mime_type, $allowed_mime_types, true)
+            || ($detectedResumeMime && in_array($detectedResumeMime, $allowed_mime_types, true));
+        if (!$mimeOkResume && in_array($ext, $allowed_ext, true)) {
+            if ($mime_type === 'application/octet-stream' || $detectedResumeMime === 'application/octet-stream') {
+                $mimeOkResume = true;
+            }
+            if ($ext === 'docx' && $detectedResumeMime === 'application/zip') {
+                $mimeOkResume = true;
+            }
+        }
+        if (!$mimeOkResume) {
+            sendJsonResponse(false, 'Resume file type could not be verified. Please upload a PDF, DOC, or DOCX file.');
         }
         
         // Validate file size
@@ -634,45 +683,84 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $submission_month = date('n');
     $submission_year = date('Y');
     
-    // Handle e-signature upload
+    // Handle e-signature upload (mobile-safe: do not trust browser-reported MIME; verify file on disk)
     $esignature_filename = !empty($existingEsignatureFile) ? $existingEsignatureFile : ''; // Keep existing file by default
-    if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] == UPLOAD_ERR_OK) {
-        $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-        $allowed_mime_types = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'
-        ];
-        $max_size = 2 * 1024 * 1024; // 2MB
-        
-        $file_info = pathinfo($_FILES['esignature']['name']);
-        $ext = strtolower($file_info['extension']);
-        $file_size = $_FILES['esignature']['size'];
-        $mime_type = $_FILES['esignature']['type'];
-        
-        // Validate file extension
-        if (!in_array($ext, $allowed_ext)) {
-            sendJsonResponse(false, 'Invalid e-signature file type. Please upload JPG, PNG, or GIF files only.');
+    $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+    $mime_to_ext = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/bmp' => 'bmp',
+        'image/webp' => 'webp',
+        'image/x-ms-bmp' => 'bmp',
+    ];
+    $max_size = 2 * 1024 * 1024; // 2MB
+
+    if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] === UPLOAD_ERR_OK) {
+        $tmp = $_FILES['esignature']['tmp_name'];
+        $origName = $_FILES['esignature']['name'] ?? '';
+        $file_info = pathinfo($origName);
+        $ext = strtolower($file_info['extension'] ?? '');
+        $file_size = (int) $_FILES['esignature']['size'];
+
+        $detectedMime = null;
+        if (is_uploaded_file($tmp) && function_exists('finfo_open')) {
+            $fi = finfo_open(FILEINFO_MIME_TYPE);
+            if ($fi) {
+                $detectedMime = finfo_file($fi, $tmp);
+                finfo_close($fi);
+            }
         }
-        
-        // Validate MIME type
-        if (!in_array($mime_type, $allowed_mime_types)) {
-            sendJsonResponse(false, 'Invalid e-signature file type detected. Please upload a valid image file.');
+
+        // HEIC/HEIF from iPhones is not supported by this stack
+        if ($detectedMime === 'image/heic' || $detectedMime === 'image/heif'
+            || preg_match('/\.(heic|heif)$/i', $origName)) {
+            sendJsonResponse(false, 'HEIC/HEIF photos are not supported for e-signature. On iPhone: Settings → Camera → Formats → Most Compatible, or choose a JPEG/PNG from Photos.');
         }
-        
-        // Validate file size
+
+        if (($ext === '' || $ext === 'jpe') && $detectedMime && isset($mime_to_ext[$detectedMime])) {
+            $ext = $mime_to_ext[$detectedMime];
+        }
+        if ($ext === 'jpeg') {
+            $ext = 'jpg';
+        }
+
+        if (!in_array($ext, $allowed_ext, true)) {
+            sendJsonResponse(false, 'Invalid e-signature file type. Please upload JPG, PNG, GIF, BMP, or WEBP.');
+        }
+
         if ($file_size > $max_size) {
             sendJsonResponse(false, 'E-signature file size too large. Maximum size is 2MB.');
         }
-        
-        $esignature_filename = uniqid('esignature_') . '.' . $ext;
-        $esignature_dir = __DIR__ . '/../uploads/esignatures/';
-        if (!is_dir($esignature_dir)) { mkdir($esignature_dir, 0777, true); }
-        $esignature_filepath = $esignature_dir . $esignature_filename;
-        
-        if (!move_uploaded_file($_FILES['esignature']['tmp_name'], $esignature_filepath)) {
-            sendJsonResponse(false, 'Failed to upload e-signature file. Please try again.');
+
+        $imgInfo = @getimagesize($tmp);
+        $mimeOk = $detectedMime && isset($mime_to_ext[$detectedMime]);
+        if ($imgInfo === false && !$mimeOk) {
+            sendJsonResponse(false, 'The e-signature file is not a readable image. Try saving as JPEG or PNG from your phone\'s gallery.');
         }
-    } else if (isset($_FILES['esignature']) && $_FILES['esignature']['error'] !== UPLOAD_ERR_NO_FILE) {
-        sendJsonResponse(false, 'E-signature file upload error. Please try again.');
+
+        $storeExt = $ext === 'jpeg' ? 'jpg' : $ext;
+        $esignature_filename = uniqid('esignature_') . '.' . $storeExt;
+        $esignature_dir = __DIR__ . '/../uploads/esignatures/';
+        if (!is_dir($esignature_dir)) {
+            mkdir($esignature_dir, 0777, true);
+        }
+        $esignature_filepath = $esignature_dir . $esignature_filename;
+
+        if (!move_uploaded_file($tmp, $esignature_filepath)) {
+            sendJsonResponse(false, 'Failed to save e-signature file. Please try again.');
+        }
+    } elseif (isset($_FILES['esignature'])) {
+        $err = (int) $_FILES['esignature']['error'];
+        if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
+            sendJsonResponse(false, 'E-signature exceeds upload limit (max 2MB). Take a closer photo or crop the image, then try again.');
+        }
+        if ($err === UPLOAD_ERR_PARTIAL) {
+            sendJsonResponse(false, 'E-signature upload was interrupted. Check your connection and try again.');
+        }
+        if ($err !== UPLOAD_ERR_NO_FILE) {
+            sendJsonResponse(false, 'E-signature file upload error. Please try again.');
+        }
     } else if (empty($esignature_filename) && empty($existingEsignatureFile)) {
         // Only require esignature if no existing file and no new file uploaded
         sendJsonResponse(false, 'E-signature file is required.');
@@ -1551,6 +1639,61 @@ $conn->close();
     .step.completed .step-number-label {
       color: #4caf50;
       font-weight: 600;
+    }
+    
+    /* Full form loading overlay (auto-load / edit / resubmit) */
+    .nrsp-form-load-shell {
+      position: relative;
+    }
+    .nrsp-form-loading-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 500;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .nrsp-form-loading-overlay--active {
+      display: flex;
+    }
+    .nrsp-form-loading-inner {
+      text-align: center;
+      padding: 24px 20px;
+      max-width: 92%;
+    }
+    .nrsp-form-loading-spinner {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      border: 4px solid #e3eaf5;
+      border-top-color: #233a8b;
+      border-radius: 50%;
+      animation: nrsp-form-spin 0.85s linear infinite;
+      box-sizing: border-box;
+    }
+    @keyframes nrsp-form-spin {
+      to { transform: rotate(360deg); }
+    }
+    .nrsp-form-loading-text {
+      margin: 0;
+      font-size: 1rem;
+      color: #233a8b;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    @media (max-width: 768px) {
+      .nrsp-form-loading-spinner {
+        width: 42px;
+        height: 42px;
+        border-width: 3px;
+      }
+      .nrsp-form-loading-text {
+        font-size: 0.9rem;
+      }
     }
     
     /* Adjust form container max width */
@@ -2447,7 +2590,14 @@ $conn->close();
 <body>  
     
     <!-- Main Content: Jobseeker Registration Form -->
-      
+    <div class="nrsp-form-load-shell">
+      <div id="nrspFormLoadingOverlay" class="nrsp-form-loading-overlay<?php echo (!empty($autoLoadForm) && empty($embedInDashboard)) ? ' nrsp-form-loading-overlay--active' : ''; ?>" aria-busy="<?php echo (!empty($autoLoadForm) && empty($embedInDashboard)) ? 'true' : 'false'; ?>" role="status" aria-live="polite" aria-label="Loading NSRP form">
+        <div class="nrsp-form-loading-inner">
+          <div class="nrsp-form-loading-spinner" aria-hidden="true"></div>
+          <p class="nrsp-form-loading-text">Loading your NSRP form…</p>
+        </div>
+      </div>
+
       <!-- Progress Indicator -->
       <div class="progress-indicator">
         <div class="progress-steps">
@@ -3150,6 +3300,7 @@ $conn->close();
           </div>
         </div>
       </form>
+    </div>
       
       <!-- Pass PHP variables to JavaScript -->
       <script>
@@ -6889,6 +7040,123 @@ $conn->close();
     }
   }
 
+  /**
+   * Resize e-signature to JPEG before upload so mobile camera photos stay under limits and MIME is consistent.
+   */
+  async function wcCompressEsignatureForUpload(formData, formEl) {
+    const input = formEl.querySelector('#esignature');
+    if (!input || !input.files || !input.files.length) return;
+    const file = input.files[0];
+    const name = (file.name || '').toLowerCase();
+    if (/\.(heic|heif)$/i.test(name) || file.type === 'image/heic' || file.type === 'image/heif') {
+      return;
+    }
+    const extOk = /\.(jpe?g|png|gif|bmp|webp)$/i.test(name);
+    if (file.type && !file.type.startsWith('image/')) return;
+    if ((!file.type || file.type === '') && !extOk) return;
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('read'));
+        r.readAsDataURL(file);
+      });
+      const blob = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const maxW = 1400;
+            const scale = Math.min(1, maxW / img.width);
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.82);
+          } catch (e) {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
+      });
+      if (blob && blob.size > 0 && blob.size <= 2 * 1024 * 1024) {
+        formData.set('esignature', blob, 'esignature.jpg');
+      }
+    } catch (err) {
+      console.warn('wcCompressEsignatureForUpload:', err);
+    }
+  }
+
+  /**
+   * Mobile (Android/iOS): picking a resume from Google Drive / Files returns a File backed by a
+   * content-provider stream. multipart/fetch can throw "Failed to fetch" when the stream is read.
+   * Materialize bytes into a normal File with a stable name + extension for PHP validation.
+   */
+  function wcIsMobileLikeForResumeUpload() {
+    // UA-based only: fixes Google Drive / SAF content-URIs on phones; avoid buffering on desktop.
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  }
+
+  async function wcNormalizeResumeForMobileUpload(formData, formEl) {
+    if (!wcIsMobileLikeForResumeUpload()) return;
+    const input = formEl.querySelector('#resume_file');
+    if (!input || !input.files || !input.files.length) return;
+    const file = input.files[0];
+
+    function guessExtFromNameAndType(f) {
+      const n = (f.name || '').toLowerCase();
+      if (/\.pdf$/i.test(n)) return 'pdf';
+      if (/\.docx$/i.test(n)) return 'docx';
+      if (/\.doc$/i.test(n)) return 'doc';
+      const t = (f.type || '').toLowerCase();
+      if (t === 'application/pdf' || t === 'application/x-pdf') return 'pdf';
+      if (t.indexOf('wordprocessingml') !== -1 || t.indexOf('officedocument.wordprocessingml') !== -1) return 'docx';
+      if (t === 'application/msword') return 'doc';
+      return '';
+    }
+
+    function mimeForExt(ext) {
+      if (ext === 'pdf') return 'application/pdf';
+      if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      if (ext === 'doc') return 'application/msword';
+      return 'application/octet-stream';
+    }
+
+    try {
+      const buf = await file.arrayBuffer();
+      if (!buf || buf.byteLength === 0) return;
+
+      let ext = guessExtFromNameAndType(file);
+      if (buf.byteLength >= 8) {
+        const u8 = new Uint8Array(buf.slice(0, 8));
+        const asText = String.fromCharCode(u8[0], u8[1], u8[2], u8[3]);
+        if (asText === '%PDF') ext = 'pdf';
+        else if (u8[0] === 0x50 && u8[1] === 0x4B) ext = 'docx';
+        else if (u8[0] === 0xD0 && u8[1] === 0xCF && u8[2] === 0x11 && u8[3] === 0xE0) ext = 'doc';
+      }
+      if (!ext || !['pdf', 'doc', 'docx'].includes(ext)) ext = 'pdf';
+
+      const maxBytes = 5 * 1024 * 1024;
+      if (buf.byteLength > maxBytes) return;
+
+      const safeName = 'resume_upload.' + ext;
+      const mime = (file.type && file.type !== '' && file.type !== 'application/octet-stream')
+        ? file.type
+        : mimeForExt(ext);
+      const blob = new Blob([buf], { type: mime });
+      const out = new File([blob], safeName, { type: mime, lastModified: Date.now() });
+      formData.set('resume_file', out, safeName);
+    } catch (err) {
+      console.warn('wcNormalizeResumeForMobileUpload:', err);
+    }
+  }
+
   // Validation and AJAX submit
   document.getElementById('jobseekerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -7046,7 +7314,10 @@ $conn->close();
      if (existingResumeInput && existingResumeInput.value) {
        formData.append('existing_resume_file', existingResumeInput.value);
      }
-     
+
+     await wcCompressEsignatureForUpload(formData, form);
+     await wcNormalizeResumeForMobileUpload(formData, form);
+
      // Remove required from all hidden fields one more time before submission
      const allHiddenFields = form.querySelectorAll('input[type="text"][style*="display: none"], input[type="text"][style*="display:none"], .form-section[style*="display: none"] input, .form-section[style*="display:none"] input');
      allHiddenFields.forEach(field => {
@@ -7059,20 +7330,27 @@ $conn->close();
      submitBtn.textContent = 'Submitting...';
      submitBtn.disabled = true;
      
+     const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+     const to = ac ? setTimeout(() => ac.abort(), 120000) : null;
      fetch(form.action, {
        method: 'POST',
-       body: formData
+       body: formData,
+       signal: ac ? ac.signal : undefined
      })
      .then(async response => {
        console.log('Response status:', response.status);
        const contentType = response.headers.get('content-type');
        if (contentType && contentType.includes('application/json')) {
          return response.json();
-       } else {
-         const text = await response.text();
-         console.error('Non-JSON response:', text);
-         throw new Error('Server returned non-JSON response');
        }
+       const text = await response.text().catch(() => '');
+       console.error('Non-JSON response:', text.slice(0, 500));
+       if (response.status === 413) {
+         throw new Error('Upload too large for the server. Use a smaller e-signature (under 2MB) or resume file.');
+       }
+       throw new Error(text
+         ? 'The server returned an error page instead of JSON. If you used large photos, try files under 2MB each.'
+         : 'Server returned an unexpected response. Try again or use smaller images.');
      })
      .then(data => {
        console.log('Response data:', data);
@@ -7131,16 +7409,20 @@ $conn->close();
      })
      .catch(error => {
        console.error('Submission error:', error);
-       // Show SweetAlert for network errors
+       let msg = error && error.message ? error.message : 'Please check your connection and try again.';
+       if (error && error.name === 'AbortError') {
+         msg = 'The request took too long (timeout). Try again with a smaller e-signature photo or on Wi‑Fi.';
+       }
        Swal.fire({
-         title: 'Network Error!',
-         text: 'Please check your connection and try again.',
+         title: 'Submission failed',
+         text: msg,
          icon: 'error',
          confirmButtonText: 'OK',
          confirmButtonColor: '#f44336'
        });
      })
      .finally(() => {
+       if (to) clearTimeout(to);
        // Reset button state
        submitBtn.textContent = originalText;
        submitBtn.disabled = false;
@@ -7232,9 +7514,19 @@ $conn->close();
     const input = this;
     
     if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
+      const name = (file.name || '').toLowerCase();
+      if (/\.(heic|heif)$/i.test(name) || file.type === 'image/heic' || file.type === 'image/heif') {
+        Swal.fire({
+          icon: 'error',
+          title: 'HEIC not supported',
+          text: 'Please use a JPEG or PNG. On iPhone: Settings → Camera → Formats → Most Compatible, or pick Export as JPEG in Photos.'
+        });
+        this.value = '';
+        return;
+      }
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', ''];
+      const extOk = /\.(jpe?g|png|gif|bmp|webp)$/i.test(name);
+      if (!allowedTypes.includes(file.type) && !(file.type === '' && extOk)) {
         Swal.fire({
           icon: 'error',
           title: 'Invalid File Type',
@@ -7536,6 +7828,14 @@ $conn->close();
       levelReachedEl.addEventListener('change', syncEducationFieldsLocking);
     }
     syncEducationFieldsLocking();
+
+    if (window.self !== window.top && (typeof AUTO_LOAD_FORM === 'undefined' || !AUTO_LOAD_FORM)) {
+      setTimeout(function () {
+        try {
+          window.parent.postMessage({ type: 'nrsp_apply_ready', source: 'apply' }, '*');
+        } catch (e) {}
+      }, 200);
+    }
     
   });
   
@@ -7838,19 +8138,32 @@ $conn->close();
     
   }
   
+  function nrspShowFormLoadingOverlay() {
+    if (window.self !== window.top) return;
+    var el = document.getElementById('nrspFormLoadingOverlay');
+    if (el) {
+      el.classList.add('nrsp-form-loading-overlay--active');
+      el.setAttribute('aria-busy', 'true');
+    }
+  }
+
+  function nrspHideFormLoadingOverlay() {
+    var el = document.getElementById('nrspFormLoadingOverlay');
+    if (el) {
+      el.classList.remove('nrsp-form-loading-overlay--active');
+      el.setAttribute('aria-busy', 'false');
+    }
+    if (window.self !== window.top) {
+      try {
+        window.parent.postMessage({ type: 'nrsp_apply_ready', source: 'apply' }, '*');
+      } catch (e) {}
+    }
+  }
+
   // Function to load existing NRSP form data for editing
   function loadExistingNRSPForm(autoLoad = false) {
-    if (!autoLoad) {
-      Swal.fire({
-        title: 'Loading Form...',
-        text: 'Please wait while we load your existing NRSP form data.',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-    }
-    
+    nrspShowFormLoadingOverlay();
+
     // Fetch existing NRSP form data
     fetch('get_nrsp_form_data.php', {
       method: 'POST',
@@ -7863,10 +8176,6 @@ $conn->close();
     })
     .then(response => response.json())
     .then(data => {
-      if (!autoLoad) {
-        Swal.close();
-      }
-      
       if (data.success && data.nrsp_data) {
         const nrsp = data.nrsp_data;
         setNameIntegrityLock(true);
@@ -8051,6 +8360,12 @@ $conn->close();
             });
           }
         }
+
+        requestAnimationFrame(function () {
+          setTimeout(function () {
+            nrspHideFormLoadingOverlay();
+          }, 100);
+        });
         
         // Show success message only if not auto-loading
         if (!autoLoad) {
@@ -8083,6 +8398,7 @@ $conn->close();
         }
       } else {
         setNameIntegrityLock(false);
+        nrspHideFormLoadingOverlay();
         Swal.fire({
           title: 'Error',
           text: data.message || 'Failed to load NRSP form data.',
@@ -8092,6 +8408,7 @@ $conn->close();
       }
     })
     .catch(error => {
+      nrspHideFormLoadingOverlay();
       Swal.close();
       console.error('Error loading NRSP form:', error);
       Swal.fire({

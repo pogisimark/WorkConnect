@@ -2233,6 +2233,68 @@ $conn->close();
         }
     }
 
+    /* Full-dashboard NSRP loader (covers header + sidebar + main; iframe signals when ready) */
+    #dashboard-nrsp-fullscreen-loading {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 6000;
+        background: rgba(245, 247, 250, 0.96);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: max(16px, env(safe-area-inset-top)) 20px max(16px, env(safe-area-inset-bottom));
+        box-sizing: border-box;
+    }
+    #dashboard-nrsp-fullscreen-loading.is-visible {
+        display: flex;
+    }
+    .dashboard-nrsp-fullscreen-loading__card {
+        text-align: center;
+        max-width: 22rem;
+    }
+    .dashboard-nrsp-fullscreen-loading__spinner {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 20px;
+        border: 4px solid #e3eaf5;
+        border-top-color: #1a3876;
+        border-radius: 50%;
+        animation: dashboard-nrsp-spin 0.85s linear infinite;
+        box-sizing: border-box;
+    }
+    @keyframes dashboard-nrsp-spin {
+        to { transform: rotate(360deg); }
+    }
+    .dashboard-nrsp-fullscreen-loading__text {
+        margin: 0 0 8px 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1a3876;
+        line-height: 1.35;
+    }
+    .dashboard-nrsp-fullscreen-loading__sub {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #5c6b8a;
+        line-height: 1.45;
+    }
+    @media (max-width: 768px) {
+        .dashboard-nrsp-fullscreen-loading__spinner {
+            width: 44px;
+            height: 44px;
+            border-width: 3px;
+        }
+        .dashboard-nrsp-fullscreen-loading__text {
+            font-size: 1.02rem;
+        }
+        .dashboard-nrsp-fullscreen-loading__sub {
+            font-size: 0.82rem;
+        }
+    }
+
     /* Parent-level modal host (matches Company jobposting “View details” / jd-modal-popup) */
     #global-modal-overlay {
         display: none;
@@ -2513,6 +2575,13 @@ $conn->close();
     </style>
 </head>
 <body>
+<div id="dashboard-nrsp-fullscreen-loading" class="dashboard-nrsp-fullscreen-loading" aria-busy="false" role="status" aria-live="polite" aria-label="Loading NSRP registration">
+    <div class="dashboard-nrsp-fullscreen-loading__card">
+        <div class="dashboard-nrsp-fullscreen-loading__spinner" aria-hidden="true"></div>
+        <p class="dashboard-nrsp-fullscreen-loading__text">Loading your NSRP registration…</p>
+        <p class="dashboard-nrsp-fullscreen-loading__sub">Fetching your saved form from the server. This may take a few seconds.</p>
+    </div>
+</div>
 <div class="dashboard-header">
         <div class="logo-brand">
             <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu" type="button">
@@ -2785,11 +2854,7 @@ $conn->close();
             <div id="apply-section" class="content-section" style="display: none;"> 
                 <h2 class="section-title">Jobseeker Registration Form</h2>
                 <div id="apply-container">
-                    <div id="loading-indicator" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
-                        <div class="loading-spinner"></div>
-                        <p style="margin: 10px 0 0 0; color: #666;">Loading application form for your session...</p>
-                    </div>
-                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto;"></iframe>
+                    <iframe id="apply-iframe" src="apply.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>&embed=1" width="100%" frameborder="0" scrolling="yes" style="border-radius: 8px; border: none; height: auto;"></iframe>
                 </div>
             </div>
 
@@ -2949,6 +3014,15 @@ $conn->close();
             if (e.data && e.data.type === 'nrsp_submitted') {
                 location.reload();
             }
+            if (e.data && e.data.type === 'nrsp_apply_ready' && e.data.source === 'apply') {
+                var applyIframe = document.getElementById('apply-iframe');
+                if (applyIframe && applyIframe.contentWindow === e.source) {
+                    window._wcApplyIframeReady = true;
+                    if (typeof hideNrspParentLoading === 'function') {
+                        hideNrspParentLoading();
+                    }
+                }
+            }
             if (e.data && e.data.type === 'showModal') {
                 window.showGlobalModal(e.data.payload || {});
             }
@@ -2982,16 +3056,38 @@ $conn->close();
             }
         });
         
-        // Function to hide loading indicator with timer
-        function hideLoadingIndicator() {
-            const loadingIndicator = document.getElementById('loading-indicator');
-            if (loadingIndicator) {
-                // Hide after 2 seconds to ensure iframe content is loaded
-                setTimeout(() => {
-                    loadingIndicator.style.display = 'none';
-                }, 2000);
+        var nrspParentLoadSafetyTimer = null;
+        /** True after apply iframe posts nrsp_apply_ready; reset on iframe load / src change */
+        window._wcApplyIframeReady = false;
+
+        function showNrspParentLoading() {
+            var el = document.getElementById('dashboard-nrsp-fullscreen-loading');
+            if (el) {
+                el.classList.add('is-visible');
+                el.setAttribute('aria-busy', 'true');
+            }
+            document.body.style.overflow = 'hidden';
+            if (nrspParentLoadSafetyTimer) clearTimeout(nrspParentLoadSafetyTimer);
+            nrspParentLoadSafetyTimer = setTimeout(function () {
+                hideNrspParentLoading();
+            }, 120000);
+        }
+
+        function hideNrspParentLoading() {
+            var el = document.getElementById('dashboard-nrsp-fullscreen-loading');
+            if (el) {
+                el.classList.remove('is-visible');
+                el.setAttribute('aria-busy', 'false');
+            }
+            document.body.style.overflow = '';
+            if (nrspParentLoadSafetyTimer) {
+                clearTimeout(nrspParentLoadSafetyTimer);
+                nrspParentLoadSafetyTimer = null;
             }
         }
+
+        // Legacy no-op (apply section uses fullscreen loader + iframe postMessage)
+        function hideLoadingIndicator() {}
         
         // Function to hide recommended jobs loading indicator with timer
         function hideRecommendedJobsLoadingIndicator() {
@@ -3107,6 +3203,7 @@ $conn->close();
             }
 
             iframe.addEventListener('load', function () {
+                window._wcApplyIframeReady = false;
                 measureHeight(true);
                 bindResizeObserver();
                 if (intervalId) clearInterval(intervalId);
@@ -3295,6 +3392,9 @@ $conn->close();
         
         // Auto-hide loading indicator when apply section is shown
         function showSection(section) {
+            if (section !== 'apply') {
+                hideNrspParentLoading();
+            }
             // Close mobile slide-out sidebar when navigating
             if (window.innerWidth <= 768) {
                 const sidebar = document.querySelector('.sidebar.desktop-nav');
@@ -3315,9 +3415,12 @@ $conn->close();
             if (targetSection) {
                 targetSection.style.display = 'block';
                 
-                // If showing apply section, hide loading indicator after delay
                 if (section === 'apply') {
-                    hideLoadingIndicator();
+                    if (window._wcApplyIframeReady) {
+                        hideNrspParentLoading();
+                    } else {
+                        showNrspParentLoading();
+                    }
                     /* Iframe was display:none — remeasure height so parent scroll matches full form */
                     setTimeout(function () {
                         if (typeof window._wcResizeApplyIframe === 'function') window._wcResizeApplyIframe();
@@ -3530,14 +3633,11 @@ $conn->close();
                 const userId = '<?php echo $_SESSION['user_id']; ?>';
                 const sessionToken = '<?php echo $session_token; ?>';
                 
-                // Show loading indicator
-                const loadingIndicator = document.getElementById('loading-indicator');
-                if (loadingIndicator) {
-                    loadingIndicator.style.display = 'block';
-                }
-                
+                window._wcApplyIframeReady = false;
+                showNrspParentLoading();
+
                 // Reload iframe with fresh session parameters
-                iframe.src = `apply.php?session_id=${sessionId}&user_id=${userId}&token=${sessionToken}&t=${timestamp}`;
+                iframe.src = `apply.php?session_id=${sessionId}&user_id=${userId}&token=${sessionToken}&embed=1&t=${timestamp}`;
             }
         }
         
