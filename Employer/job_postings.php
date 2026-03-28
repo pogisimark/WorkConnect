@@ -595,6 +595,8 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             font-size: 0.8rem;
             font-weight: bold;
             text-transform: uppercase;
+            white-space: nowrap;
+            display: inline-block;
         }
         
         .job-type-fulltime {
@@ -901,6 +903,10 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                 box-sizing: border-box;
             }
             
+            .content-card {
+                overflow: visible;
+            }
+            
             .filters-section {
                 width: 100%;
                 max-width: 100%;
@@ -921,25 +927,159 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             }
             
             .table-scroll-wrapper {
-                overflow-x: auto;
+                overflow-x: visible;
                 -webkit-overflow-scrolling: touch;
                 max-width: 100%;
             }
             
+            /* Mobile: job rows as cards (no horizontal scroll) */
             .jobs-table {
-                min-width: 700px;
+                min-width: 0 !important;
+                width: 100%;
+                display: block;
+            }
+            .jobs-table thead {
+                display: none;
+            }
+            .jobs-table tbody {
+                display: block;
+            }
+            .jobs-table tbody tr {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                column-gap: 12px;
+                row-gap: 0;
+                align-items: start;
+                margin-bottom: 14px;
+                padding: 12px 14px;
+                background: #fafbfd;
+                border: 1px solid #e3e8f0;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(35, 58, 139, 0.06);
+            }
+            .jobs-table tbody tr:hover {
+                background: #fafbfd;
+            }
+            .jobs-table tbody td {
+                display: block;
+                width: 100% !important;
+                padding: 0 !important;
+                border: none !important;
+                vertical-align: top;
+                text-align: left !important;
+            }
+            .jobs-table tbody td.job-card-td--check {
+                grid-column: 1;
+                grid-row: 1;
+                width: auto !important;
+                padding-top: 4px !important;
+            }
+            .jobs-table tbody td.job-card-td--title {
+                grid-column: 2;
+                grid-row: 1;
+                width: auto !important;
+                padding-bottom: 2px !important;
+            }
+            .jobs-table tbody td.job-card-td--title .job-title-cell strong {
+                font-size: 1rem;
+                line-height: 1.3;
+            }
+            .jobs-table tbody td.job-card-td--field {
+                grid-column: 1 / -1;
+                padding: 10px 0 !important;
+                border-top: 1px solid #eef1f5 !important;
+            }
+            .jobs-table tbody td.job-card-td--title + td.job-card-td--field {
+                margin-top: 8px;
+                padding-top: 12px !important;
+            }
+            .jobs-table tbody td.job-card-td--actions {
+                grid-column: 1 / -1;
+                border-top: 1px solid #e8ecf0 !important;
+                margin-top: 4px;
+                padding-top: 12px !important;
+                padding-bottom: 4px !important;
+            }
+            .jobs-table tbody td.job-card-td--check::before,
+            .jobs-table tbody td.job-card-td--title::before,
+            .jobs-table tbody td.job-card-td--actions::before {
+                display: none !important;
+            }
+            .jobs-table tbody td[data-label]:not([data-label=""])::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: #8b95a5;
+                margin-bottom: 5px;
+            }
+            .jobs-table tbody td.job-card-td--actions .action-buttons {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                align-items: stretch;
+                justify-content: stretch;
+                width: 100%;
+                gap: 6px;
+            }
+            .jobs-table tbody td.job-card-td--actions .action-buttons .btn {
+                flex: 1 1 0;
+                min-width: 0;
+                justify-content: center;
+            }
+            .jobs-table tbody td.job-card-td--field .location-cell {
+                align-items: flex-start;
+                line-height: 1.45;
+            }
+            .jobs-table tbody td.job-card-td--field .location-cell i {
+                margin-top: 3px;
+                flex-shrink: 0;
+            }
+            .jobs-table tbody tr td[colspan] {
+                grid-column: 1 / -1;
+                display: block !important;
+                width: 100% !important;
+                text-align: center !important;
+                padding: 32px 16px !important;
+                border: none !important;
+                background: transparent;
+            }
+            .jobs-table tbody tr.jobs-table-empty-row,
+            .jobs-table tbody tr:has(td[colspan]) {
+                display: block;
+                grid-template-columns: none;
+                padding: 0;
+                background: transparent;
+                border: none;
+                box-shadow: none;
             }
             
             .form-row {
                 grid-template-columns: 1fr;
             }
             
+            /* Compact stat tiles: 2×2, less padding — more table visible above fold */
             .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 14px;
             }
-            
-            .action-buttons {
-                flex-direction: column;
+            .stat-card {
+                padding: 10px 8px;
+                border-radius: 8px;
+                border-left-width: 3px;
+            }
+            .stat-number {
+                font-size: 1.35rem;
+                margin-bottom: 2px;
+                line-height: 1.1;
+            }
+            .stat-label {
+                font-size: 0.68rem;
+                line-height: 1.2;
+                font-weight: 600;
             }
             
             .filter-controls {
@@ -977,13 +1117,25 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                 padding: 12px;
             }
             
+            /* Keep 2×2 on small phones — narrower tiles, tighter type */
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+                margin-bottom: 12px;
+            }
+            .stat-card {
+                padding: 8px 6px;
+            }
+            .stat-number {
+                font-size: 1.15rem;
+            }
+            .stat-label {
+                font-size: 0.62rem;
             }
             
             .jobs-table {
                 font-size: 0.85rem;
-                min-width: 550px;
+                min-width: 0 !important;
             }
             
             .jobs-table th,
@@ -1006,13 +1158,107 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                 align-items: stretch;
             }
             
-            .action-buttons {
+            .jobs-table tbody td.job-card-td--actions .action-buttons {
                 gap: 4px;
             }
             
-            .btn {
-                padding: 6px 8px;
-                font-size: 0.7rem;
+            .jobs-table tbody td.job-card-td--actions .btn {
+                padding: 10px 6px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* SweetAlert2 job view / applications: full usable width on mobile */
+        .swal2-popup.swal2-popup-custom {
+            width: min(100vw - 16px, 720px) !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin: 8px auto !important;
+        }
+        .swal2-popup.swal2-popup-custom .swal2-title {
+            font-size: clamp(0.95rem, 4vw, 1.3rem) !important;
+            line-height: 1.3 !important;
+            padding: 14px 44px 10px 14px !important;
+        }
+        .swal2-popup.swal2-popup-custom .swal2-html-container {
+            margin: 0 !important;
+            padding: 0 12px 14px !important;
+            max-height: min(70vh, 600px) !important;
+            overflow-y: auto !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .job-view-details-root,
+        .job-apps-swal-root {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        .job-view-details-root .jv-meta-box {
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .job-view-details-root .jv-company-line {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .job-view-details-root .jv-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
+            margin-top: 8px;
+        }
+        .job-view-details-root .jv-meta-grid > div {
+            font-size: 0.88rem;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .job-view-details-root .jv-meta-grid strong {
+            color: #333;
+            display: block;
+            font-size: 0.78rem;
+            margin-bottom: 2px;
+        }
+        .job-view-details-root .jv-heading {
+            color: #233a8b;
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            border-bottom: 2px solid #233a8b;
+            padding-bottom: 4px;
+        }
+        .job-view-details-root .jv-block {
+            margin-bottom: 14px;
+        }
+        .job-view-details-root .jv-body {
+            background: #f8f9fa;
+            padding: 12px 14px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            color: #333;
+            line-height: 1.55;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            word-break: break-word;
+        }
+        @media (max-width: 480px) {
+            .swal2-popup.swal2-popup-custom {
+                width: calc(100vw - 12px) !important;
+                margin: 6px auto !important;
+            }
+            .job-view-details-root .jv-meta-box {
+                padding: 10px 12px;
+            }
+            .job-view-details-root .jv-meta-grid {
+                grid-template-columns: 1fr;
+            }
+            .job-view-details-root .jv-body {
+                padding: 10px 12px;
+                font-size: 0.85rem;
             }
         }
     </style>
@@ -1387,40 +1633,40 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                         <tbody>
                             <?php foreach ($job_postings as $job): ?>
                                 <tr data-job-id="<?php echo $job['id']; ?>">
-                                    <td>
+                                    <td class="job-card-td job-card-td--check" data-label="">
                                         <input type="checkbox" class="job-checkbox" value="<?php echo $job['id']; ?>" onchange="toggleJobSelection(<?php echo $job['id']; ?>)">
                                     </td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--title" data-label="">
                                         <div class="job-title-cell">
                                             <strong><?php echo htmlspecialchars($job['title']); ?></strong>
                                             <small class="job-industry"><?php echo htmlspecialchars($job['industry']); ?></small>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($job['company']); ?></td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--field" data-label="Company"><?php echo htmlspecialchars($job['company']); ?></td>
+                                    <td class="job-card-td job-card-td--field" data-label="Location">
                                         <div class="location-cell">
                                             <i class="fas fa-map-marker-alt"></i>
                                             <?php echo htmlspecialchars($job['location']); ?>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--field" data-label="Type">
                                         <span class="job-type-badge job-type-<?php echo strtolower(str_replace('-', '', $job['job_type'])); ?>">
                                             <?php echo htmlspecialchars($job['job_type']); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo $job['salary_range'] ? '₱ ' . htmlspecialchars($job['salary_range']) : ''; ?></td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--field" data-label="Salary"><?php echo $job['salary_range'] ? '₱ ' . htmlspecialchars($job['salary_range']) : '—'; ?></td>
+                                    <td class="job-card-td job-card-td--field" data-label="Status">
                                         <span class="status-badge status-<?php echo strtolower($job['status']); ?>">
                                             <?php echo htmlspecialchars($job['status']); ?>
                                         </span>
                                     </td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--field" data-label="Created">
                                         <div class="date-cell">
                                             <?php echo date('M j, Y', strtotime($job['created_at'])); ?>
                                             <small><?php echo date('g:i A', strtotime($job['created_at'])); ?></small>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td class="job-card-td job-card-td--actions" data-label="">
                                         <div class="action-buttons">
                                             <button class="btn btn-view" onclick="viewJob(<?php echo $job['id']; ?>)" title="View Details">
                                                 <i class="fas fa-eye"></i>
@@ -1662,7 +1908,7 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             
             if (filteredJobs.length === 0) {
                 tbody.innerHTML = `
-                    <tr>
+                    <tr class="jobs-table-empty-row">
                         <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
                             <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
                             No jobs found matching your criteria
@@ -1674,40 +1920,40 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             
             tbody.innerHTML = filteredJobs.map(job => `
                 <tr data-job-id="${job.id}">
-                    <td>
+                    <td class="job-card-td job-card-td--check" data-label="">
                         <input type="checkbox" class="job-checkbox" value="${job.id}" onchange="toggleJobSelection(${job.id})">
                     </td>
-                    <td>
+                    <td class="job-card-td job-card-td--title" data-label="">
                         <div class="job-title-cell">
                             <strong>${escapeHtml(job.title)}</strong>
                             <small class="job-industry">${escapeHtml(job.industry || '')}</small>
                         </div>
                     </td>
-                    <td>${escapeHtml(job.company)}</td>
-                    <td>
+                    <td class="job-card-td job-card-td--field" data-label="Company">${escapeHtml(job.company)}</td>
+                    <td class="job-card-td job-card-td--field" data-label="Location">
                         <div class="location-cell">
                             <i class="fas fa-map-marker-alt"></i>
                             ${escapeHtml(job.location)}
                         </div>
                     </td>
-                    <td>
+                    <td class="job-card-td job-card-td--field" data-label="Type">
                         <span class="job-type-badge job-type-${job.job_type.toLowerCase().replace('-', '')}">
                             ${escapeHtml(job.job_type)}
                         </span>
                     </td>
-                    <td>${job.salary_range ? '₱ ' + escapeHtml(job.salary_range) : ''}</td>
-                    <td>
+                    <td class="job-card-td job-card-td--field" data-label="Salary">${job.salary_range ? '₱ ' + escapeHtml(job.salary_range) : '—'}</td>
+                    <td class="job-card-td job-card-td--field" data-label="Status">
                         <span class="status-badge status-${job.status.toLowerCase()}">
                             ${escapeHtml(job.status)}
                         </span>
                     </td>
-                    <td>
+                    <td class="job-card-td job-card-td--field" data-label="Created">
                         <div class="date-cell">
                             ${formatDate(job.created_at)}
                             <small>${formatTime(job.created_at)}</small>
                         </div>
                     </td>
-                    <td>
+                    <td class="job-card-td job-card-td--actions" data-label="">
                         <div class="action-buttons">
                             <button class="btn btn-view" onclick="viewJob(${job.id})" title="View Details">
                                 <i class="fas fa-eye"></i>
@@ -1942,33 +2188,31 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             Swal.fire({
                 title: escapeHtml(job.title),
                 html: `
-                    <div style="text-align: left; max-width: 600px;">
-                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                            <p style="margin: 0 0 10px 0; color: #666;"><strong style="color: #333;">Company:</strong> ${escapeHtml(job.company)}</p>
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;">
-                                <div><strong style="color: #333;">Location:</strong> <span style="color: #666;">${escapeHtml(job.location)}</span></div>
-                                <div><strong style="color: #333;">Type:</strong> <span style="color: #666;">${escapeHtml(job.job_type)}</span></div>
-                                <div><strong style="color: #333;">Salary:</strong> <span style="color: #666;">₱ ${escapeHtml(job.salary_range || 'Not specified')}</span></div>
-                                <div><strong style="color: #333;">Industry:</strong> <span style="color: #666;">${escapeHtml(job.industry || 'Not specified')}</span></div>
-                                <div><strong style="color: #333;">Status:</strong> <span style="${statusBadgeStyle}">${escapeHtml(job.status)}</span></div>
-                                <div><strong style="color: #333;">Posted:</strong> <span style="color: #666;">${formatDate(job.created_at)}</span></div>
+                    <div class="job-view-details-root">
+                        <div class="jv-meta-box">
+                            <p class="jv-company-line"><strong style="color:#333;">Company:</strong> ${escapeHtml(job.company)}</p>
+                            <div class="jv-meta-grid">
+                                <div><strong>Location</strong><span style="color:#555;">${escapeHtml(job.location)}</span></div>
+                                <div><strong>Type</strong><span style="color:#555;">${escapeHtml(job.job_type)}</span></div>
+                                <div><strong>Salary</strong><span style="color:#555;">₱ ${escapeHtml(job.salary_range || 'Not specified')}</span></div>
+                                <div><strong>Industry</strong><span style="color:#555;">${escapeHtml(job.industry || 'Not specified')}</span></div>
+                                <div><strong>Status</strong><span style="${statusBadgeStyle}">${escapeHtml(job.status)}</span></div>
+                                <div><strong>Posted</strong><span style="color:#555;">${formatDate(job.created_at)}</span></div>
                             </div>
                         </div>
-                        
-                        <div style="margin-bottom: 20px;">
-                            <h4 style="color: #233a8b; margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #233a8b; padding-bottom: 5px;">Job Description</h4>
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap; color: #333; line-height: 1.6;">${escapeHtml(job.description || 'No description provided')}</div>
+                        <div class="jv-block">
+                            <h4 class="jv-heading">Job Description</h4>
+                            <div class="jv-body">${escapeHtml(job.description || 'No description provided')}</div>
                         </div>
-                        
-                        <div>
-                            <h4 style="color: #233a8b; margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #233a8b; padding-bottom: 5px;">Requirements</h4>
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap; color: #333; line-height: 1.6;">${escapeHtml(job.requirements || 'No requirements specified')}</div>
+                        <div class="jv-block">
+                            <h4 class="jv-heading">Requirements</h4>
+                            <div class="jv-body">${escapeHtml(job.requirements || 'No requirements specified')}</div>
                         </div>
                     </div>
                 `,
-                width: '700px',
                 confirmButtonText: 'Close',
                 confirmButtonColor: '#233a8b',
+                padding: 0,
                 customClass: {
                     popup: 'swal2-popup-custom'
                 }
@@ -2018,10 +2262,10 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                     
                     // Build HTML content
                     let html = `
-                        <div style="text-align: left; max-width: 600px;">
-                            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                                <h3 style="margin: 0 0 15px 0; color: #233a8b; font-size: 1.2rem;">Application Statistics</h3>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="job-apps-swal-root">
+                            <div style="margin-bottom: 16px; padding: 12px 14px; background: #f8f9fa; border-radius: 8px; box-sizing: border-box;">
+                                <h3 style="margin: 0 0 12px 0; color: #233a8b; font-size: 1.05rem;">Application Statistics</h3>
+                                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
                                     <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #233a8b;">
                                         <div style="font-size: 1.8rem; font-weight: bold; color: #233a8b;">${total}</div>
                                         <div style="color: #666; font-size: 0.9rem;">Total Applications</div>
@@ -2085,10 +2329,13 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
                     Swal.fire({
                         title: `Applications: ${escapeHtml(job.title)}`,
                         html: html,
-                        width: '700px',
                         confirmButtonText: 'Close',
                         confirmButtonColor: '#233a8b',
-                        showCancelButton: false
+                        showCancelButton: false,
+                        padding: 0,
+                        customClass: {
+                            popup: 'swal2-popup-custom'
+                        }
                     });
                 })
                 .catch(error => {

@@ -55,9 +55,12 @@ function createAnnouncementNotification($announcement_title, $announcement_descr
     
     foreach ($users as $user) {
         $title = "New Announcement: " . $announcement_title;
-        $message = strlen($announcement_description) > 100 ? 
-            substr($announcement_description, 0, 100) . "..." : 
-            $announcement_description;
+        $plain = preg_replace('/\s+/', ' ', trim(strip_tags($announcement_description)));
+        $plain = html_entity_decode($plain, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $snippet = function_exists('mb_substr')
+            ? (mb_strlen($plain) > 160 ? mb_substr($plain, 0, 160) . '…' : $plain)
+            : (strlen($plain) > 160 ? substr($plain, 0, 160) . '…' : $plain);
+        $message = $snippet;
         
         if (createNotification($user['user_id'], $title, $message, 'announcement')) {
             $success_count++;

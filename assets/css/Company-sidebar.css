@@ -36,6 +36,89 @@
 }
 
 @media (max-width: 768px) {
+    /*
+     * Company mobile header + drawer share one vertical offset (on html so sidebar can read it).
+     */
+    /* Taller bar if welcome wraps to two lines after removing ellipsis */
+    html {
+        --company-mobile-header-h: 72px;
+    }
+    .dashboard-header {
+        min-height: var(--company-mobile-header-h) !important;
+        padding: 6px 8px 6px 6px !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+    }
+    .dashboard-header .logo-brand {
+        flex: 0 0 auto;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    /* "WorkConnect" beside logo steals width; PESO mark is enough on mobile */
+    .dashboard-header .logo-brand .brand {
+        display: none !important;
+    }
+    .dashboard-header .logo-brand .logo {
+        height: 32px !important;
+        width: auto !important;
+    }
+    .dashboard-header .hamburger-menu {
+        margin-right: 2px !important;
+        padding: 6px !important;
+    }
+    /* Welcome starts after logo row (not pushed to center); avatar stays on the right */
+    .dashboard-header .user-info {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        display: flex !important;
+        justify-content: flex-start !important;
+        margin-left: 0 !important;
+    }
+    .dashboard-header .user-profile {
+        display: flex !important;
+        flex-direction: row-reverse !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        max-width: 100%;
+    }
+    /* Full greeting — no ellipsis (was: nowrap + overflow hidden + text-overflow) */
+    .dashboard-header .welcome-text {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        text-align: left !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        font-size: 0.8125rem !important;
+        line-height: 1.25 !important;
+        word-break: break-word !important;
+    }
+    .dashboard-header .profile-icon {
+        flex-shrink: 0 !important;
+    }
+    .dashboard-header .profile-icon img {
+        object-fit: contain !important;
+        padding: 3px !important;
+        box-sizing: border-box !important;
+    }
+
+    .dashboard-container {
+        padding-top: var(--company-mobile-header-h) !important;
+    }
+
+    .profile-dropdown {
+        top: calc(var(--company-mobile-header-h) + 4px) !important;
+        right: 10px !important;
+    }
+
     /* Same as Employer: stop the page behind the fixed drawer from scrolling */
     html:has(.sidebar.desktop-nav.active),
     body:has(.sidebar.desktop-nav.active) {
@@ -46,19 +129,23 @@
     .hamburger-menu {
         display: flex !important;
     }
-    /* Mobile: slide-out sidebar */
+    /* Mobile: full-height drawer; nav fills space; Logout (last li) pinned to bottom */
     .sidebar.desktop-nav {
         position: fixed !important;
-        top: 70px !important;
+        top: var(--company-mobile-header-h) !important;
         left: -250px !important;
         bottom: 0 !important;
         right: auto !important;
         width: 250px !important;
-        height: calc(100vh - 80px) !important; height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important;
+        height: calc(100dvh - var(--company-mobile-header-h) - env(safe-area-inset-bottom, 0px)) !important;
+        max-height: calc(100dvh - var(--company-mobile-header-h) - env(safe-area-inset-bottom, 0px)) !important;
         background: #f8f9fa !important;
         display: flex !important;
         flex-direction: column !important;
-        padding: 20px 0 !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        padding: 14px 0 0 !important;
+        box-sizing: border-box !important;
         box-shadow: 2px 0 10px rgba(0,0,0,0.15) !important;
         z-index: 998 !important;
         transition: left 0.3s ease !important;
@@ -69,6 +156,23 @@
     .sidebar.desktop-nav.active {
         left: 0 !important;
     }
+
+    .sidebar.desktop-nav .sidebar-nav {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 0 max(12px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .sidebar.desktop-nav .sidebar-nav li:last-child {
+        margin-top: auto !important;
+        margin-bottom: 0 !important;
+    }
+    .sidebar.desktop-nav .sidebar-nav a.logout {
+        margin-top: 0 !important;
+    }
+
     /* Backdrop when sidebar is open (CSS fallback) */
     .dashboard-container:has(.sidebar.desktop-nav.active)::before {
         content: '';

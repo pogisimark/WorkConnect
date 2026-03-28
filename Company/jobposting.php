@@ -277,7 +277,6 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/company-logout.js?v=1"></script>
-    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
     <style>
         body {
             margin: 0;
@@ -1457,31 +1456,52 @@ $conn->close();
                                     .map(p => ({ name: p.name, code: p.code }));
                                 provinceSelect.addOptions(options);
 
-                                function updateCityDropdown(provinceName) {
-                                    citySelect.clear();
-                                    citySelect.clearOptions();
-                                    if (!provinceName) return;
+                                /** Stored format: `${city}, ${province}` — match longest province name suffix first. */
+                                function parseStoredJobLocation(locationStr) {
+                                    const s = (locationStr || '').trim();
+                                    if (!s) return { province: '', city: '' };
+                                    const byLen = PH_PROVINCES.slice().sort((a, b) => b.name.length - a.name.length);
+                                    for (let i = 0; i < byLen.length; i++) {
+                                        const p = byLen[i];
+                                        const suffix = ', ' + p.name;
+                                        if (s.endsWith(suffix)) {
+                                            return { province: p.name, city: s.slice(0, -suffix.length).trim() };
+                                        }
+                                    }
+                                    const idx = s.lastIndexOf(', ');
+                                    if (idx !== -1) {
+                                        return {
+                                            city: s.slice(0, idx).trim(),
+                                            province: s.slice(idx + 2).trim()
+                                        };
+                                    }
+                                    return { province: '', city: s };
+                                }
 
-                                    // Find province code from local list
+                                function updateCityDropdown(provinceName) {
+                                    citySelect.clear(true);
+                                    citySelect.clearOptions();
+                                    if (!provinceName) return Promise.resolve();
+
                                     const province = PH_PROVINCES.find(p => p.name === provinceName);
-                                    if (!province) return;
+                                    if (!province) return Promise.resolve();
 
                                     const provinceCode = province.code;
                                     let url = '';
                                     if (provinceCode === '130000000') {
-                                        // Special case for Metro Manila
                                         url = 'https://psgc.gitlab.io/api/regions/130000000/cities-municipalities/';
                                     } else {
-                                        url = `https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`;
+                                        url = 'https://psgc.gitlab.io/api/provinces/' + provinceCode + '/cities-municipalities/';
                                     }
 
-                                    fetch(url)
-                                        .then(res => res.json())
-                                        .then(cities => {
-                                            citySelect.addOptions(cities.sort((a, b) => a.name.localeCompare(b.name))
-                                                .map(c => ({ name: c.name })));
+                                    return fetch(url)
+                                        .then(function(res) { return res.json(); })
+                                        .then(function(cities) {
+                                            citySelect.addOptions(cities.sort(function(a, b) {
+                                                return a.name.localeCompare(b.name);
+                                            }).map(function(c) { return { name: c.name }; }));
                                         })
-                                        .catch(err => {
+                                        .catch(function(err) {
                                             console.error('Error fetching cities:', err);
                                         });
                                 }
@@ -1490,11 +1510,48 @@ $conn->close();
                                     const province = provinceSelect.getValue();
                                     const city = citySelect.getValue();
                                     if (province && city) {
-                                        document.getElementById('location').value = `${city}, ${province}`;
+                                        document.getElementById('location').value = city + ', ' + province;
                                     } else {
                                         document.getElementById('location').value = '';
                                     }
                                 }
+
+                                function clearLocationPickers() {
+                                    provinceSelect.clear(true);
+                                    citySelect.clear(true);
+                                    citySelect.clearOptions();
+                                    document.getElementById('location').value = '';
+                                }
+
+                                function setFromLocationString(locationStr) {
+                                    const raw = (locationStr || '').trim();
+                                    document.getElementById('location').value = raw;
+                                    const parsed = parseStoredJobLocation(raw);
+                                    if (!parsed.province) {
+                                        provinceSelect.clear(true);
+                                        citySelect.clear(true);
+                                        citySelect.clearOptions();
+                                        return Promise.resolve();
+                                    }
+                                    provinceSelect.setValue(parsed.province, true);
+                                    return updateCityDropdown(parsed.province).then(function() {
+                                        if (parsed.city) {
+                                            if (!citySelect.options[parsed.city]) {
+                                                citySelect.addOption({ name: parsed.city });
+                                            }
+                                            citySelect.setValue(parsed.city, true);
+                                        }
+                                        updateLocationHidden();
+                                        if (!provinceSelect.getValue() || !citySelect.getValue()) {
+                                            document.getElementById('location').value = raw;
+                                        }
+                                    });
+                                }
+
+                                window.jobPostingLocationUI = {
+                                    setFromLocationString: setFromLocationString,
+                                    clearPickers: clearLocationPickers
+                                };
                             });
                         </script>
                         
@@ -1694,6 +1751,9 @@ $conn->close();
             document.getElementById('formAction').value = 'add_job';
             document.getElementById('jobId').value = '';
             document.getElementById('jobForm').reset();
+            if (window.jobPostingLocationUI && typeof window.jobPostingLocationUI.clearPickers === 'function') {
+                window.jobPostingLocationUI.clearPickers();
+            }
             document.getElementById('status').value = 'Active';
             document.getElementById('cancelBtn').style.display = 'none';
             // Clear salary fields
@@ -1734,7 +1794,11 @@ $conn->close();
                 document.getElementById('salary_min').value = '';
                 document.getElementById('salary_max').value = '';
             }
-            document.getElementById('location').value = job.location;
+            if (window.jobPostingLocationUI && typeof window.jobPostingLocationUI.setFromLocationString === 'function') {
+                window.jobPostingLocationUI.setFromLocationString(job.location || '');
+            } else {
+                document.getElementById('location').value = job.location || '';
+            }
             document.getElementById('job_type').value = job.job_type;
             document.getElementById('industry').value = job.industry || '';
             document.getElementById('status').value = job.status;

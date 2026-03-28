@@ -106,6 +106,7 @@ if ($conn) {
         }
         .main-content {
             flex: 1;
+            min-width: 0; /* flex child: allow shrink so inner grids don’t overflow viewport */
             padding: 32px;
             background: #fff;
             margin-left: 240px;
@@ -369,6 +370,31 @@ if ($conn) {
                 margin-left: 0;
                 padding: 16px;
                 width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: clip;
+            }
+            
+            /* PESO + Quick Tips row: prevent right-edge clip on narrow screens */
+            .dashboard-peso-tips-row {
+                min-width: 0;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            .dashboard-peso-card,
+            .dashboard-tips-card {
+                box-sizing: border-box;
+                min-width: 0;
+                max-width: 100%;
+                width: 100%;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                padding: 16px 14px !important;
+            }
+            .dashboard-peso-features {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
             }
             
             .main-content > div:first-child {
@@ -504,6 +530,13 @@ if ($conn) {
             
             .main-content {
                 padding: 12px;
+                max-width: 100%;
+                min-width: 0;
+            }
+            
+            .dashboard-peso-card,
+            .dashboard-tips-card {
+                padding: 14px 12px !important;
             }
             
             .main-content > div:first-child {
@@ -708,14 +741,14 @@ if ($conn) {
             </div>
 
             <!-- PESO Information and Tips -->
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;">
-                <div style="background:linear-gradient(135deg,#e3eaff,#f0f4ff);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(35,58,139,0.08);">
+            <div class="dashboard-peso-tips-row" style="display:grid;grid-template-columns:2fr 1fr;gap:24px;">
+                <div class="dashboard-peso-card" style="background:linear-gradient(135deg,#e3eaff,#f0f4ff);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(35,58,139,0.08);">
                     <h3 style="color:#233a8b;margin-top:0;margin-bottom:20px;font-size:1.3rem;display:flex;align-items:center;gap:8px;">
                         🏛️ PESO Mission & Services
                     </h3>
                     <div style="font-size:1.05rem;color:#333;line-height:1.6;">
                         <p style="margin-bottom:16px;">The Public Employment Service Office (PESO) serves as the primary employment facilitation unit in your municipality, connecting job seekers with employment opportunities and providing essential labor market services.</p>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">
+                        <div class="dashboard-peso-features" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">
                            
                             <div>
                                 <h4 style="color:#233a8b;margin:0 0 8px 0;font-size:1.1rem;">Key Features:</h4>
@@ -730,7 +763,7 @@ if ($conn) {
                     </div>
                 </div>
 
-                <div style="background:linear-gradient(135deg,#fff3e0,#fff8f0);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(255,152,0,0.08);">
+                <div class="dashboard-tips-card" style="background:linear-gradient(135deg,#fff3e0,#fff8f0);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(255,152,0,0.08);">
                     <h3 style="color:#ff9800;margin-top:0;margin-bottom:20px;font-size:1.3rem;display:flex;align-items:center;gap:8px;">
                         💡 Quick Tips
                     </h3>

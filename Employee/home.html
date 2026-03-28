@@ -397,6 +397,58 @@
       font-weight: 700 !important;
     }
 
+    /* Mobile header Log in (same icon/weight/colors as sidebar .login-link) */
+    .header-mobile-login {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-decoration: none;
+      color: #1a3876 !important;
+      background: #e3eaff;
+      flex-shrink: 0;
+      white-space: nowrap;
+      min-height: 38px;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .header-mobile-login i {
+      font-size: 13px;
+      width: 16px;
+      text-align: center;
+    }
+    .header-mobile-login:active {
+      opacity: 0.92;
+    }
+    @media (max-width: 768px) {
+      .header-mobile-login {
+        display: inline-flex !important;
+      }
+      /* Keep hamburger + brand left, Log in right (override external CSS order on small screens) */
+      .navbar .logo-brand {
+        order: 1 !important;
+      }
+      .navbar > nav {
+        order: 2 !important;
+      }
+      .header-mobile-login {
+        order: 3 !important;
+      }
+    }
+    @media (max-width: 480px) {
+      .header-mobile-login {
+        font-size: 0.72rem;
+        padding: 5px 8px;
+        gap: 5px;
+        min-height: 36px;
+      }
+    }
+
     @media (max-width: 768px) {
       .hamburger-menu {
         display: flex !important;
@@ -657,6 +709,7 @@
         align-items: center !important;
         justify-content: space-between !important;
         flex-direction: row !important;
+        flex-wrap: nowrap !important;
         gap: 0 !important;
       }
 
@@ -723,6 +776,7 @@
     <img src="../assets/image/PESO Logo circle.png" alt="PESO Logo" class="logo">
     <span class="brand">WorkConnect</span>
   </div>
+  <a href="login.php" class="header-mobile-login"><i class="fas fa-sign-in-alt"></i> Log in</a>
   <nav>
     <a href="#" class="active">Home</a>
     <a href="peso.html">Peso</a>

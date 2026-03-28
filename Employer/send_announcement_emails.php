@@ -1,5 +1,29 @@
 <?php
 /**
+ * Strip dangerous markup but keep common TinyMCE tags so HTML emails render correctly.
+ */
+function workconnect_sanitize_announcement_html_for_email($html) {
+    if ($html === null || $html === '') {
+        return '';
+    }
+    $html = (string) $html;
+    $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
+    $html = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html);
+    $allowed = '<p><br><br/><strong><b><em><i><u><ul><ol><li><a><span><div><h1><h2><h3><h4><h5><h6><blockquote><table><thead><tbody><tr><th><td><hr><img>';
+    $html = strip_tags($html, $allowed);
+    $html = preg_replace('/\s+on\w+\s*=\s*("|\').*?\1/is', '', $html);
+    $html = preg_replace('/\s+on\w+\s*=\s*[^\s>]*/i', '', $html);
+    $html = preg_replace('#\shref\s*=\s*(\'|")?\s*javascript:#i', ' href="#"', $html);
+    $html = preg_replace('#\ssrc\s*=\s*(\'|")?\s*javascript:#i', '', $html);
+    if (strlen($html) > 12000) {
+        $html = substr($html, 0, 12000);
+        $html = preg_replace('#<[^>]*$#s', '', $html);
+        $html .= '<p>…</p>';
+    }
+    return $html;
+}
+
+/**
  * Send announcement email to all jobseekers with valid email addresses.
  * Called when an announcement is published (create, update, or change status).
  */
@@ -47,10 +71,10 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
         }
     }
     
-    $description_snippet = strlen($description) > 300 ? substr($description, 0, 300) . '...' : $description;
-    $description_html = nl2br(htmlspecialchars($description_snippet));
-    
-    $subject = "New Announcement: " . htmlspecialchars($title) . " - WorkConnect";
+    // Description is HTML from TinyMCE — do not htmlspecialchars() or tags show as plain text in the inbox
+    $description_html = workconnect_sanitize_announcement_html_for_email($description);
+
+    $subject = 'New Announcement: ' . $title . ' - WorkConnect';
     
     $message = "
     <!DOCTYPE html>
@@ -69,6 +93,10 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
             .content { padding: 40px 30px; }
             .announcement-title { font-size: 22px; font-weight: 600; color: #1a3876; margin-bottom: 20px; }
             .announcement-body { font-size: 15px; color: #555; line-height: 1.8; }
+            .announcement-body p { margin: 0 0 14px 0; }
+            .announcement-body p:last-child { margin-bottom: 0; }
+            .announcement-body ul, .announcement-body ol { margin: 0 0 14px 1.2em; padding-left: 1.2em; }
+            .announcement-body a { color: #1a3876; }
             .cta-box { background: #e8f0fe; border-left: 4px solid #1a3876; padding: 20px; margin: 25px 0; border-radius: 4px; }
             .cta-box p { margin: 0; font-size: 15px; color: #333; }
             .footer { background: #f8f9fa; padding: 25px; text-align: center; color: #666; font-size: 12px; }
@@ -81,7 +109,7 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
                 <div class='tagline'>Connecting Talent with Opportunity</div>
             </div>
             <div class='content'>
-                <h2 class='announcement-title'>" . htmlspecialchars($title) . "</h2>
+                <h2 class='announcement-title'>" . htmlspecialchars($title, ENT_QUOTES | ENT_HTML5, 'UTF-8') . "</h2>
                 <div class='announcement-body'>" . $description_html . "</div>
                 <div class='cta-box'>
                     <p><strong>Log in to your WorkConnect dashboard</strong> to view the full announcement and stay updated on job opportunities.</p>

@@ -1106,6 +1106,7 @@ $conn->close();
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>WorkConnect - Job Application Form</title>
   <link rel="stylesheet" href="../assets/css/Employee-apply.css">
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
@@ -3249,6 +3250,28 @@ $conn->close();
       <?php endif; ?>
 
 <script>
+  /** NRSP in iframe: report real document height to parent (Messenger WebViews often under-report scrollHeight). */
+  function wcMeasureApplyDocHeight() {
+    var b = document.body, e = document.documentElement;
+    return Math.max(
+      b ? b.scrollHeight : 0,
+      b ? b.offsetHeight : 0,
+      e ? e.scrollHeight : 0,
+      e ? e.offsetHeight : 0
+    );
+  }
+  function wcPostApplyHeightToParent() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'workconnect-resize-apply',
+          source: 'apply',
+          height: wcMeasureApplyDocHeight()
+        }, '*');
+      }
+    } catch (e) {}
+  }
+
   // Display realtime day, month, year at upper right of the form
   function updateFormDate() {
     const dateElem = document.getElementById('form-date');
@@ -3332,14 +3355,9 @@ $conn->close();
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     }, 100);
-    // Tell parent dashboard to resize iframe height to full content (single scrollbar on parent)
-    setTimeout(() => {
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'workconnect-resize-apply', source: 'apply' }, '*');
-        }
-      } catch (e) {}
-    }, 160);
+    // Tell parent dashboard to resize iframe to full content (single scrollbar on parent)
+    setTimeout(function () { wcPostApplyHeightToParent(); }, 160);
+    setTimeout(function () { wcPostApplyHeightToParent(); }, 450);
   }
 
   // Address cascading dropdowns (Province -> Municipality/City -> Barangay)
@@ -8088,16 +8106,24 @@ $conn->close();
 <script>
 (function () {
   function workconnectNotifyParentApplyResize() {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'workconnect-resize-apply', source: 'apply' }, '*');
-      }
-    } catch (e) {}
+    if (typeof wcPostApplyHeightToParent === 'function') {
+      wcPostApplyHeightToParent();
+    }
   }
   window.addEventListener('load', function () {
     workconnectNotifyParentApplyResize();
-    [200, 600, 1400].forEach(function (ms) { setTimeout(workconnectNotifyParentApplyResize, ms); });
+    [200, 600, 1400, 2400].forEach(function (ms) { setTimeout(workconnectNotifyParentApplyResize, ms); });
   });
+  if (window.ResizeObserver && document.body) {
+    try {
+      var ro = new ResizeObserver(function () { workconnectNotifyParentApplyResize(); });
+      ro.observe(document.body);
+      ro.observe(document.documentElement);
+    } catch (e) {}
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', workconnectNotifyParentApplyResize);
+  }
 })();
 </script>
 </body>

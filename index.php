@@ -455,12 +455,76 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* In-app browser hint (Messenger, Facebook, Instagram, etc.) */
+        .inapp-browser-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            background: linear-gradient(135deg, #152a52 0%, #1a3876 100%);
+            color: #e8f0ff;
+            padding: 12px 42px 12px 16px;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 203, 5, 0.25);
+        }
+        .inapp-browser-banner.is-visible {
+            display: block;
+        }
+        .inapp-browser-banner__close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-size: 1.25rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .inapp-browser-banner__close:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+        :root {
+            --inapp-banner-h: 0px;
+        }
+        body.inapp-banner-open .header {
+            top: var(--inapp-banner-h);
+        }
+        body.inapp-banner-open .main-content {
+            padding-top: calc(100px + var(--inapp-banner-h));
+        }
+        @media (max-width: 768px) {
+            body.inapp-banner-open .main-content {
+                padding-top: calc(80px + var(--inapp-banner-h));
+            }
+        }
+        @media (max-width: 480px) {
+            body.inapp-banner-open .main-content {
+                padding-top: calc(70px + var(--inapp-banner-h));
+            }
+        }
+
     </style>
 </head>
 <body>
 <!-- Loading Screen -->
     <div class="loading" id="loading">
         <div class="spinner"></div>
+    </div>
+
+    <div id="inAppBrowserBanner" class="inapp-browser-banner" role="region" aria-label="Browser tip" hidden>
+        You’re in an in-app browser (for example Messenger, Facebook, or Instagram). For full features, open this page in <strong>Chrome</strong> using the menu (<strong>⋮</strong> or <strong>Share</strong>) and choose “Open in browser” or similar.
+        <button type="button" class="inapp-browser-banner__close" id="inAppBrowserBannerClose" aria-label="Dismiss this message">&times;</button>
     </div>
 
     <!-- Header -->
@@ -675,6 +739,51 @@
             card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
             observer.observe(card);
         });
+
+        (function initInAppBrowserBanner() {
+            var STORAGE_KEY = 'workconnect_inapp_banner_dismissed';
+            function detectInAppBrowser() {
+                var ua = navigator.userAgent || '';
+                if (!ua) return false;
+                return /FBAN|FBAV|FB_IAB|FBIOS|FBSS|Instagram|Line\/|MicroMessenger|Twitter for |LinkedInApp|Snapchat|musical_ly|BytedanceWebView|TikTok/i.test(ua);
+            }
+            function syncBannerHeight() {
+                var el = document.getElementById('inAppBrowserBanner');
+                if (!el || !el.classList.contains('is-visible')) {
+                    document.documentElement.style.setProperty('--inapp-banner-h', '0px');
+                    return;
+                }
+                document.documentElement.style.setProperty('--inapp-banner-h', el.offsetHeight + 'px');
+            }
+            function showBanner() {
+                var el = document.getElementById('inAppBrowserBanner');
+                if (!el) return;
+                el.hidden = false;
+                el.classList.add('is-visible');
+                document.body.classList.add('inapp-banner-open');
+                syncBannerHeight();
+                window.addEventListener('resize', syncBannerHeight);
+            }
+            function hideBanner() {
+                var el = document.getElementById('inAppBrowserBanner');
+                if (!el) return;
+                el.classList.remove('is-visible');
+                el.hidden = true;
+                document.body.classList.remove('inapp-banner-open');
+                document.documentElement.style.setProperty('--inapp-banner-h', '0px');
+                window.removeEventListener('resize', syncBannerHeight);
+            }
+            if (sessionStorage.getItem(STORAGE_KEY) === '1') return;
+            if (!detectInAppBrowser()) return;
+            showBanner();
+            var closeBtn = document.getElementById('inAppBrowserBannerClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    sessionStorage.setItem(STORAGE_KEY, '1');
+                    hideBanner();
+                });
+            }
+        })();
     </script>
 </body>
 </html>

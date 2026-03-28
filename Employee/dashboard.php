@@ -2231,47 +2231,281 @@ $conn->close();
         }
     }
 
-    /* Parent-level modal host for iframe pages */
+    /* Parent-level modal host (matches Company jobposting “View details” / jd-modal-popup) */
     #global-modal-overlay {
         display: none;
         position: fixed;
         inset: 0;
         z-index: 5000;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.45);
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
         box-sizing: border-box;
     }
     #global-modal-panel {
+        display: flex;
+        flex-direction: column;
         background: #fff;
         border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        max-width: 720px;
+        box-shadow: 0 24px 56px rgba(26, 56, 118, 0.22);
+        border: 1px solid #e2e8f0;
         width: min(92vw, 720px);
-        max-height: 90vh;
-        overflow-y: auto;
-        padding: 24px;
+        max-width: 720px;
+        max-height: min(90vh, 640px);
+        overflow: hidden;
+        padding: 0;
+        box-sizing: border-box;
     }
     #global-modal-header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        margin-bottom: 16px;
+        gap: 12px;
+        flex-shrink: 0;
+        padding: 20px 20px 16px 22px;
+        border-bottom: 1px solid #e8eaf0;
+        background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
     }
     #global-modal-title {
         margin: 0;
-        color: #233a8b;
-        font-size: 1.4rem;
-        line-height: 1.2;
+        flex: 1;
+        min-width: 0;
+        color: #1a3876;
+        font-size: 1.15rem;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: left;
     }
     #global-modal-close {
-        background: none;
+        flex-shrink: 0;
+        width: 2.2rem;
+        height: 2.2rem;
+        line-height: 1;
         border: none;
-        font-size: 24px;
-        color: #666;
+        border-radius: 10px;
+        background: transparent;
+        color: #546e7a;
+        font-size: 1.5rem;
         cursor: pointer;
-        padding: 0 6px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s, color 0.2s;
+    }
+    #global-modal-close:hover {
+        background: #eceff1;
+        color: #1a3876;
+    }
+    #global-modal-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    #global-modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    #global-modal-body::-webkit-scrollbar-thumb {
+        background: #c5cae9;
+        border-radius: 8px;
+    }
+    #global-modal-content {
+        padding: 0;
+    }
+    #global-modal-footer {
+        flex-shrink: 0;
+        padding: 16px 24px 20px;
+        background: #f4f6f9;
+        border-top: 1px solid #e8eaf0;
+        box-sizing: border-box;
+    }
+    .global-modal-primary-btn {
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        background: #1a3876;
+        color: #fff;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(26, 56, 118, 0.25);
+    }
+    .global-modal-primary-btn:hover {
+        filter: brightness(1.05);
+    }
+    /* Announcement detail body (same tokens as Company jobposting jd-modal) */
+    #global-modal-content .jd-modal-root {
+        padding: 20px 24px 8px;
+        text-align: left;
+    }
+    #global-modal-content .jd-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 24px;
+        margin-bottom: 22px;
+    }
+    @media (max-width: 560px) {
+        #global-modal-content .jd-meta-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    #global-modal-content .jd-meta-label {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #78909c;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    #global-modal-content .jd-meta-value {
+        font-size: 0.95rem;
+        color: #263238;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+    #global-modal-content .jd-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    #global-modal-content .jd-status--active {
+        background: #e8f5e9;
+        color: #1b5e20;
+    }
+    #global-modal-content .jd-status--closed {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+    #global-modal-content .jd-status--draft {
+        background: #fff8e1;
+        color: #e65100;
+    }
+    #global-modal-content .jd-status--other {
+        background: #eceff1;
+        color: #455a64;
+    }
+    #global-modal-content .jd-section {
+        margin-bottom: 18px;
+    }
+    #global-modal-content .jd-section:last-of-type {
+        margin-bottom: 0;
+    }
+    #global-modal-content .jd-section-head {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #1a3876;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    #global-modal-content .jd-section-head i {
+        opacity: 0.85;
+        font-size: 0.85rem;
+    }
+    #global-modal-content .jd-section-box {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #37474f;
+        border: 1px solid #e8eaf0;
+    }
+    #global-modal-content .jd-empty {
+        color: #90a4ae;
+        font-style: italic;
+    }
+    #global-modal-content .jd-tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    #global-modal-content .jd-tag {
+        display: inline-block;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #455a64;
+        font-weight: 500;
+    }
+    #global-modal-content .jd-attach-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        color: #1a3876;
+        border: 1px solid #cfd8dc;
+        padding: 8px 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin: 0 8px 8px 0;
+    }
+    #global-modal-content .jd-attach-link:hover {
+        background: #f5f7fa;
+    }
+    #global-modal-content .jd-attach-box {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    #global-modal-content .jd-attach-item {
+        margin: 0;
+    }
+    #global-modal-content .jd-attach-item--image .jd-attach-image-link {
+        display: block;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        line-height: 0;
+        max-height: min(50vh, 360px);
+    }
+    #global-modal-content .jd-attach-item--image .jd-attach-image {
+        width: 100%;
+        max-height: min(50vh, 360px);
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+    #global-modal-content .jd-attach-filemeta {
+        margin-top: 8px;
+        font-size: 0.85rem;
+        color: #546e7a;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    #global-modal-content .jd-attach-filemeta .jd-attach-name {
+        font-weight: 600;
+        color: #263238;
+        word-break: break-all;
+    }
+    #global-modal-content .jd-attach-ext {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #1a3876;
+        background: #e8eaf6;
+        padding: 2px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
     }
 
     </style>
@@ -2669,7 +2903,12 @@ $conn->close();
                 <h3 id="global-modal-title">Details</h3>
                 <button id="global-modal-close" type="button" aria-label="Close modal">&times;</button>
             </div>
-            <div id="global-modal-content"></div>
+            <div id="global-modal-body">
+                <div id="global-modal-content"></div>
+            </div>
+            <div id="global-modal-footer">
+                <button type="button" id="global-modal-btn-close" class="global-modal-primary-btn">Close</button>
+            </div>
         </div>
     </div>
 
@@ -2723,6 +2962,12 @@ $conn->close();
             const overlay = document.getElementById('global-modal-overlay');
             if (closeBtn) {
                 closeBtn.addEventListener('click', function () {
+                    window.closeGlobalModal();
+                });
+            }
+            const footerClose = document.getElementById('global-modal-btn-close');
+            if (footerClose) {
+                footerClose.addEventListener('click', function () {
                     window.closeGlobalModal();
                 });
             }

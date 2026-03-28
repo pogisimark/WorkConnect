@@ -122,28 +122,48 @@ if ($conn) {
         }
         .main-content {
             flex: 1;
+            min-width: 0; /* flex child: allow shrink so grids/charts don’t overflow viewport */
+            max-width: 100%;
             padding: 32px;
             background: #fff;
             margin-left: 240px;
             min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
+            overflow-x: clip;
             box-sizing: border-box;
         }
         
-        /* Fix chart container expansion */
-        canvas {
-            max-height: 300px !important;
+        /* Chart.js: sized wrapper + responsive canvas (avoid padding on canvas — it adds to width) */
+        .analytics-line-chart-wrap,
+        .analytics-doughnut-chart-wrap {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .analytics-line-chart-wrap {
+            height: 300px;
+        }
+        .analytics-doughnut-chart-wrap {
+            height: 300px;
+        }
+        .charts-container {
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .registration-chart-container,
+        .status-chart-container {
+            box-sizing: border-box;
+            min-width: 0;
+            max-width: 100%;
+        }
+        
+        .analytics-line-chart-wrap canvas,
+        .analytics-doughnut-chart-wrap canvas {
+            display: block;
             max-width: 100% !important;
-        }
-        
-        #registrationChart {
-            height: 300px !important;
-            width: 100% !important;
-        }
-        
-        #statusChart {
-            height: 300px !important;
-            width: 100% !important;
         }
         /* Desktop and Laptop Responsive Design */
         @media (min-width: 1200px) {
@@ -155,12 +175,12 @@ if ($conn) {
                 max-height: 400px !important;
             }
             
-            #registrationChart {
-                height: 400px !important;
+            .analytics-line-chart-wrap {
+                height: 400px;
             }
             
-            #statusChart {
-                height: 400px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 400px;
             }
         }
         
@@ -173,12 +193,12 @@ if ($conn) {
                 max-height: 350px !important;
             }
             
-            #registrationChart {
-                height: 400px !important;
+            .analytics-line-chart-wrap {
+                height: 400px;
             }
             
-            #statusChart {
-                height: 350px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 350px;
             }
         }
         
@@ -196,41 +216,47 @@ if ($conn) {
                 max-height: 300px !important;
             }
             
-            #registrationChart {
-                height: 300px !important;
+            .analytics-line-chart-wrap {
+                height: 300px;
             }
             
-            #statusChart {
-                height: 300px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 300px;
             }
         }
         
         @media (min-width: 481px) and (max-width: 768px) {
             .main-content {
                 padding: 20px;
+                max-width: 100%;
+                min-width: 0;
             }
             
             .charts-container {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 20px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
             }
             
             .registration-chart-container,
             .status-chart-container {
                 width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
             }
             
             canvas {
                 max-height: 320px !important;
             }
             
-            #registrationChart {
-                height: 320px !important;
+            .analytics-line-chart-wrap {
+                height: 280px;
             }
             
-            #statusChart {
-                height: 320px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 280px;
             }
         }
         
@@ -352,6 +378,9 @@ if ($conn) {
                 margin-left: 0;
                 padding: 20px;
                 height: auto;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: clip;
             }
             
             .main-content > div:first-child {
@@ -377,17 +406,24 @@ if ($conn) {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 24px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
             }
             
             /* Registration Trends Chart - Full width on mobile */
             .registration-chart-container {
                 width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
                 order: 1; /* First on mobile */
             }
             
             /* Application Status Chart - Full width on mobile */
             .status-chart-container {
                 width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
                 order: 2; /* Second on mobile */
             }
             
@@ -436,39 +472,21 @@ if ($conn) {
                 max-height: 350px !important;
             }
             
-            #registrationChart {
-                height: 400px !important;
+            .analytics-line-chart-wrap {
+                height: 260px;
             }
             
-            #statusChart {
-                height: 400px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 280px;
             }
             
-            /* Increase table/chart container size for mobile */
             .registration-chart-container,
             .status-chart-container {
-                min-height: 450px !important;
+                min-height: 0 !important;
             }
             
-            /* Mobile-specific chart padding adjustments */
-            .registration-chart-container canvas {
-                padding: 10px !important;
-            }
-            
-            /* Mobile chart options for smaller dots */
             .registration-chart-container {
                 position: relative;
-            }
-            
-            .registration-chart-container::after {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                pointer-events: none;
-                z-index: 1;
             }
         }
         
@@ -552,27 +570,21 @@ if ($conn) {
                 font-size: 1.1rem !important;
             }
             
-            /* Small mobile chart padding for better data point visibility */
-            .registration-chart-container canvas {
-                padding: 15px !important;
-            }
-            
             canvas {
                 max-height: 320px !important;
             }
             
-            #registrationChart {
-                height: 320px !important;
+            .analytics-line-chart-wrap {
+                height: 240px;
             }
             
-            #statusChart {
-                height: 320px !important;
+            .analytics-doughnut-chart-wrap {
+                height: 260px;
             }
             
-            /* Increase small mobile table/chart container size */
             .registration-chart-container,
             .status-chart-container {
-                min-height: 360px !important;
+                min-height: 0 !important;
             }
         }
         
@@ -591,6 +603,8 @@ if ($conn) {
                 margin-left: 0;
                 padding: 16px;
                 height: auto;
+                max-width: 100%;
+                min-width: 0;
             }
             .sidebar .logout {
                 margin-top: auto;
@@ -791,13 +805,17 @@ if ($conn) {
                              </select>
                          </div>
                      </div>
-                     <canvas id="registrationChart" width="400" height="200"></canvas>
+                     <div class="analytics-line-chart-wrap">
+                        <canvas id="registrationChart"></canvas>
+                     </div>
                  </div>
 
                 <!-- Application Status Pie Chart -->
                 <div class="status-chart-container" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1);">
                     <h3 style="margin: 0 0 20px 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">🎯 Application Status</h3>
-                    <canvas id="statusChart" width="300" height="300"></canvas>
+                    <div class="analytics-doughnut-chart-wrap">
+                        <canvas id="statusChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -2041,6 +2059,11 @@ if ($conn) {
                      }
                  });
                  console.log('Registration chart created successfully');
+                 requestAnimationFrame(function() {
+                     if (window.registrationChart && typeof window.registrationChart.resize === 'function') {
+                         window.registrationChart.resize();
+                     }
+                 });
              } catch (error) {
                  console.error('Error creating registration chart:', error);
              }
@@ -2114,7 +2137,9 @@ if ($conn) {
                              legend: {
                                  position: 'bottom',
                                  labels: {
-                                     padding: 20,
+                                     padding: window.innerWidth <= 480 ? 10 : 20,
+                                     boxWidth: window.innerWidth <= 480 ? 10 : 12,
+                                     font: { size: window.innerWidth <= 480 ? 10 : 12 },
                                      usePointStyle: true
                                  }
                              }
@@ -2122,6 +2147,11 @@ if ($conn) {
                      }
                  });
                  console.log('Status chart created successfully');
+                 requestAnimationFrame(function() {
+                     if (window.statusChart && typeof window.statusChart.resize === 'function') {
+                         window.statusChart.resize();
+                     }
+                 });
              } catch (error) {
                  console.error('Error creating status chart:', error);
              }

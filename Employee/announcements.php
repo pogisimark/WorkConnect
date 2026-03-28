@@ -36,6 +36,7 @@ if ($isIframe) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect - Announcements</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -388,6 +389,285 @@ if ($isIframe) {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Standalone announcement detail modal (same look as dashboard global / Company jobposting jd-modal) */
+        .ann-modal-overlay {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            max-height: 100dvh;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.45);
+            align-items: center;
+            justify-content: center;
+            padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+        }
+        .ann-modal-panel {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 24px 56px rgba(26, 56, 118, 0.22);
+            border: 1px solid #e2e8f0;
+            width: min(92vw, 720px);
+            max-width: 720px;
+            max-height: min(90vh, 640px);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .ann-modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-shrink: 0;
+            padding: 20px 20px 16px 22px;
+            border-bottom: 1px solid #e8eaf0;
+            background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+        }
+        #modalTitle {
+            margin: 0;
+            flex: 1;
+            min-width: 0;
+            color: #1a3876;
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: left;
+        }
+        .ann-modal-x {
+            flex-shrink: 0;
+            width: 2.2rem;
+            height: 2.2rem;
+            line-height: 1;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #546e7a;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .ann-modal-x:hover {
+            background: #eceff1;
+            color: #1a3876;
+        }
+        .ann-modal-body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .ann-modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .ann-modal-body::-webkit-scrollbar-thumb {
+            background: #c5cae9;
+            border-radius: 8px;
+        }
+        .ann-modal-footer {
+            flex-shrink: 0;
+            padding: 16px 24px 20px;
+            background: #f4f6f9;
+            border-top: 1px solid #e8eaf0;
+            box-sizing: border-box;
+        }
+        .ann-modal-primary-btn {
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            background: #1a3876;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(26, 56, 118, 0.25);
+        }
+        .ann-modal-primary-btn:hover {
+            filter: brightness(1.05);
+        }
+        #modalContent .jd-modal-root {
+            padding: 20px 24px 8px;
+            text-align: left;
+        }
+        #modalContent .jd-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px 24px;
+            margin-bottom: 22px;
+        }
+        @media (max-width: 560px) {
+            #modalContent .jd-meta-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        #modalContent .jd-meta-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #78909c;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        #modalContent .jd-meta-value {
+            font-size: 0.95rem;
+            color: #263238;
+            font-weight: 500;
+            line-height: 1.35;
+        }
+        #modalContent .jd-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        #modalContent .jd-status--active {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+        #modalContent .jd-status--closed {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+        #modalContent .jd-status--draft {
+            background: #fff8e1;
+            color: #e65100;
+        }
+        #modalContent .jd-status--other {
+            background: #eceff1;
+            color: #455a64;
+        }
+        #modalContent .jd-section {
+            margin-bottom: 18px;
+        }
+        #modalContent .jd-section:last-of-type {
+            margin-bottom: 0;
+        }
+        #modalContent .jd-section-head {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #1a3876;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #modalContent .jd-section-head i {
+            opacity: 0.85;
+            font-size: 0.85rem;
+        }
+        #modalContent .jd-section-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #37474f;
+            border: 1px solid #e8eaf0;
+        }
+        #modalContent .jd-empty {
+            color: #90a4ae;
+            font-style: italic;
+        }
+        #modalContent .jd-tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #modalContent .jd-tag {
+            display: inline-block;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #455a64;
+            font-weight: 500;
+        }
+        #modalContent .jd-attach-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            color: #1a3876;
+            border: 1px solid #cfd8dc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin: 0 8px 8px 0;
+        }
+        #modalContent .jd-attach-link:hover {
+            background: #f5f7fa;
+        }
+        #modalContent .jd-attach-box {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        #modalContent .jd-attach-item {
+            margin: 0;
+        }
+        #modalContent .jd-attach-item--image .jd-attach-image-link {
+            display: block;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            line-height: 0;
+            max-height: min(50vh, 360px);
+        }
+        #modalContent .jd-attach-item--image .jd-attach-image {
+            width: 100%;
+            max-height: min(50vh, 360px);
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+        #modalContent .jd-attach-filemeta {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #546e7a;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+        #modalContent .jd-attach-filemeta .jd-attach-name {
+            font-weight: 600;
+            color: #263238;
+            word-break: break-all;
+        }
+        #modalContent .jd-attach-ext {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #1a3876;
+            background: #e8eaf6;
+            padding: 2px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -466,14 +746,19 @@ if ($isIframe) {
     </div>
     <?php endif; ?>
 
-    <!-- Announcement Detail Modal -->
-    <div id="announcementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
-        <div style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h3 id="modalTitle" style="margin: 0; color: #233a8b; font-size: 1.5rem;">Announcement Details</h3>
-                <button id="closeModalBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+    <!-- Announcement Detail Modal (layout matches dashboard global modal / jobposting view) -->
+    <div id="announcementModal" class="ann-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="ann-modal-panel">
+            <div class="ann-modal-header">
+                <h3 id="modalTitle">Announcement</h3>
+                <button type="button" id="closeModalBtn" class="ann-modal-x" aria-label="Close">&times;</button>
             </div>
-            <div id="modalContent"></div>
+            <div class="ann-modal-body">
+                <div id="modalContent"></div>
+            </div>
+            <div class="ann-modal-footer">
+                <button type="button" id="annModalFooterClose" class="ann-modal-primary-btn">Close</button>
+            </div>
         </div>
     </div>
 
@@ -492,7 +777,9 @@ if ($isIframe) {
 
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalContent').innerHTML = html;
-            document.getElementById('announcementModal').style.display = 'flex';
+            const m = document.getElementById('announcementModal');
+            m.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
         function hideAnnouncementModal() {
@@ -500,7 +787,107 @@ if ($isIframe) {
                 window.parent.postMessage({ type: 'hideModal' }, '*');
                 return;
             }
-            document.getElementById('announcementModal').style.display = 'none';
+            const m = document.getElementById('announcementModal');
+            m.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text == null ? '' : String(text);
+            return d.innerHTML;
+        }
+
+        /** Rich-text / HTML from admin editor → plain text (no tags, entities decoded). */
+        function htmlToPlainText(html) {
+            const s = String(html || '').trim();
+            if (!s) return '';
+            try {
+                const doc = new DOMParser().parseFromString(s, 'text/html');
+                let t = doc.body.textContent || '';
+                t = t.replace(/\u00a0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+                return t;
+            } catch (e) {
+                return s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+        }
+
+        function announcementCategoryClass(cat) {
+            const s = String(cat || '').toLowerCase();
+            if (s.indexOf('training') !== -1) return 'jd-status jd-status--active';
+            if (s.indexOf('hiring') !== -1) return 'jd-status jd-status--closed';
+            if (s.indexOf('job fair') !== -1 || s.indexOf('jobfair') !== -1) return 'jd-status jd-status--draft';
+            return 'jd-status jd-status--other';
+        }
+
+        function formatAnnouncementPosted(iso) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return escapeHtml(String(iso));
+            return escapeHtml(d.toLocaleDateString());
+        }
+
+        function sanitizeAnnouncementAttachmentPath(path) {
+            let p = String(path || '').trim().replace(/\\/g, '/');
+            if (!p || p.indexOf('..') !== -1) return '';
+            p = p.replace(/^\/+/, '');
+            return p;
+        }
+
+        function buildAnnouncementAttachmentHref(path) {
+            const p = sanitizeAnnouncementAttachmentPath(path);
+            if (!p) return '#';
+            return '../' + p.split('/').map(function (seg) { return encodeURIComponent(seg); }).join('/');
+        }
+
+        var ANNOUNCEMENT_IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
+
+        function isLikelyImageAttachment(fileName, filePath) {
+            const n = String(fileName || '').toLowerCase();
+            const q = String(filePath || '').toLowerCase();
+            return ANNOUNCEMENT_IMAGE_EXT.test(n) || ANNOUNCEMENT_IMAGE_EXT.test(q.split('/').pop() || '');
+        }
+
+        function fileExtensionLabel(fileName) {
+            const base = String(fileName || '').split(/[\\/]/).pop() || '';
+            const m = /\.([a-z0-9]+)$/i.exec(base);
+            return m ? m[1].toUpperCase() : '';
+        }
+
+        function buildAnnouncementAttachmentsHtml(announcement) {
+            if (!announcement.attachments || !announcement.attachments.length) return '';
+            const blocks = announcement.attachments.map(function (att) {
+                const rawName = att.file_name || 'file';
+                const name = escapeHtml(rawName);
+                const href = buildAnnouncementAttachmentHref(att.file_path);
+                const ext = fileExtensionLabel(rawName);
+                const extHtml = ext ? '<span class="jd-attach-ext">' + escapeHtml(ext) + '</span>' : '';
+                if (isLikelyImageAttachment(rawName, att.file_path) && href !== '#') {
+                    return (
+                        '<div class="jd-attach-item jd-attach-item--image">' +
+                        '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer" class="jd-attach-image-link" title="Open full size">' +
+                        '<img src="' + escapeHtml(href) + '" alt="' + name + '" class="jd-attach-image" loading="lazy" decoding="async">' +
+                        '</a>' +
+                        '<div class="jd-attach-filemeta">' +
+                        '<i class="fas fa-paperclip" aria-hidden="true"></i> ' +
+                        '<span class="jd-attach-name">' + name + '</span> ' +
+                        extHtml +
+                        '</div>' +
+                        '</div>'
+                    );
+                }
+                return (
+                    '<div class="jd-attach-item">' +
+                    '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer" class="jd-attach-link"><i class="fas fa-paperclip"></i> ' + name + ' ' + extHtml + '</a>' +
+                    '</div>'
+                );
+            }).join('');
+            return (
+                '<div class="jd-section">' +
+                '<div class="jd-section-head"><i class="fas fa-paperclip"></i> Attachments</div>' +
+                '<div class="jd-section-box jd-attach-box">' + blocks + '</div>' +
+                '</div>'
+            );
         }
         
         // Load announcements
@@ -551,31 +938,31 @@ if ($isIframe) {
                 return;
             }
             
-            container.innerHTML = announcements.map(announcement => `
+            container.innerHTML = announcements.map(announcement => {
+                const plainDesc = htmlToPlainText(announcement.description || '');
+                const shortDesc = plainDesc.length > 200 ? plainDesc.substring(0, 200) + '…' : plainDesc;
+                return `
                 <div class="announcement-card">
                     <div class="announcement-header">
-                        <h3 class="announcement-title">${announcement.title}</h3>
+                        <h3 class="announcement-title">${escapeHtml(announcement.title)}</h3>
                         <div class="announcement-meta">
-                            <span class="announcement-category">${announcement.category}</span>
+                            <span class="announcement-category">${escapeHtml(announcement.category)}</span>
                             <span>📅 ${new Date(announcement.date_posted).toLocaleDateString()}</span>
                             <span>👁️ ${announcement.view_count || 0} views</span>
                         </div>
                     </div>
                     <div class="announcement-body">
                         <div class="announcement-description">
-                            ${announcement.description.length > 200 ? 
-                                announcement.description.substring(0, 200) + '...' : 
-                                announcement.description
-                            }
+                            ${escapeHtml(shortDesc)}
                         </div>
                         ${announcement.tags && announcement.tags.length > 0 ? `
                             <div class="announcement-tags">
                                 ${Array.isArray(announcement.tags) ? 
                                     announcement.tags.map(tag => 
-                                        `<span class="announcement-tag">${tag.trim()}</span>`
+                                        `<span class="announcement-tag">${escapeHtml(String(tag).trim())}</span>`
                                     ).join('') :
                                     announcement.tags.split(',').map(tag => 
-                                        `<span class="announcement-tag">${tag.trim()}</span>`
+                                        `<span class="announcement-tag">${escapeHtml(String(tag).trim())}</span>`
                                     ).join('')
                                 }
                             </div>
@@ -592,7 +979,8 @@ if ($isIframe) {
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         // View announcement details
@@ -603,47 +991,25 @@ if ($isIframe) {
             // Track view
             trackView(id);
             
-            const modalHtml = `
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <span style="background: #e3eaff; color: #233a8b; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">
-                            ${announcement.category}
-                        </span>
-                        <span style="color: #666; font-size: 0.9rem;">
-                            📅 ${new Date(announcement.date_posted).toLocaleDateString()}
-                        </span>
-                        <span style="color: #666; font-size: 0.9rem;">
-                            👁️ ${announcement.view_count || 0} views
-                        </span>
-                    </div>
-                    <div style="line-height: 1.6; color: #333; margin-bottom: 20px;">
-                        ${announcement.description.replace(/\n/g, '<br>')}
-                    </div>
-                    ${announcement.tags && announcement.tags.length > 0 ? `
-                        <div style="margin-bottom: 20px;">
-                            <strong>Tags:</strong><br>
-                            ${Array.isArray(announcement.tags) ? 
-                                announcement.tags.map(tag => 
-                                    `<span style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; margin-right: 4px; font-size: 0.8rem; display: inline-block; margin-top: 4px;">${tag.trim()}</span>`
-                                ).join('') :
-                                announcement.tags.split(',').map(tag => 
-                                    `<span style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; margin-right: 4px; font-size: 0.8rem; display: inline-block; margin-top: 4px;">${tag.trim()}</span>`
-                                ).join('')
-                            }
-                        </div>
-                    ` : ''}
-                    ${announcement.attachments && announcement.attachments.length > 0 ? `
-                        <div>
-                            <strong>Attachments:</strong><br>
-                            ${announcement.attachments.map(attachment => `
-                                <a href="../${attachment.file_path}" target="_blank" style="display: inline-block; background: #f5f5f5; color: #666; border: 1px solid #ddd; padding: 8px 12px; border-radius: 4px; text-decoration: none; margin: 4px 4px 0 0;">
-                                    📎 ${attachment.file_name}
-                                </a>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
+            const descPlain = htmlToPlainText(announcement.description || '');
+            const descBlock = descPlain
+                ? escapeHtml(descPlain).replace(/\r?\n|\n/g, '<br>')
+                : '<span class="jd-empty">No description provided.</span>';
+            const catClass = announcementCategoryClass(announcement.category);
+            const viewsVal = escapeHtml(String(announcement.view_count != null ? announcement.view_count : 0));
+            const modalHtml =
+                '<div class="jd-modal-root">' +
+                '<div class="jd-meta-grid">' +
+                '<div><div class="jd-meta-label">Category</div><div class="jd-meta-value"><span class="' + catClass + '">' + escapeHtml(announcement.category || '—') + '</span></div></div>' +
+                '<div><div class="jd-meta-label">Posted</div><div class="jd-meta-value"><i class="far fa-calendar-alt" style="opacity:0.75;margin-right:6px"></i>' + formatAnnouncementPosted(announcement.date_posted) + '</div></div>' +
+                '<div><div class="jd-meta-label">Views</div><div class="jd-meta-value"><i class="far fa-eye" style="opacity:0.75;margin-right:6px"></i>' + viewsVal + '</div></div>' +
+                '</div>' +
+                '<div class="jd-section">' +
+                '<div class="jd-section-head"><i class="fas fa-align-left"></i> Description</div>' +
+                '<div class="jd-section-box">' + descBlock + '</div>' +
+                '</div>' +
+                buildAnnouncementAttachmentsHtml(announcement) +
+                '</div>';
             showAnnouncementModal(announcement.title, modalHtml);
             
             // Refresh announcements to update view count
@@ -787,6 +1153,10 @@ if ($isIframe) {
             document.getElementById('closeModalBtn').addEventListener('click', () => {
                 hideAnnouncementModal();
             });
+            const annFooterClose = document.getElementById('annModalFooterClose');
+            if (annFooterClose) {
+                annFooterClose.addEventListener('click', () => hideAnnouncementModal());
+            }
             
             // Close modal when clicking outside
             window.addEventListener('click', (e) => {

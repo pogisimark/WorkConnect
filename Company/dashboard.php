@@ -664,38 +664,7 @@ $conn->close();
             .hamburger-menu {
                 display: flex !important;
             }
-            /* Mobile: slide-out sidebar */
-            .sidebar.desktop-nav {
-                position: fixed !important;
-                top: 80px !important;
-                left: -250px !important;
-                bottom: 0 !important;
-                right: auto !important;
-                width: 250px !important;
-                height: calc(100vh - 80px) !important; height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important;
-                background: #f8f9fa !important;
-                display: flex !important;
-                flex-direction: column !important;
-                padding: 20px 0 !important;
-                box-shadow: 2px 0 10px rgba(0,0,0,0.15) !important;
-                z-index: 998 !important;
-                transition: left 0.3s ease !important;
-            }
-            .sidebar.desktop-nav.active {
-                left: 0 !important;
-            }
-            /* Backdrop when sidebar is open */
-            .dashboard-container:has(.sidebar.desktop-nav.active)::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.4);
-                z-index: 997;
-                pointer-events: auto;
-            }
+            /* Drawer + backdrop + header offset: Company-sidebar.css */
         }
         @media (min-width: 769px) {
             .hamburger-menu {

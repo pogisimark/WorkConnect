@@ -119,19 +119,26 @@ if ($conn) {
     }
     .main-content {
         flex: 1;
+        min-width: 0; /* flex child: prevent grid/cards from forcing page wider than viewport */
+        max-width: 100%;
         padding: 32px;
         background: #fff;
         margin-left: 240px;
         min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
+        overflow-x: clip;
         box-sizing: border-box;
     }
     .jobseeker-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
         gap: 50px;
         margin-top: 24px;
         padding: 0 20px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     .jobseeker-card {
         background: linear-gradient(135deg, #ffffff, #f8fafc);
@@ -145,6 +152,9 @@ if ($conn) {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
         position: relative;
         overflow: hidden;
         min-height: 220px;
@@ -160,13 +170,15 @@ if ($conn) {
         opacity: 0;
         transition: opacity 0.3s ease;
     }
-    .jobseeker-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 12px 40px rgba(35,58,139,0.15);
-        border-color: rgba(35,58,139,0.2);
-    }
-    .jobseeker-card:hover::before {
-        opacity: 1;
+    @media (hover: hover) and (pointer: fine) {
+        .jobseeker-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(35,58,139,0.15);
+            border-color: rgba(35,58,139,0.2);
+        }
+        .jobseeker-card:hover::before {
+            opacity: 1;
+        }
     }
     .jobseeker-card .jobseeker-name {
         font-size: 1rem;
@@ -177,6 +189,9 @@ if ($conn) {
         margin-bottom: 6px;
         line-height: 1.3;
         padding: 0 2px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
     .jobseeker-card .jobseeker-info {
         font-size: 0.85rem;
@@ -324,7 +339,7 @@ if ($conn) {
             gap: 20px;
         }
         .jobseeker-card {
-            max-width: 400px;
+            max-width: min(400px, 100%);
             margin: 0 auto;
         }
     }
@@ -440,19 +455,46 @@ if ($conn) {
             margin-left: 0;
             padding: 20px;
             height: auto;
+            max-width: 100%;
+            min-width: 0;
         }
         
         .jobseeker-grid {
             grid-template-columns: 1fr;
             gap: 16px;
-            padding: 0 10px;
+            padding: 0;
+            width: 100%;
+            max-width: 100%;
         }
         
         .jobseeker-card {
             max-width: 100%;
+            width: 100%;
             margin: 0;
             padding: 16px 12px 12px 12px;
             min-height: 200px;
+        }
+        
+        .jobseeker-card .action-buttons {
+            width: 100%;
+            max-width: 100%;
+            flex-wrap: wrap !important;
+            box-sizing: border-box;
+            padding: 0 4px;
+        }
+        .jobseeker-card .action-buttons .accept-btn,
+        .jobseeker-card .action-buttons .reject-btn {
+            flex: 1 1 calc(50% - 6px);
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Toolbar under header: don’t extend past viewport */
+        .main-content > div:nth-child(2).jobseeker-toolbar {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            max-width: 100%;
         }
         
         .jobseeker-card .jobseeker-name {
@@ -541,7 +583,8 @@ if ($conn) {
         }
     }
     
-    @media (max-width: 800px) {
+    /* Tablet-only: don’t apply below 768px or it overrides hamburger / mobile sidebar */
+    @media (max-width: 800px) and (min-width: 769px) {
         .layout {
             flex-direction: column;
         }
@@ -610,12 +653,17 @@ if ($conn) {
         }
         
         #statusFilter, #occupationFilter, #skillsFilter {
-            min-width: 120px;
+            min-width: 0 !important;
+            max-width: 100%;
+            width: 100% !important;
             font-size: 0.85rem;
         }
         #nameSearchInput {
-            min-width: 160px;
+            min-width: 0 !important;
+            max-width: 100%;
+            width: 100% !important;
             font-size: 0.85rem;
+            box-sizing: border-box !important;
         }
         
         /* Mobile Filter Stack - Vertical Layout */
@@ -657,14 +705,20 @@ if ($conn) {
         }
         
         #statusFilter, #occupationFilter, #skillsFilter {
-            min-width: 100px;
+            min-width: 0 !important;
+            max-width: 100%;
+            width: 100% !important;
             font-size: 0.8rem;
             padding: 6px 12px;
+            box-sizing: border-box !important;
         }
         #nameSearchInput {
-            min-width: 140px;
+            min-width: 0 !important;
+            max-width: 100%;
+            width: 100% !important;
             font-size: 0.8rem;
             padding: 6px 12px;
+            box-sizing: border-box !important;
         }
         
         /* Move total display to the right on mobile */
@@ -1236,7 +1290,7 @@ if ($conn) {
             </div>
             
             <!-- Action Buttons Section - Below the header -->
-            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; padding: 0 20px;">
+            <div class="jobseeker-toolbar" style="display: flex; gap: 12px; align-items: center; margin-bottom: 24px; padding: 0 20px; flex-wrap: wrap; max-width: 100%; box-sizing: border-box;">
                 <button id="multipleAcceptBtn" onclick="toggleMultipleAcceptMode()" style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(255,152,0,0.3);">
                     📋 Multiple Accept
                 </button>

@@ -185,9 +185,15 @@ $conn->close();
             margin: 0;
             padding: 0;
         }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
         
         .profile-page {
             padding: 20px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
         
         .page-header {
@@ -207,6 +213,40 @@ $conn->close();
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 1200px;
+            max-width: min(1200px, 100%);
+            overflow-x: hidden;
+        }
+
+        .logo-upload-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .logo-upload-row .logo-file-col {
+            flex: 1 1 200px;
+            min-width: 0;
+            max-width: 100%;
+        }
+        .logo-upload-row input[type="file"] {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        .form-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            vertical-align: middle;
         }
         
         .form-row {
@@ -549,7 +589,13 @@ $conn->close();
         @media (max-width: 768px) {
             .main-content {
                 margin-left: 0;
-                padding: 15px;
+                padding: 12px;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+
+            .profile-page {
+                padding: 12px 0;
             }
             
             .form-row {
@@ -557,11 +603,25 @@ $conn->close();
             }
             
             .profile-form {
-                padding: 20px;
+                padding: 16px;
             }
             
             .logo-upload-section {
-                padding: 20px;
+                padding: 16px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .form-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-actions .btn,
+            .form-actions .btn.btn-secondary {
+                width: 100%;
+                margin-left: 0 !important;
             }
         }
     </style>
@@ -632,7 +692,7 @@ $conn->close();
                     <form method="POST" enctype="multipart/form-data" id="profileForm">
                         <div class="logo-upload-section">
                             <label>Company Logo</label>
-                            <div style="display: flex; align-items: flex-start; gap: 30px; flex-wrap: wrap;">
+                            <div class="logo-upload-row">
                                 <?php if ($company_logo): ?>
                                     <img src="../<?php echo htmlspecialchars($company_logo); ?>" alt="Company Logo" class="logo-preview" id="logoPreview">
                                 <?php else: ?>
@@ -640,7 +700,7 @@ $conn->close();
                                         <i class="fas fa-building"></i>
                                     </div>
                                 <?php endif; ?>
-                                <div style="flex: 1; min-width: 300px;">
+                                <div class="logo-file-col">
                                     <input type="file" name="logo" id="logoInput" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onchange="previewLogo(this)" style="padding: 10px; width: 100%; border: 2px dashed #ddd; border-radius: 8px; background: white; cursor: pointer;">
                                     <small style="color: #666; display: block; margin-top: 10px; font-size: 0.9rem;">Recommended: Square image, max 2MB (JPG, PNG, GIF, WEBP)</small>
                                 </div>
@@ -683,7 +743,7 @@ $conn->close();
                             <textarea id="address" name="address" placeholder="Enter your complete company address..."><?php echo htmlspecialchars($company_address); ?></textarea>
                         </div>
 
-                        <div style="margin-top: 30px;">
+                        <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>

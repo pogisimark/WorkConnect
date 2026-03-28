@@ -574,6 +574,33 @@ if ($conn) {
             cursor: not-allowed;
             pointer-events: none;
         }
+
+        /* Create/Edit modal: Save Draft + Publish — fixed footprint, spinner replaces text */
+        .announcement-form-actions #saveBtn,
+        .announcement-form-actions #publishBtn {
+            min-width: 152px;
+            min-height: 46px;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+        }
+        .announcement-form-actions #saveBtn.btn-loading,
+        .announcement-form-actions #publishBtn.btn-loading {
+            opacity: 1;
+            cursor: wait;
+        }
+        .ann-modal-btn-spinner {
+            display: block;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255, 255, 255, 0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            flex-shrink: 0;
+        }
         
         /* Enhanced Action Buttons */
         .action-btn {
@@ -715,6 +742,7 @@ if ($conn) {
             letter-spacing: 0.5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
+            white-space: nowrap; /* e.g. "Hiring Alert" stays one line in table cells */
         }
         
         .badge:hover {
@@ -822,6 +850,185 @@ if ($conn) {
                 width: 8px;
                 height: 8px;
                 border-width: 1px;
+            }
+        }
+
+        /* —— Announcements list: mobile card layout (table → stacked cards) —— */
+        .announcements-table-wrap {
+            width: 100%;
+        }
+        /* Desktop: keep Edit / Unpublish / Delete on one row (mobile overrides below) */
+        @media (min-width: 769px) {
+            .ann-table thead th:last-child,
+            .ann-table td.ann-cell--actions {
+                min-width: 300px;
+                width: 1%;
+                white-space: nowrap;
+            }
+            .ann-table td.ann-cell--actions .ann-actions-row {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 10px;
+                justify-content: flex-start;
+            }
+            .ann-table td.ann-cell--actions .action-btn {
+                flex-shrink: 0;
+            }
+        }
+        .ann-title {
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 1.05rem;
+            line-height: 1.35;
+            margin-bottom: 6px;
+        }
+        .ann-desc {
+            font-size: 13px;
+            color: #5c6570;
+            line-height: 1.45;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        @media (max-width: 768px) {
+            .announcements-table-wrap {
+                overflow-x: visible !important;
+            }
+            .ann-table thead {
+                display: none;
+            }
+            .ann-table tbody tr {
+                display: block;
+                margin-bottom: 14px;
+                background: #fafbfd;
+                border: 1px solid #e3e8f0;
+                border-radius: 14px;
+                padding: 14px 16px;
+                box-shadow: 0 2px 8px rgba(35, 58, 139, 0.06);
+            }
+            .ann-table tbody tr:last-child {
+                margin-bottom: 0;
+            }
+            .ann-table td {
+                display: block;
+                width: 100% !important;
+                padding: 0 !important;
+                border: none !important;
+                vertical-align: top;
+            }
+            .ann-table td + td {
+                margin-top: 12px;
+            }
+            .ann-table td[data-label]:before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: #8b95a5;
+                margin-bottom: 6px;
+            }
+            .ann-table td.ann-cell--title:before {
+                display: none;
+            }
+            .ann-table td.ann-cell--actions:before {
+                display: none;
+            }
+            .ann-table td.ann-cell--actions {
+                margin-top: 14px;
+                padding-top: 12px !important;
+                border-top: 1px solid #e8ecf4 !important;
+            }
+            .ann-table td.ann-cell--actions > div {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .ann-table .action-btn {
+                flex: 1 1 calc(50% - 4px);
+                min-width: calc(50% - 4px);
+                box-sizing: border-box;
+            }
+        }
+
+        /* —— Create / edit announcement modal: compact on mobile —— */
+        .announcement-modal-backdrop {
+            box-sizing: border-box;
+        }
+        .announcement-modal-panel {
+            box-sizing: border-box;
+        }
+        .announcement-file-zone {
+            box-sizing: border-box;
+        }
+        @media (max-width: 768px) {
+            .announcement-modal-backdrop {
+                align-items: flex-start !important;
+                justify-content: center !important;
+                padding: 8px !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            .announcement-modal-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 16px 14px 20px !important;
+                margin: 0 !important;
+                max-height: none !important;
+                border-radius: 14px !important;
+            }
+            .announcement-modal-panel #modalTitle {
+                font-size: 1.15rem !important;
+                padding-right: 8px;
+            }
+            .announcement-modal-panel .ann-form-field {
+                margin-bottom: 12px !important;
+            }
+            .announcement-modal-panel label {
+                font-size: 13px !important;
+                margin-bottom: 4px !important;
+            }
+            .announcement-modal-panel input,
+            .announcement-modal-panel select,
+            .announcement-modal-panel textarea {
+                padding: 10px !important;
+                font-size: 16px !important; /* reduces iOS zoom */
+            }
+            .announcement-file-zone {
+                padding: 12px 10px !important;
+                margin-bottom: 10px !important;
+            }
+            .announcement-file-zone p {
+                margin: 0 !important;
+                font-size: 13px !important;
+            }
+            .announcement-form-actions {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                justify-content: stretch !important;
+                flex-wrap: unset !important;
+            }
+            .announcement-form-actions button {
+                width: 100% !important;
+                padding: 11px 10px !important;
+                font-size: 12px !important;
+                box-sizing: border-box;
+            }
+            .preview-modal-backdrop {
+                align-items: flex-start !important;
+                padding: 8px !important;
+                overflow-y: auto !important;
+            }
+            .preview-modal-panel {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 16px !important;
+                max-height: none !important;
+                border-radius: 14px !important;
             }
         }
     </style>
@@ -935,24 +1142,24 @@ if ($conn) {
         </div>
 
         <!-- Create/Edit Announcement Modal -->
-        <div id="announcementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
-            <div style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div id="announcementModal" class="announcement-modal-backdrop" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+            <div class="announcement-modal-panel" style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h3 id="modalTitle" style="margin: 0; color: #233a8b; font-size: 1.5rem;">Create New Announcement</h3>
-                    <button id="closeModalBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
+                    <button id="closeModalBtn" type="button" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
                 </div>
                 
                 <form id="announcementForm">
                     <input type="hidden" id="announcementId" name="id">
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Title *</label>
-                        <input type="text" id="announcementTitle" name="title" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <input type="text" id="announcementTitle" name="title" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Category *</label>
-                        <select id="announcementCategory" name="category" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <select id="announcementCategory" name="category" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                             <option value="">Select Category</option>
                             <option value="Job Fair">Job Fair</option>
                             <option value="Hiring Alert">Hiring Alert</option>
@@ -961,35 +1168,35 @@ if ($conn) {
                         </select>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Description *</label>
-                        <textarea id="announcementDescription" name="description" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-height: 200px; resize: vertical;"></textarea>
+                        <textarea id="announcementDescription" name="description" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-height: 160px; resize: vertical; box-sizing: border-box;"></textarea>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Tags (comma-separated)</label>
-                        <input type="text" id="announcementTags" name="tags" placeholder="e.g., IT Jobs, Manila, Full Time" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <input type="text" id="announcementTags" name="tags" placeholder="e.g., IT Jobs, Manila, Full Time" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Expiration Date (optional)</label>
-                        <input type="date" id="announcementExpiration" name="expiration_date" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <input type="date" id="announcementExpiration" name="expiration_date" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Status</label>
-                        <select id="announcementStatus" name="status" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <select id="announcementStatus" name="status" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                             <option value="draft">Draft</option>
                             <option value="published">Published</option>
                         </select>
                     </div>
                     
-                    <div style="margin-bottom: 20px;">
+                    <div class="ann-form-field" style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Attachments</label>
-                        <div id="fileUploadArea" style="border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 16px;">
+                        <div id="fileUploadArea" class="announcement-file-zone" style="border: 2px dashed #ddd; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 12px;">
                             <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display: none;">
-                            <p style="margin: 0; color: #666;">Click to upload files or drag and drop</p>
-                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #999;">PDF, JPG, PNG, DOC, DOCX (max 5MB each)</p>
+                            <p style="margin: 0; color: #666;">Tap to upload or drag files here</p>
+                            <p style="margin: 6px 0 0 0; font-size: 12px; color: #999;">PDF, JPG, PNG, DOC, DOCX · max 5MB each</p>
                         </div>
                         <div id="uploadedFiles" style="display: none;">
                             <h4 style="margin: 0 0 12px 0; color: #333; font-size: 14px;">Uploaded Files:</h4>
@@ -997,7 +1204,7 @@ if ($conn) {
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <div class="announcement-form-actions" style="display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
                         <button type="button" id="cancelBtn" style="background: #f5f5f5; color: #666; border: 1px solid #ddd; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                             Cancel
                         </button>
@@ -1016,8 +1223,8 @@ if ($conn) {
         </div>
 
         <!-- Preview Modal -->
-        <div id="previewModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
-            <div style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div id="previewModal" class="preview-modal-backdrop" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+            <div class="preview-modal-panel" style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h3 style="margin: 0; color: #233a8b; font-size: 1.5rem;">Preview</h3>
                     <button id="closePreviewBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">&times;</button>
@@ -1273,6 +1480,8 @@ let currentPage = 1;
 let currentFilters = {};
 let currentAnnouncementId = null;
 let uploadedFiles = [];
+/** Prevents double submit (e.g. Publish loading + Save Draft) creating duplicate rows */
+let announcementSaveInFlight = false;
 
 // Load stats overview
 function loadStats() {
@@ -1351,6 +1560,22 @@ function refreshData() {
     }, 1000);
 }
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function stripHtmlToText(html) {
+    if (!html) return '';
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
 // Render announcements table
 function renderAnnouncementsTable(announcements) {
     if (announcements.length === 0) {
@@ -1365,7 +1590,8 @@ function renderAnnouncementsTable(announcements) {
     }
     
     const tableHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
+        <div class="announcements-table-wrap">
+        <table class="ann-table" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="background: #f8f9fa;">
                     <th style="padding: 16px; text-align: left; border-bottom: 1px solid #eee; font-weight: 600;">Title</th>
@@ -1377,48 +1603,52 @@ function renderAnnouncementsTable(announcements) {
                 </tr>
             </thead>
             <tbody>
-                ${announcements.map(announcement => `
+                ${announcements.map(announcement => {
+                    const descPlain = stripHtmlToText(announcement.description);
+                    const excerpt = descPlain.length > 160 ? descPlain.substring(0, 160) + '…' : descPlain;
+                    const safeTitle = escapeHtml(announcement.title);
+                    const safeExcerpt = escapeHtml(excerpt);
+                    const st = announcement.status === 'published' ? 'draft' : 'published';
+                    return `
                     <tr style="border-bottom: 1px solid #f0f0f0;">
-                        <td style="padding: 16px;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${announcement.title}</div>
-                            <div style="font-size: 12px; color: #666;">${announcement.description.substring(0, 100)}${announcement.description.length > 100 ? '...' : ''}</div>
+                        <td class="ann-cell--title" style="padding: 16px; vertical-align: top;">
+                            <div class="ann-title">${safeTitle}</div>
+                            <div class="ann-desc">${safeExcerpt}</div>
                         </td>
-                        <td style="padding: 16px;">
+                        <td data-label="Category" style="padding: 16px; vertical-align: middle;">
                             <span class="badge category ${getCategoryClass(announcement.category)}">
-                                ${announcement.category}
+                                ${escapeHtml(announcement.category)}
                             </span>
                         </td>
-                        <td style="padding: 16px;">
+                        <td data-label="Status" style="padding: 16px; vertical-align: middle;">
                             <span class="badge status ${announcement.status}">
-                                ${announcement.status}
+                                ${escapeHtml(announcement.status)}
                             </span>
                         </td>
-                        <td style="padding: 16px; color: #666; font-size: 14px;">
+                        <td data-label="Date posted" style="padding: 16px; color: #666; font-size: 14px; vertical-align: middle;">
                             ${new Date(announcement.date_posted).toLocaleDateString()}
                         </td>
-                        <td style="padding: 16px; color: #666; font-size: 14px;">
+                        <td data-label="Views" style="padding: 16px; color: #666; font-size: 14px; vertical-align: middle;">
                             ${announcement.view_count || 0}
                         </td>
-                        <td style="padding: 16px;">
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <button onclick="editAnnouncement(${announcement.id})" class="action-btn edit">
-                                    
+                        <td class="ann-cell--actions" style="padding: 16px; vertical-align: middle;">
+                            <div class="ann-actions-row" style="display: flex; gap: 10px;">
+                                <button type="button" onclick="editAnnouncement(${announcement.id})" class="action-btn edit">
                                     <span>Edit</span>
                                 </button>
-                                <button onclick="changeAnnouncementStatus(${announcement.id}, '${announcement.status === 'published' ? 'draft' : 'published'}')" class="action-btn ${announcement.status === 'published' ? 'unpublish' : 'publish'}">
-                                    
+                                <button type="button" onclick="changeAnnouncementStatus(${announcement.id}, '${st}')" class="action-btn ${announcement.status === 'published' ? 'unpublish' : 'publish'}">
                                     <span>${announcement.status === 'published' ? 'Unpublish' : 'Publish'}</span>
                                 </button>
-                                <button onclick="deleteAnnouncement(${announcement.id})" class="action-btn delete">
-                                    
+                                <button type="button" onclick="deleteAnnouncement(${announcement.id})" class="action-btn delete">
                                     <span>Delete</span>
                                 </button>
                             </div>
                         </td>
-                    </tr>
-                `).join('')}
+                    </tr>`;
+                }).join('')}
             </tbody>
         </table>
+        </div>
     `;
     
     document.getElementById('announcementsTable').innerHTML = tableHTML;
@@ -1507,6 +1737,26 @@ function clearFilters() {
     loadAnnouncements();
 }
 
+/** TinyMCE keeps its own document; textarea.value alone does not update the editor. */
+function setAnnouncementDescriptionHtml(html) {
+    const val = html == null ? '' : String(html);
+    const ta = document.getElementById('announcementDescription');
+    if (ta) ta.value = val;
+    if (typeof tinymce !== 'undefined') {
+        const ed = tinymce.get('announcementDescription');
+        if (ed) ed.setContent(val);
+    }
+}
+
+function getAnnouncementDescriptionHtml() {
+    if (typeof tinymce !== 'undefined') {
+        const ed = tinymce.get('announcementDescription');
+        if (ed) ed.save();
+    }
+    const ta = document.getElementById('announcementDescription');
+    return ta ? ta.value : '';
+}
+
 // Create new announcement
 function createAnnouncement() {
     currentAnnouncementId = null;
@@ -1515,6 +1765,7 @@ function createAnnouncement() {
     document.getElementById('announcementId').value = '';
     uploadedFiles = [];
     updateFilesList();
+    setAnnouncementDescriptionHtml('');
     document.getElementById('announcementModal').style.display = 'flex';
 }
 
@@ -1545,7 +1796,6 @@ function editAnnouncement(id) {
                 document.getElementById('announcementId').value = announcement.id;
                 document.getElementById('announcementTitle').value = announcement.title;
                 document.getElementById('announcementCategory').value = announcement.category;
-                document.getElementById('announcementDescription').value = announcement.description;
                 document.getElementById('announcementTags').value = announcement.tags || '';
                 document.getElementById('announcementExpiration').value = announcement.expiration_date || '';
                 document.getElementById('announcementStatus').value = announcement.status;
@@ -1554,6 +1804,11 @@ function editAnnouncement(id) {
                 updateFilesList();
                 
                 document.getElementById('announcementModal').style.display = 'flex';
+                const desc = announcement.description != null ? announcement.description : '';
+                setAnnouncementDescriptionHtml(desc);
+                requestAnimationFrame(function () {
+                    setAnnouncementDescriptionHtml(desc);
+                });
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -1586,11 +1841,16 @@ function editAnnouncement(id) {
 
 // Save announcement
 function saveAnnouncement(status = 'draft') {
+    if (announcementSaveInFlight) {
+        return;
+    }
+    announcementSaveInFlight = true;
+
     const formData = {
         id: document.getElementById('announcementId').value,
         title: document.getElementById('announcementTitle').value,
         category: document.getElementById('announcementCategory').value,
-        description: document.getElementById('announcementDescription').value,
+        description: getAnnouncementDescriptionHtml(),
         tags: document.getElementById('announcementTags').value.split(',').map(tag => tag.trim()).filter(tag => tag),
         expiration_date: document.getElementById('announcementExpiration').value,
         status: status
@@ -1598,20 +1858,32 @@ function saveAnnouncement(status = 'draft') {
     
     const url = currentAnnouncementId ? 'announcement_api.php?action=update' : 'announcement_api.php?action=create';
     
-    // Show loading state for appropriate button
     const saveBtn = document.getElementById('saveBtn');
     const publishBtn = document.getElementById('publishBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const previewBtn = document.getElementById('previewBtn');
     const originalSaveText = saveBtn.innerHTML;
     const originalPublishText = publishBtn.innerHTML;
-    
+
+    cancelBtn.disabled = true;
+    previewBtn.disabled = true;
+    saveBtn.disabled = true;
+    publishBtn.disabled = true;
+    saveBtn.classList.remove('btn-loading');
+    publishBtn.classList.remove('btn-loading');
+    saveBtn.removeAttribute('aria-busy');
+    publishBtn.removeAttribute('aria-busy');
+
+    var spinnerOnly = '<span class="ann-modal-btn-spinner" role="status" aria-label="Loading"></span>';
+
     if (status === 'draft') {
-        saveBtn.innerHTML = '<span class="spinner"></span>Saving...';
+        saveBtn.innerHTML = spinnerOnly;
         saveBtn.classList.add('btn-loading');
-        saveBtn.disabled = true;
+        saveBtn.setAttribute('aria-busy', 'true');
     } else {
-        publishBtn.innerHTML = '<span class="spinner"></span>Publishing...';
+        publishBtn.innerHTML = spinnerOnly;
         publishBtn.classList.add('btn-loading');
-        publishBtn.disabled = true;
+        publishBtn.setAttribute('aria-busy', 'true');
     }
     
     fetch(url, {
@@ -1624,6 +1896,10 @@ function saveAnnouncement(status = 'draft') {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            if (data.announcement_id && !currentAnnouncementId) {
+                currentAnnouncementId = data.announcement_id;
+                document.getElementById('announcementId').value = data.announcement_id;
+            }
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
@@ -1651,13 +1927,17 @@ function saveAnnouncement(status = 'draft') {
         });
     })
     .finally(() => {
-        // Reset button states
+        announcementSaveInFlight = false;
         saveBtn.innerHTML = originalSaveText;
         saveBtn.classList.remove('btn-loading');
+        saveBtn.removeAttribute('aria-busy');
         saveBtn.disabled = false;
         publishBtn.innerHTML = originalPublishText;
         publishBtn.classList.remove('btn-loading');
+        publishBtn.removeAttribute('aria-busy');
         publishBtn.disabled = false;
+        cancelBtn.disabled = false;
+        previewBtn.disabled = false;
     });
 }
 
@@ -1871,7 +2151,7 @@ function handleFileUpload(files) {
         const formData = {
             title: document.getElementById('announcementTitle').value || 'Untitled',
             category: document.getElementById('announcementCategory').value || 'Update',
-            description: document.getElementById('announcementDescription').value || 'No description',
+            description: getAnnouncementDescriptionHtml() || 'No description',
             tags: [],
             expiration_date: document.getElementById('announcementExpiration').value,
             status: 'draft'
@@ -2038,7 +2318,7 @@ function removeFile(fileId) {
 function previewAnnouncement() {
     const title = document.getElementById('announcementTitle').value;
     const category = document.getElementById('announcementCategory').value;
-    const description = document.getElementById('announcementDescription').value;
+    const description = getAnnouncementDescriptionHtml();
     const tags = document.getElementById('announcementTags').value;
     
     if (!title || !category || !description) {
@@ -2081,21 +2361,21 @@ function previewAnnouncement() {
     document.getElementById('previewModal').style.display = 'flex';
 }
 
-// Initialize TinyMCE
+// Initialize TinyMCE (shorter editor + slimmer toolbar on phones)
 function initTinyMCE() {
+    var narrow = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
     tinymce.init({
         selector: '#announcementDescription',
-        height: 300,
+        height: narrow ? 200 : 280,
         menubar: false,
         plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'media', 'table', 'help', 'wordcount'
+            'advlist', 'autolink', 'lists', 'link', 'charmap',
+            'searchreplace', 'visualblocks', 'code',
+            'insertdatetime', 'help', 'wordcount'
         ],
-        toolbar: 'undo redo | blocks | ' +
-            'bold italic backcolor | alignleft aligncenter ' +
-            'alignright alignjustify | bullist numlist outdent indent | ' +
-            'removeformat | help',
+        toolbar: narrow
+            ? 'undo redo | bold italic | bullist numlist | removeformat'
+            : 'undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
         content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
         setup: function (editor) {
             editor.on('change', function () {

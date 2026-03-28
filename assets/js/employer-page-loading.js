@@ -60,6 +60,22 @@
     overlay.classList.add("active");
   }
 
+  function hideLoading() {
+    const el = document.getElementById("pageLoadingOverlay");
+    if (el) el.classList.remove("active");
+  }
+
+  window.hideEmployerPageLoading = hideLoading;
+
+  /** Skill Registry (skill.php): forms are AJAX + preventDefault in bubble phase; capture-phase submit would show overlay and it never clears (no full navigation). */
+  function skipSubmitLoadingForSkillRegistry() {
+    try {
+      return (window.location.pathname || "").toLowerCase().includes("skill.php");
+    } catch (_) {
+      return false;
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     injectStyles();
     const overlay = createOverlay();
@@ -78,6 +94,7 @@
     document.addEventListener(
       "submit",
       function (event) {
+        if (skipSubmitLoadingForSkillRegistry()) return;
         const form = event.target;
         const action = ((form && form.getAttribute("action")) || "").toLowerCase();
         if (action.includes("logout")) return;
@@ -91,5 +108,9 @@
     window.addEventListener("pageshow", function () {
       overlay.classList.remove("active");
     });
+
+    if (skipSubmitLoadingForSkillRegistry()) {
+      hideLoading();
+    }
   });
 })();
