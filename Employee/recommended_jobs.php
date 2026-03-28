@@ -110,6 +110,9 @@ if ($jsRow && !empty($jsRow['id'])) {
     reconcile_stale_open_applications_for_accepted_jobseeker($conn, (int) $jsRow['id']);
 }
 
+// Hosting often uses 30s; recommendation scoring is CPU-heavy at scale.
+@set_time_limit(120);
+
 // Get recommended jobs (only jobs with compatibility >= minScore)
 $recommendations = $matching->getRecommendedJobs($userId, 20, $minScore);
 

@@ -1,10 +1,18 @@
 <?php
 // Job Matching Algorithm for WorkConnect
 // This file contains the core matching logic for recommending jobs to job seekers
+// ai_job_matcher.php holds multi‑MB static maps; load it only after ensuring headroom.
+@ini_set('memory_limit', '384M');
 require_once 'ai_job_matcher.php';
 
 class JobMatchingAlgorithm {
     private $conn;
+
+    /**
+     * Maximum active postings to score per recommended-jobs request (newest first).
+     * Stops production timeouts when the job table is large; does not affect apply/compatibility for a single job.
+     */
+    private const RECOMMENDED_JOBS_CANDIDATE_LIMIT = 600;
     
     public function __construct($connection) {
         $this->conn = $connection;
@@ -15,17 +23,24 @@ class JobMatchingAlgorithm {
      * Returns a score from 0-100
      */
     public function calculateCompatibilityScore($userId, $jobPostingId) {
-        $breakdown = $this->calculateDetailedCompatibility($userId, $jobPostingId);
+        $breakdown = $this->calculateDetailedCompatibility($userId, $jobPostingId, null, null);
         return $breakdown['total_score'];
     }
     
     /**
      * Calculate detailed compatibility breakdown with individual factor scores
      * Returns array with total_score and individual factor scores
+     *
+     * @param array|null $jobSeekerPrefetched Row from jobseeker (skips DB when set — use in batch loops)
+     * @param array|null $jobPostingPrefetched Row from job_postings (skips DB when set — must include same fields as getJobPostingData)
      */
-    public function calculateDetailedCompatibility($userId, $jobPostingId) {
+    public function calculateDetailedCompatibility($userId, $jobPostingId, $jobSeekerPrefetched = null, $jobPostingPrefetched = null) {
         // Get job seeker data
-        $jobSeeker = $this->getJobSeekerData($userId);
+        if (is_array($jobSeekerPrefetched)) {
+            $jobSeeker = $jobSeekerPrefetched;
+        } else {
+            $jobSeeker = $this->getJobSeekerData($userId);
+        }
         if (!$jobSeeker) {
             return [
                 'total_score' => 0,
@@ -42,7 +57,11 @@ class JobMatchingAlgorithm {
         }
         
         // Get job posting data
-        $jobPosting = $this->getJobPostingData($jobPostingId);
+        if (is_array($jobPostingPrefetched) && (int)($jobPostingPrefetched['id'] ?? 0) === (int)$jobPostingId) {
+            $jobPosting = $jobPostingPrefetched;
+        } else {
+            $jobPosting = $this->getJobPostingData($jobPostingId);
+        }
         if (!$jobPosting) {
             return [
                 'total_score' => 0,
@@ -189,6 +208,11 @@ class JobMatchingAlgorithm {
         
         $matchedSkills = [];
         $totalSkills = count($jobSeekerSkills);
+
+        // Shared keyword lists (one copy in memory per distinct list)
+        $kwCommunication = ['communication', 'communicate', 'verbal', 'written', 'speaking', 'presentation', 'customer service', 'client relations', 'interpersonal', 'people skills', 'social', 'public speaking', 'negotiation', 'persuasion', 'explaining', 'listening', 'correspondence', 'email', 'phone', 'telephone', 'bilingual', 'multilingual', 'translation', 'interpretation', 'reporting', 'documentation', 'report writing', 'meeting', 'collaboration', 'teamwork'];
+        $kwPainting = ['painter', 'painting', 'paint', 'decorative', 'interior', 'exterior', 'brush', 'roller', 'color', 'coating', 'finishing', 'renovation', 'construction', 'artistic', 'mural', 'wall painting', 'spray painting', 'automotive painting', 'industrial painting', 'residential painting', 'commercial painting'];
+        $kwSewingTailoring = ['sewing', 'tailor', 'tailoring', 'dressmaking', 'garment', 'fabric', 'textile', 'clothing', 'apparel', 'alteration', 'pattern', 'stitching', 'embroidery', 'seamstress', 'dressmaker', 'alterations specialist', 'fashion design', 'costume', 'uniform'];
         
         // Comprehensive skill-to-keyword mapping for intelligent matching
         // Maps user skills to related keywords that should appear in job requirements
@@ -197,8 +221,8 @@ class JobMatchingAlgorithm {
             'computer' => ['computer', 'it', 'information technology', 'software', 'programming', 'coding', 'developer', 'programmer', 'web development', 'web developer', 'technical', 'technology', 'tech', 'system', 'application', 'database', 'network', 'hardware', 'software development', 'software engineer', 'it support', 'technical support', 'computer science', 'cs', 'information systems', 'is', 'data entry', 'computer literacy', 'ms office', 'microsoft office', 'office suite', 'computer skills', 'basic computer', 'pc', 'desktop', 'laptop', 'excel', 'word', 'powerpoint', 'spreadsheet', 'data analysis', 'cybersecurity', 'cloud computing', 'devops', 'frontend', 'backend', 'fullstack', 'api', 'sql', 'javascript', 'python', 'java', 'php', 'html', 'css'],
             
             // Communication Skills (expanded)
-            'communication' => ['communication', 'communicate', 'verbal', 'written', 'speaking', 'presentation', 'customer service', 'client relations', 'interpersonal', 'people skills', 'social', 'public speaking', 'negotiation', 'persuasion', 'explaining', 'listening', 'correspondence', 'email', 'phone', 'telephone', 'bilingual', 'multilingual', 'translation', 'interpretation', 'reporting', 'documentation', 'report writing', 'meeting', 'collaboration', 'teamwork'],
-            'communication skills' => ['communication', 'communicate', 'verbal', 'written', 'speaking', 'presentation', 'customer service', 'client relations', 'interpersonal', 'people skills', 'social', 'public speaking', 'negotiation', 'persuasion', 'explaining', 'listening', 'correspondence', 'email', 'phone', 'telephone', 'bilingual', 'multilingual', 'translation', 'interpretation', 'reporting', 'documentation', 'report writing', 'meeting', 'collaboration', 'teamwork'],
+            'communication' => $kwCommunication,
+            'communication skills' => $kwCommunication,
             
             // Photography (expanded)
             'photography' => ['photography', 'photographer', 'photo', 'camera', 'photographic', 'imaging', 'visual', 'graphic design', 'adobe photoshop', 'photoshop', 'lightroom', 'editing', 'retouching', 'portrait', 'event photography', 'wedding photography', 'commercial photography', 'product photography', 'fashion photography', 'video', 'videography', 'cinematography', 'drone', 'aerial photography'],
@@ -207,8 +231,8 @@ class JobMatchingAlgorithm {
             'driver' => ['driver', 'driving', 'delivery', 'transportation', 'logistics', 'vehicle', 'motorcycle', 'car', 'truck', 'van', 'fleet', 'chauffeur', 'courier', 'rider', 'delivery rider', 'motorcycle rider', 'transport', 'shipping', 'driver\'s license', 'drivers license', 'valid license', 'cdl', 'commercial driver', 'truck driver', 'van driver', 'taxi', 'uber', 'grab', 'food delivery', 'package delivery'],
             
             // Painter/Painting (expanded)
-            'painter' => ['painter', 'painting', 'paint', 'decorative', 'interior', 'exterior', 'brush', 'roller', 'color', 'coating', 'finishing', 'renovation', 'construction', 'artistic', 'mural', 'wall painting', 'spray painting', 'automotive painting', 'industrial painting', 'residential painting', 'commercial painting'],
-            'painting' => ['painter', 'painting', 'paint', 'decorative', 'interior', 'exterior', 'brush', 'roller', 'color', 'coating', 'finishing', 'renovation', 'construction', 'artistic', 'mural', 'wall painting', 'spray painting', 'automotive painting', 'industrial painting', 'residential painting', 'commercial painting'],
+            'painter' => $kwPainting,
+            'painting' => $kwPainting,
             
             // Sales/Retail (expanded)
             'sales' => ['sales', 'selling', 'retail', 'merchandise', 'customer', 'clerk', 'cashier', 'store', 'shop', 'outlet', 'point of sale', 'pos', 'transaction', 'inventory', 'product knowledge', 'upselling', 'cross-selling', 'sales representative', 'account executive', 'business development', 'client acquisition', 'revenue', 'quota', 'territory', 'cold calling', 'prospecting'],
@@ -229,8 +253,8 @@ class JobMatchingAlgorithm {
             'beautician' => ['beautician', 'beauty', 'cosmetology', 'hair', 'makeup', 'salon', 'spa', 'styling', 'manicure', 'pedicure', 'facial', 'skincare', 'aesthetic', 'hairstylist', 'barber', 'nail technician', 'esthetician', 'massage therapist', 'waxing', 'eyebrow', 'eyelash'],
             
             // Sewing/Tailoring (expanded)
-            'sewing' => ['sewing', 'tailor', 'tailoring', 'dressmaking', 'garment', 'fabric', 'textile', 'clothing', 'apparel', 'alteration', 'pattern', 'stitching', 'embroidery', 'seamstress', 'dressmaker', 'alterations specialist', 'fashion design', 'costume', 'uniform'],
-            'tailoring' => ['sewing', 'tailor', 'tailoring', 'dressmaking', 'garment', 'fabric', 'textile', 'clothing', 'apparel', 'alteration', 'pattern', 'stitching', 'embroidery', 'seamstress', 'dressmaker', 'alterations specialist', 'fashion design', 'costume', 'uniform'],
+            'sewing' => $kwSewingTailoring,
+            'tailoring' => $kwSewingTailoring,
             
             // Embroidery (expanded)
             'embroidery' => ['embroidery', 'embroid', 'needlework', 'stitching', 'decorative', 'textile', 'fabric', 'handicraft', 'craft', 'monogram', 'custom embroidery', 'machine embroidery', 'hand embroidery'],
@@ -965,6 +989,7 @@ class JobMatchingAlgorithm {
             )
             WHERE jp.status = 'Active'" . $companyFilter . "
             ORDER BY jp.created_at DESC
+            LIMIT " . (int) self::RECOMMENDED_JOBS_CANDIDATE_LIMIT . "
         ");
 
         $stmt->bind_param("i", $userId);
@@ -972,12 +997,17 @@ class JobMatchingAlgorithm {
         $result = $stmt->get_result();
         $allJobs = $result->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
+
+        $jobSeeker = $this->getJobSeekerData($userId);
+        if (!$jobSeeker) {
+            return [];
+        }
         
         // Calculate compatibility scores and detailed breakdown for all jobs
         $jobsWithScores = [];
         foreach ($allJobs as $job) {
             // Calculate detailed compatibility
-            $breakdown = $this->calculateDetailedCompatibility($userId, $job['id']);
+            $breakdown = $this->calculateDetailedCompatibility($userId, (int) $job['id'], $jobSeeker, $job);
             
             // Use stored score if already applied, otherwise use calculated score
             if ($job['already_applied'] == 1 && $job['compatibility_score'] > 0) {
