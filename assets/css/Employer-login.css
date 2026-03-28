@@ -2,7 +2,7 @@ body {
       margin: 0;
       font-family: Arial, sans-serif;
       background: url('../assets/image/bg\ workconnect.jpg') center/cover no-repeat;
-      min-height: 100vh;
+      min-height: 100vh; min-height: 100dvh;
     }
 .header {
       background: #1a3876;

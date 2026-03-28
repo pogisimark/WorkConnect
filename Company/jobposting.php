@@ -277,6 +277,7 @@ $conn->close();
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/company-logout.js?v=1"></script>
+    <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
     <style>
         body {
             margin: 0;
@@ -1072,7 +1073,7 @@ $conn->close();
         .sidebar {
             background: #f8f9fa;
             width: 250px;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 80px); height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
             position: fixed;
             left: 0;
             top: 80px;
@@ -1158,7 +1159,7 @@ $conn->close();
         .main-content {
             margin-left: 250px;
             padding: 20px;
-            min-height: calc(100vh - 80px);
+            min-height: calc(100vh - 80px); min-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
         }
         
         @media (max-width: 768px) {

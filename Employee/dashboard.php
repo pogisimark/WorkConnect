@@ -235,6 +235,7 @@ $conn->close();
             padding-bottom: 120px; /* Much more space for bottom navigation */
             height: auto;
             min-height: calc(100vh - 200px); /* Account for header and bottom nav */
+            min-height: calc(100dvh - 200px - env(safe-area-inset-bottom, 0px));
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
@@ -708,6 +709,7 @@ $conn->close();
             left: 0;
             right: 0;
             min-height: calc(100vh - 220px); /* Ensure enough height for scrolling */
+            min-height: calc(100dvh - 220px - env(safe-area-inset-bottom, 0px));
         }
         
         .welcome-card {
@@ -1022,12 +1024,14 @@ $conn->close();
             padding-top: 70px;
             padding-bottom: 110px; /* Much more space for bottom navigation */
             min-height: calc(100vh - 180px); /* Account for header and bottom nav */
+            min-height: calc(100dvh - 180px - env(safe-area-inset-bottom, 0px));
             overflow-y: auto; /* Enable vertical scrolling */
         }
         
         .main-content {
             padding: 10px 10px 110px 10px; /* Much more bottom padding for mobile nav */
-            min-height: calc(10vh - 200px); /* Ensure enough height for scrolling */
+            min-height: calc(100vh - 200px);
+            min-height: calc(100dvh - 200px - env(safe-area-inset-bottom, 0px));
         }
         
         .mobile-bottom-nav {
@@ -1372,7 +1376,7 @@ $conn->close();
             overflow-y: auto !important; /* Enable vertical scrolling */
             -webkit-text-size-adjust: 100% !important;
             -webkit-tap-highlight-color: transparent !important;
-            height: 100vh !important;
+            height: 100vh !important; height: 100dvh !important; max-height: 100dvh !important;
             padding-bottom: 0 !important;
             margin-bottom: 0 !important;
         }
@@ -1380,7 +1384,7 @@ $conn->close();
         html {
             overflow-x: hidden !important;
             overflow-y: auto !important; /* Enable vertical scrolling */
-            height: 100vh !important;
+            height: 100vh !important; height: 100dvh !important; max-height: 100dvh !important;
             padding-bottom: 0 !important;
             margin-bottom: 0 !important;
         }
@@ -1447,7 +1451,7 @@ $conn->close();
     
     .dashboard-container {
         display: flex;
-        min-height: 100vh; /* Use min-height instead of fixed height */
+        min-height: 100vh; min-height: 100dvh; /* Use min-height instead of fixed height */
         padding-top: 100px; /* Increased to account for header height */
         overflow: visible; /* Allow content to expand */
     }
@@ -1457,7 +1461,7 @@ $conn->close();
         left: 0;
         top: 8.5%; /* Increased to account for header height */
         width: 250px;
-        height: calc(100vh - 100px);
+        height: calc(100vh - 100px); height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px));
         z-index: 999;
         background: #f8f9fa;
         border-right: 1px solid #e0e0e0;
@@ -1541,7 +1545,7 @@ $conn->close();
             top: 56px !important;
             left: -200px !important;
             width: 200px !important;
-            height: calc(100vh - 56px) !important;
+            height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
             background: #e3eaff !important;
             z-index: 999 !important;
             transition: left 0.3s ease !important;
@@ -1721,7 +1725,7 @@ $conn->close();
         display: block;
         width: 100%;
         max-width: 100%;
-        min-height: 100vh; /* Ensure iframe has enough height for content */
+        min-height: 100vh; min-height: 100dvh; /* Ensure iframe has enough height for content */
         height: auto; /* Allow iframe to expand to its content */
         border-radius: 8px;
     }
@@ -1735,6 +1739,8 @@ $conn->close();
 
         #apply-container {
             height: calc(100vh - 140px);
+            height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
+            max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
             overflow: hidden;
             border-radius: 8px;
         }
@@ -1764,7 +1770,7 @@ $conn->close();
         }
         
         #resume-iframe {
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             height: auto;
             border-radius: 0;
         }
@@ -1776,7 +1782,7 @@ $conn->close();
         }
         
         #announcements-iframe {
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             height: auto;
             border-radius: 0;
         }
@@ -2634,7 +2640,7 @@ $conn->close();
                         <div class="loading-spinner"></div>
                         <p style="margin: 10px 0 0 0; color: #666;">Loading announcements...</p>
                     </div>
-                    <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no" style="border-radius: 8px; border: none; height: auto; min-height: 100vh;"></iframe>
+                    <iframe id="announcements-iframe" src="announcements.php?session_id=<?php echo session_id(); ?>&user_id=<?php echo $_SESSION['user_id']; ?>&token=<?php echo $session_token; ?>" width="100%" frameborder="0" scrolling="no" style="border-radius: 8px; border: none; height: auto; min-height: 100vh; min-height: 100dvh;"></iframe>
                 </div>
                 <!-- Facebook Link -->
                 <div class="facebook-link-container" style="margin-top: 20px;">
@@ -2897,7 +2903,7 @@ $conn->close();
             measureHeight(true);
         }
 
-        function setupIframeAutoResize(iframeId, minHeight = 700) {
+        function setupIframeAutoResize(iframeId, minHeight = 700, postMessageSource = null) {
             const iframe = document.getElementById(iframeId);
             if (!iframe) return;
 
@@ -2917,12 +2923,18 @@ $conn->close();
                     if (!doc) return;
                     const body = doc.body;
                     const html = doc.documentElement;
-                    const contentHeight = Math.max(
+                    const mc = doc.querySelector('.main-content');
+                    let contentHeight = Math.max(
                         body ? body.scrollHeight : 0,
                         body ? body.offsetHeight : 0,
                         html ? html.scrollHeight : 0,
-                        html ? html.offsetHeight : 0
+                        html ? html.offsetHeight : 0,
+                        mc ? mc.scrollHeight : 0
                     );
+                    const posted = parseInt(iframe.getAttribute('data-wc-posted-height') || '0', 10);
+                    if (posted > 0) {
+                        contentHeight = Math.max(contentHeight, posted);
+                    }
                     applyHeight(contentHeight);
                 } catch (e) {
                     // Keep min height when iframe document is not accessible.
@@ -2930,18 +2942,28 @@ $conn->close();
                 }
             };
 
+            if (postMessageSource) {
+                window.addEventListener('message', function wcIframeHeightMsg(ev) {
+                    if (!ev.data || ev.data.type !== 'workconnect-resize-iframe') return;
+                    if (ev.data.source !== postMessageSource) return;
+                    if (iframe.contentWindow !== ev.source) return;
+                    const h = Math.max(minHeight, parseInt(ev.data.height, 10) || 0);
+                    iframe.setAttribute('data-wc-posted-height', String(h));
+                    measureHeight();
+                });
+            }
+
             iframe.setAttribute('scrolling', 'no');
             iframe.style.overflow = 'hidden';
             iframe.addEventListener('load', function() {
+                iframe.removeAttribute('data-wc-posted-height');
                 measureHeight();
                 if (intervalId) clearInterval(intervalId);
                 intervalId = setInterval(measureHeight, 800);
             });
             const onViewportChange = function () {
-                // Clear sticky inline constraints after device-mode switches.
-                iframe.style.minHeight = '';
-                iframe.style.maxHeight = '';
-                iframe.style.height = '';
+                /* Do not clear iframe height here: on mobile Chrome, clearing + remeasure makes the
+                   iframe document report a collapsed scrollHeight (matches short iframe viewport). */
                 iframe.setAttribute('scrolling', 'no');
                 iframe.style.overflow = 'hidden';
                 measureHeight();
@@ -2951,6 +2973,9 @@ $conn->close();
             };
             window.addEventListener('resize', onViewportChange);
             window.addEventListener('orientationchange', onViewportChange);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', onViewportChange);
+            }
             measureHeight();
         }
 
@@ -2962,12 +2987,18 @@ $conn->close();
                 if (!doc) return;
                 const body = doc.body;
                 const html = doc.documentElement;
-                const contentHeight = Math.max(
+                const mc = doc.querySelector('.main-content');
+                let contentHeight = Math.max(
                     body ? body.scrollHeight : 0,
                     body ? body.offsetHeight : 0,
                     html ? html.scrollHeight : 0,
-                    html ? html.offsetHeight : 0
+                    html ? html.offsetHeight : 0,
+                    mc ? mc.scrollHeight : 0
                 );
+                const posted = parseInt(iframe.getAttribute('data-wc-posted-height') || '0', 10);
+                if (posted > 0) {
+                    contentHeight = Math.max(contentHeight, posted);
+                }
                 const safeHeight = Math.max(minHeight || 200, Number(contentHeight) || 0);
                 iframe.style.height = safeHeight + 'px';
             } catch (e) {
@@ -3493,7 +3524,7 @@ $conn->close();
 
             // NSRP: iframe height = full form content; parent dashboard scrolls only (no double scrollbar).
             setupApplyIframeAutoResize();
-            setupIframeAutoResize('recommended-jobs-iframe', 200);
+            setupIframeAutoResize('recommended-jobs-iframe', 200, 'recommended_jobs');
             setupIframeAutoResize('resume-iframe', 300);
             setupIframeAutoResize('announcements-iframe', 300);
 

@@ -24,7 +24,7 @@ if ($conn) {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #fafafa;
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             overflow-x: hidden;
             overflow-y: auto;
         }
@@ -59,13 +59,13 @@ if ($conn) {
         }
         .layout {
             display: flex;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             padding-top: 64px; /* offset for fixed header */
         }
         .sidebar {
             background: #e3eaff;
             width: 240px;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             position: fixed;
             top: 64px;
             left: 0;
@@ -125,7 +125,7 @@ if ($conn) {
             padding: 32px;
             background: #fff;
             margin-left: 240px;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
             box-sizing: border-box;
         }
@@ -299,7 +299,7 @@ if ($conn) {
                 top: 56px !important;
                 left: -240px !important;
                 width: 240px !important;
-                height: calc(100vh - 56px) !important;
+                height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
                 background: #e3eaff !important;
                 z-index: 999 !important;
                 transition: left 0.3s ease !important;
@@ -2254,7 +2254,7 @@ if ($conn) {
     </script>
 
     <!-- Logout Modal -->
-    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
         <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
             <div style="font-size:3rem;margin-bottom:16px;"></div>
             <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>

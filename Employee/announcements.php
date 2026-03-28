@@ -41,7 +41,7 @@ if ($isIframe) {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #fafafa;
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             overflow-x: hidden;
             overflow-y: auto;
         }
@@ -78,13 +78,13 @@ if ($isIframe) {
         }
         .layout {
             display: flex;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             padding-top: 64px;
         }
         .sidebar {
             background: #e3eaff;
             width: 240px;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             position: fixed;
             top: 64px;
             left: 0;
@@ -133,7 +133,7 @@ if ($isIframe) {
             padding: 32px;
             background: #fff;
             margin-left: 240px;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
             box-sizing: border-box;
         }
@@ -164,7 +164,7 @@ if ($isIframe) {
                 top: 56px;
                 left: -240px;
                 width: 240px;
-                height: calc(100vh - 56px);
+                height: calc(100vh - 56px); height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
                 background: #e3eaff;
                 z-index: 999;
                 transition: left 0.3s ease;
@@ -467,7 +467,7 @@ if ($isIframe) {
     <?php endif; ?>
 
     <!-- Announcement Detail Modal -->
-    <div id="announcementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div id="announcementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box; background: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
         <div style="background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h3 id="modalTitle" style="margin: 0; color: #233a8b; font-size: 1.5rem;">Announcement Details</h3>

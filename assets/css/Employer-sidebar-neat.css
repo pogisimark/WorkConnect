@@ -30,6 +30,7 @@
 
 .layout {
     min-height: calc(100vh - 64px) !important;
+    min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)) !important;
     padding-top: 64px !important;
 }
 
@@ -37,7 +38,7 @@
     background: #f8f9fa !important;
     border-right: 1px solid #e0e0e0 !important;
     width: 240px !important;
-    height: calc(100vh - 64px) !important;
+    height: calc(100vh - 64px) !important; height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)) !important;
     top: 64px !important;
     left: 0 !important;
     padding: 20px 0 !important;
@@ -138,6 +139,13 @@
 }
 
 @media (max-width: 768px) {
+    /* Drawer is position:fixed; without this, the page behind it still scrolls on touch/trackpad. */
+    html:has(.sidebar.active),
+    body:has(.sidebar.active) {
+        overflow: hidden !important;
+        overscroll-behavior: none;
+    }
+
     .header img,
     .header-title {
         display: none !important;
@@ -196,10 +204,13 @@
         top: 56px !important;
         left: -240px !important;
         width: 240px !important;
-        height: calc(100vh - 56px) !important;
+        height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
         background: #f8f9fa !important;
         padding: 20px 0 0 24px !important;
         transition: left 0.3s ease !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
     }
 
     /* Force uniform mobile sidebar text sizing across pages */

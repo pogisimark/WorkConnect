@@ -735,6 +735,14 @@ $conn->close();
             box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4) !important;
         }
         
+        /* In dashboard iframe: do not tie body min-height to iframe viewport (causes scrollHeight to collapse on mobile Chrome after resize). */
+        html.wc-in-iframe,
+        body.wc-in-iframe {
+            min-height: 0 !important;
+            height: auto !important;
+            overflow-x: hidden;
+        }
+
         @media (max-width: 768px) {
             .breakdown-grid {
                 grid-template-columns: 1fr;
@@ -787,6 +795,13 @@ $conn->close();
     </style>
 </head>
 <body>
+<script>
+(function () {
+    if (window.self === window.top) return;
+    document.documentElement.classList.add('wc-in-iframe');
+    document.body.classList.add('wc-in-iframe');
+})();
+</script>
 <div class="main-content">
         <div class="content-section">
                 <div class="welcome-card">
@@ -1385,7 +1400,7 @@ $conn->close();
                     cancelButton: 'swal2-cancel-apply'
                 },
                 buttonsStyling: true,
-                width: '450px'
+                width: (typeof window !== 'undefined' && window.innerWidth <= 520) ? 'min(92vw, 450px)' : '450px'
             });
             
             if (!result.isConfirmed) {
@@ -1536,7 +1551,7 @@ $conn->close();
             Swal.fire({
                 title: '',
                 html: jobDetailsHTML,
-                width: '800px',
+                width: (typeof window !== 'undefined' && window.innerWidth <= 600) ? 'min(96vw, 800px)' : '800px',
                 showCloseButton: true,
                 showConfirmButton: true,
                 confirmButtonText: 'Close',
@@ -1560,6 +1575,45 @@ $conn->close();
             };
             return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
         }
+
+        /** Tell parent dashboard the real document height (avoids iframe scrollHeight collapse on mobile Chrome when URL bar resizes). */
+        (function wcRecommendedJobsIframeHeight() {
+            if (window.self === window.top) return;
+            var t = null;
+            function measure() {
+                var mc = document.querySelector('.main-content');
+                var b = document.body;
+                var e = document.documentElement;
+                var h = Math.ceil(Math.max(
+                    mc ? mc.scrollHeight : 0,
+                    b ? b.scrollHeight : 0,
+                    b ? b.offsetHeight : 0,
+                    e ? e.scrollHeight : 0,
+                    e ? e.offsetHeight : 0
+                ));
+                if (h < 200) h = 200;
+                try {
+                    window.parent.postMessage({ type: 'workconnect-resize-iframe', source: 'recommended_jobs', height: h }, '*');
+                } catch (err) { /* ignore */ }
+            }
+            function schedule() {
+                if (t) clearTimeout(t);
+                t = setTimeout(measure, 50);
+            }
+            window.addEventListener('load', schedule);
+            document.addEventListener('DOMContentLoaded', schedule);
+            window.addEventListener('resize', schedule);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', schedule);
+                window.visualViewport.addEventListener('scroll', schedule);
+            }
+            if (typeof ResizeObserver !== 'undefined') {
+                var ro = new ResizeObserver(schedule);
+                if (document.body) ro.observe(document.body);
+                ro.observe(document.documentElement);
+            }
+            schedule();
+        })();
 
         /** Trim DB text and each line so modal body has no fake “first-line indent”. */
         function normalizeJobBodyText(str) {

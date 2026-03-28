@@ -2,7 +2,7 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #f5f7fa;
-  min-height: 100vh;
+  min-height: 100vh; min-height: 100dvh;
 }
 
 .dashboard-header {
@@ -252,7 +252,7 @@ body {
     bottom: 0 !important;
     right: auto !important;
     width: 200px !important;
-    height: calc(100vh - 56px) !important;
+    height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
     background: #e3eaff !important;
     display: flex !important;
     flex-direction: column !important;
@@ -556,7 +556,7 @@ body {
 
 .dashboard-container {
   display: flex;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 80px); min-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
 }
 
 .sidebar {
@@ -566,7 +566,7 @@ body {
   padding: 20px 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 100px); height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 100px - env(safe-area-inset-bottom, 0px));
 }
 
 .sidebar-nav {

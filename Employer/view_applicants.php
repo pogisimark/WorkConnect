@@ -88,7 +88,7 @@ $conn->close();
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background: #fafafa;
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
         }
         
         .header {
@@ -121,14 +121,14 @@ $conn->close();
         
         .layout {
             display: flex;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             padding-top: 64px;
         }
         
         .sidebar {
             background: #e3eaff;
             width: 240px;
-            height: calc(100vh - 64px);
+            height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             position: fixed;
             top: 64px;
             left: 0;
@@ -172,7 +172,7 @@ $conn->close();
             padding: 32px;
             background: #fff;
             margin-left: 240px;
-            min-height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
             box-sizing: border-box;
         }

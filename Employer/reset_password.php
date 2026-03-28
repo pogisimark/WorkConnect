@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0;
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;

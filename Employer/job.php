@@ -26,7 +26,7 @@ if ($conn) {
         margin: 0;
         font-family: Arial, Helvetica, sans-serif;
         background: #fafafa;
-        min-height: 100vh;
+        min-height: 100vh; min-height: 100dvh;
         overflow-x: hidden;
         overflow-y: auto;
     }
@@ -61,13 +61,13 @@ if ($conn) {
     }
     .layout {
         display: flex;
-        min-height: calc(100vh - 64px);
+        min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
         padding-top: 64px; /* offset for fixed header */
     }
     .sidebar {
         background: #e3eaff;
         width: 240px;
-        height: calc(100vh - 64px);
+        height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
         position: fixed;
         top: 64px;
         left: 0;
@@ -122,7 +122,7 @@ if ($conn) {
         padding: 32px;
         background: #fff;
         margin-left: 240px;
-        min-height: calc(100vh - 64px);
+        min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
         overflow-y: auto;
         box-sizing: border-box;
     }
@@ -387,7 +387,7 @@ if ($conn) {
             top: 56px !important;
             left: -240px !important;
             width: 240px !important;
-            height: calc(100vh - 56px) !important;
+            height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
             background: #e3eaff !important;
             z-index: 999 !important;
             transition: left 0.3s ease !important;
@@ -1249,7 +1249,7 @@ if ($conn) {
     </div>
 
         <!-- Resume Modal -->
-        <div id="resumeModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
+        <div id="resumeModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
             <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:16px;box-shadow:0 12px 40px rgba(25,118,210,0.2);padding:24px 20px 20px 20px;max-width:480px;width:100%;margin:0 auto;position:relative;border:1px solid rgba(35,58,139,0.1);">
                 <!-- Close button -->
                 <button id="resumeCloseBtn" style="position:absolute;top:12px;right:12px;background:#f5f5f5;color:#666;border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;box-shadow:0 2px 6px rgba(0,0,0,0.1);">×</button>
@@ -1274,7 +1274,7 @@ if ($conn) {
         </div>
 
         <!-- Details Modal -->
-        <div id="detailsModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+        <div id="detailsModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
             <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:540px;width:100%;margin:0 auto;max-height:90vh;overflow-y:auto;">
                 <div id="detailsContent"></div>
                 <button id="detailsCloseBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:22px;padding:12px 44px;font-weight:bold;font-size:1.08rem;cursor:pointer;margin-top:18px;">Close</button>
@@ -1282,7 +1282,7 @@ if ($conn) {
         </div>
 
         <!-- Accept Modal -->
-        <div id="acceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
+        <div id="acceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
             <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:20px;box-shadow:0 12px 40px rgba(25,118,210,0.25);padding:32px 28px 24px 28px;max-width:520px;width:100%;margin:0 auto;position:relative;border:1px solid rgba(35,58,139,0.1);">
                 <!-- Close button -->
                 <button id="acceptCloseBtn" style="position:absolute;top:16px;right:16px;background:#f5f5f5;color:#666;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;box-shadow:0 2px 6px rgba(0,0,0,0.1);">×</button>
@@ -1329,7 +1329,7 @@ if ($conn) {
         </div>
 
         <!-- Reject Modal -->
-        <div id="rejectModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
+        <div id="rejectModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
             <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:20px;box-shadow:0 12px 40px rgba(244,67,54,0.25);padding:32px 28px 24px 28px;max-width:520px;width:100%;margin:0 auto;position:relative;border:1px solid rgba(244,67,54,0.1);">
                 <!-- Close button -->
                 <button id="rejectCloseBtn" style="position:absolute;top:16px;right:16px;background:#f5f5f5;color:#666;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;box-shadow:0 2px 6px rgba(0,0,0,0.1);">×</button>
@@ -1362,7 +1362,7 @@ if ($conn) {
         </div>
 
         <!-- Bulk Accept Modal -->
-        <div id="bulkAcceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
+        <div id="bulkAcceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
             <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:20px;box-shadow:0 12px 40px rgba(25,118,210,0.25);padding:32px 28px 24px 28px;max-width:600px;width:100%;margin:0 auto;position:relative;border:1px solid rgba(35,58,139,0.1);">
                 <!-- Close button -->
                 <button id="bulkAcceptCloseBtn" style="position:absolute;top:16px;right:16px;background:#f5f5f5;color:#666;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;box-shadow:0 2px 6px rgba(0,0,0,0.1);">×</button>
@@ -1417,7 +1417,7 @@ if ($conn) {
         </div>
 
         <!-- Logout Modal -->
-        <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+        <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
             <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
                 <div style="font-size:3rem;margin-bottom:16px;"></div>
                 <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>

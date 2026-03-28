@@ -12,8 +12,7 @@
         z-index: 2000;
         left: 0;
         top: 0;
-        width: 100vw;
-        height: 100vh;
+        inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;
         background: rgba(0,0,0,0.18);
         justify-content: center;
         align-items: center;
@@ -135,8 +134,7 @@
         z-index: 1000;
         left: 0;
         top: 0;
-        width: 100vw;
-        height: 100vh;
+        inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;
         overflow: auto;
         background: rgba(0,0,0,0.18);
         justify-content: center;
@@ -255,12 +253,12 @@
     }
     .layout {
     display: flex;
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
 }
     .sidebar {
     background: #e3eaff;
     width: 240px;
-    height: calc(100vh - 64px); /* Full height minus header */
+    height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); /* Full height minus header */
     position: fixed;
     left: 0;
     display: flex;
@@ -313,9 +311,9 @@
     flex: 1;
     padding: 32px;
     background: #fff;
-    min-height: 100vh;
+    min-height: 100vh; min-height: 100dvh;
     margin-left: 240px; /* Offset for fixed sidebar */
-    height: calc(100vh - 64px);
+    height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
 }
     .barangay-grid {

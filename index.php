@@ -16,7 +16,7 @@
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #1a3876 0%, #2c5aa0 100%);
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             overflow-x: hidden;
         }
 
@@ -81,7 +81,7 @@
         /* Main Content */
         .main-content {
             padding-top: 100px;
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             position: relative;
         }
 

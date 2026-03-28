@@ -45,17 +45,17 @@ function formatDate($d) {
     <title>Follow-up requests - WorkConnect</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #fafafa; min-height: 100vh; overflow-x: hidden; overflow-y: auto; }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #fafafa; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; overflow-y: auto; }
         .header { background: #233a8b; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; height: 64px; position: fixed; top: 0; left: 0; width: 100%; max-width: 100vw; z-index: 1000; box-shadow: 0 2px 8px rgba(35,58,139,0.10); box-sizing: border-box; }
         .header img { height: 48px; margin-right: 16px; border-radius: 50%; background: none; border: none; }
         .header-title { font-size: 1.7rem; font-weight: bold; letter-spacing: 0.5px; }
-        .layout { display: flex; min-height: calc(100vh - 64px); padding-top: 64px; }
-        .sidebar { background: #e3eaff; width: 240px; height: calc(100vh - 64px); position: fixed; top: 64px; left: 0; z-index: 999; display: flex; flex-direction: column; padding: 32px 0 0 24px; box-sizing: border-box; overflow-y: auto; }
+        .layout { display: flex; min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); padding-top: 64px; }
+        .sidebar { background: #e3eaff; width: 240px; height: calc(100vh - 64px); height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); position: fixed; top: 64px; left: 0; z-index: 999; display: flex; flex-direction: column; padding: 32px 0 0 24px; box-sizing: border-box; overflow-y: auto; }
         .sidebar a { font-weight: bold; color: #222; text-decoration: none; margin-bottom: 16px; font-size: 1rem; letter-spacing: 0.3px; transition: all 0.2s; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; margin-top: 10%; }
         .sidebar a:hover { color: #233a8b; background: #d1dbfa; border-radius: 8px; padding-left: 10px; }
         .sidebar .logout { margin-top: auto; margin-bottom: 32px; color: #222; font-weight: bold; display: block; width: 90%; text-align: left; }
         .sidebar a.active { color: #fff; background: #233a8b; box-shadow: 0 2px 8px rgba(35,58,139,0.15); }
-        .main-content { flex: 1; padding: 32px; background: #fff; margin-left: 240px; min-height: calc(100vh - 64px); overflow-y: auto; box-sizing: border-box; }
+        .main-content { flex: 1; padding: 32px; background: #fff; margin-left: 240px; min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; box-sizing: border-box; }
         .hamburger-menu { display: none; }
         @media (max-width: 768px) {
             .header { padding: 12px 16px; min-height: 56px; }
@@ -67,7 +67,7 @@ function formatDate($d) {
             .hamburger-menu.active span:nth-child(2) { opacity: 0; }
             .hamburger-menu.active span:nth-child(3) { transform: rotate(45deg) translate(-5px, -6px); }
             .layout { flex-direction: column; padding-top: 60px; }
-            .sidebar { position: fixed !important; top: 56px !important; left: -240px !important; width: 240px !important; height: calc(100vh - 56px) !important; transition: left 0.3s ease !important; display: flex !important; flex-direction: column !important; padding: 20px 0 0 24px !important; box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important; }
+            .sidebar { position: fixed !important; top: 56px !important; left: -240px !important; width: 240px !important; height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; transition: left 0.3s ease !important; display: flex !important; flex-direction: column !important; padding: 20px 0 0 24px !important; box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important; }
             .sidebar.active { left: 0 !important; }
             .sidebar a { display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; gap: 12px; }
             .main-content { margin-left: 0; padding: 16px; width: 100%; }
@@ -200,7 +200,7 @@ function formatDate($d) {
     </div>
 
     <!-- Logout Modal (same as Dashboard) -->
-    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
+    <div id="logoutModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.18);justify-content:center;align-items:center;">
         <div style="background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(25,118,210,0.18);padding:32px 28px 24px 28px;max-width:400px;width:100%;margin:0 auto;text-align:center;">
             <div style="font-size:3rem;margin-bottom:16px;"></div>
             <h3 style="margin-top:0;color:#233a8b;font-size:1.3rem;font-weight:bold;margin-bottom:12px;">Confirm Logout</h3>

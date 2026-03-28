@@ -36,6 +36,13 @@
 }
 
 @media (max-width: 768px) {
+    /* Same as Employer: stop the page behind the fixed drawer from scrolling */
+    html:has(.sidebar.desktop-nav.active),
+    body:has(.sidebar.desktop-nav.active) {
+        overflow: hidden !important;
+        overscroll-behavior: none;
+    }
+
     .hamburger-menu {
         display: flex !important;
     }
@@ -47,7 +54,7 @@
         bottom: 0 !important;
         right: auto !important;
         width: 250px !important;
-        height: calc(100vh - 80px) !important;
+        height: calc(100vh - 80px) !important; height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px)) !important;
         background: #f8f9fa !important;
         display: flex !important;
         flex-direction: column !important;
@@ -55,6 +62,9 @@
         box-shadow: 2px 0 10px rgba(0,0,0,0.15) !important;
         z-index: 998 !important;
         transition: left 0.3s ease !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
     }
     .sidebar.desktop-nav.active {
         left: 0 !important;

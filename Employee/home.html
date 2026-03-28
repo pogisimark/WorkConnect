@@ -336,7 +336,7 @@
       top: 56px !important;
       left: -200px !important;
       width: 200px !important;
-      height: calc(100vh - 56px) !important;
+      height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important;
       background: #e3eaff !important;
       z-index: 1100 !important;
       transition: left 0.3s ease !important;
@@ -578,7 +578,7 @@
       
       .main-container {
         overflow-x: hidden;
-        min-height: 100vh;
+        min-height: 100vh; min-height: 100dvh;
         padding-bottom: 108px;
       }
       
