@@ -397,32 +397,56 @@ if ($conn) {
                 gap: 12px !important;
             }
             
+            .main-content > div.dashboard-page-header,
             .main-content > div:first-child {
                 flex-direction: column;
-                gap: 16px;
+                gap: 12px;
                 align-items: flex-start;
                 background: #fff;
                 border-radius: 16px;
-                padding: 20px;
-                margin-bottom: 16px;
+                padding: 16px 14px;
+                margin-bottom: 12px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             }
             
+            .main-content > div.dashboard-page-header > div:last-child,
             .main-content > div:first-child > div:last-child {
                 align-self: stretch;
             }
             
+            .main-content > div.dashboard-datetime-card,
+            .main-content > div:first-child > div.dashboard-datetime-card {
+                padding: 10px 12px !important;
+                border-radius: 10px !important;
+            }
+            
+            .main-content > div.dashboard-datetime-card #currentDate,
+            .main-content > div:first-child > div.dashboard-datetime-card #currentDate {
+                font-size: 0.88rem !important;
+            }
+            
+            .main-content > div.dashboard-page-header h2,
             .main-content > div:first-child h2 {
-                font-size: 1.3rem;
+                font-size: 1.25rem;
                 color: #233a8b;
             }
             
+            .main-content > div.dashboard-page-header p,
             .main-content > div:first-child p {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 color: #666;
             }
             
-            .main-content > div:nth-child(2) {
+            /* KPI grid: 2 columns, compact tiles (analytics-style) */
+            .main-content > div.dashboard-stat-grid {
+                display: grid !important;
+                flex-direction: unset !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 10px !important;
+                margin-bottom: 14px !important;
+            }
+            
+            .main-content > div:nth-child(2):not(.dashboard-stat-grid) {
                 grid-template-columns: 1fr;
                 gap: 12px;
                 margin-bottom: 16px;
@@ -468,14 +492,55 @@ if ($conn) {
                 margin: 0 auto !important;
             }
             
-            /* Override any existing grid styles */
-            .main-content > div[style*="grid-template-columns"] {
+            /* Override any existing grid styles (except KPI stat grid) */
+            .main-content > div[style*="grid-template-columns"]:not(.dashboard-stat-grid) {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 16px !important;
             }
             
-            .main-content > div:nth-child(2) > div,
+            .main-content > div.dashboard-stat-grid > div {
+                padding: 12px 10px !important;
+                border-radius: 12px !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid > div > div:first-child {
+                margin-bottom: 6px !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid > div > div:first-child > div:first-child {
+                font-size: 1.35rem !important;
+                line-height: 1 !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid > div > div:first-child > div:last-child {
+                font-size: 0.62rem !important;
+                padding: 3px 7px !important;
+                border-radius: 999px !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid #jobseekersCount,
+            .main-content > div.dashboard-stat-grid #skillsCount,
+            .main-content > div.dashboard-stat-grid #newApplicantsCount,
+            .main-content > div.dashboard-stat-grid #placedCount,
+            .main-content > div.dashboard-stat-grid #companiesCount {
+                font-size: 1.55rem !important;
+                margin-bottom: 2px !important;
+                line-height: 1.1 !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid > div > div:nth-child(3) {
+                font-size: 0.78rem !important;
+                font-weight: 600 !important;
+                color: #444 !important;
+                line-height: 1.25 !important;
+            }
+            
+            .main-content > div.dashboard-stat-grid > div > div:nth-child(4) {
+                display: none !important;
+            }
+            
             .main-content > div:nth-child(3) > div,
             .main-content > div:nth-child(4) > div {
                 background: #fff;
@@ -539,40 +604,46 @@ if ($conn) {
                 padding: 14px 12px !important;
             }
             
+            .main-content > div.dashboard-page-header,
             .main-content > div:first-child {
-                padding: 16px;
+                padding: 14px 12px;
                 border-radius: 12px;
             }
             
+            .main-content > div.dashboard-page-header h2,
             .main-content > div:first-child h2 {
-                font-size: 1.2rem;
+                font-size: 1.15rem;
             }
             
+            .main-content > div.dashboard-page-header p,
             .main-content > div:first-child p {
-                font-size: 0.85rem;
+                font-size: 0.82rem;
             }
             
-            .main-content > div:nth-child(2) > div,
             .main-content > div:nth-child(3) > div,
             .main-content > div:nth-child(4) > div {
                 padding: 14px;
                 border-radius: 10px;
             }
             
-            .main-content > div:nth-child(2) > div > div:first-child {
-                font-size: 1.8rem;
+            .main-content > div.dashboard-stat-grid {
+                gap: 8px !important;
             }
             
-            .main-content > div:nth-child(2) > div > div:nth-child(3) {
-                font-size: 2rem;
+            .main-content > div.dashboard-stat-grid > div {
+                padding: 10px 8px !important;
             }
             
-            .main-content > div:nth-child(2) > div > div:nth-child(4) {
-                font-size: 0.9rem;
+            .main-content > div.dashboard-stat-grid #jobseekersCount,
+            .main-content > div.dashboard-stat-grid #skillsCount,
+            .main-content > div.dashboard-stat-grid #newApplicantsCount,
+            .main-content > div.dashboard-stat-grid #placedCount,
+            .main-content > div.dashboard-stat-grid #companiesCount {
+                font-size: 1.4rem !important;
             }
             
-            .main-content > div:nth-child(2) > div > div:nth-child(5) {
-                font-size: 0.75rem;
+            .main-content > div.dashboard-stat-grid > div > div:nth-child(3) {
+                font-size: 0.72rem !important;
             }
         }
     </style>
@@ -613,19 +684,19 @@ if ($conn) {
             <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div class="dashboard-page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
                 <div>
                     <h2 style="color:#233a8b; font-size:1.8rem; font-weight:bold; margin:0;">PESO Dashboard</h2>
                     <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Public Employment Service Office Management System</p>
                 </div>
-                <div style="background: linear-gradient(135deg, #233a8b, #1976d2); color: white; padding: 16px 24px; border-radius: 12px; text-align: center;">
+                <div class="dashboard-datetime-card" style="background: linear-gradient(135deg, #233a8b, #1976d2); color: white; padding: 16px 24px; border-radius: 12px; text-align: center;">
                     <div id="currentDate" style="font-size: 1.1rem; font-weight: 600;"></div>
                     <div style="font-size: 0.9rem; opacity: 0.9;">Philippines Time</div>
                 </div>
             </div>
 
             <!-- Key Statistics Cards -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:32px;">
+            <div class="dashboard-stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:32px;">
                 <div style="background:linear-gradient(135deg,#e3eaff,#f0f4ff);border-radius:16px;padding:28px;box-shadow:0 4px 12px rgba(35,58,139,0.08);border-left:4px solid #233a8b;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                         <div style="font-size:2.5rem;">👥</div>

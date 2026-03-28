@@ -82,7 +82,65 @@ function formatDate($d) {
             .layout { flex-direction: column; padding-top: 60px; }
             .sidebar { left: -240px !important; width: 240px !important; height: calc(100vh - 56px) !important; height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px)) !important; transition: left 0.3s ease !important; }
             .sidebar.active { left: 0 !important; }
-            .main-content { margin-left: 0; padding: 16px; width: 100%; }
+            .main-content { margin-left: 0; padding: 16px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow-x: clip; }
+            .page-header { flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 16px; }
+            .page-header h2 { font-size: 1.35rem; }
+            .page-header p { font-size: 0.82rem; margin-top: 4px !important; line-height: 1.35; }
+            .search-wrap { flex-direction: column; align-items: stretch; width: 100%; gap: 8px; }
+            .search-wrap input { min-width: 0 !important; width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 0.9rem; }
+            .count-badge {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 8px 14px;
+                border-radius: 10px;
+                align-self: center;
+                max-width: 100%;
+            }
+            .count-badge .num { font-size: 1.25rem; line-height: 1; }
+            .count-badge .label { font-size: 0.72rem; }
+            .companies-table-wrap { width: 100%; min-width: 0; }
+            .companies-table { display: block; width: 100%; box-shadow: none; background: transparent; border-radius: 0; }
+            .companies-table thead { display: none; }
+            .companies-table tbody { display: block; width: 100%; }
+            .companies-table tr.company-row {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+                padding: 0;
+                background: #fff;
+                border-radius: 10px;
+                border: 1px solid #e8eaf0;
+                box-shadow: 0 1px 6px rgba(35,58,139,0.06);
+                overflow: hidden;
+            }
+            .companies-table tr.company-row:hover { background: #fff; }
+            .companies-table td {
+                display: grid;
+                grid-template-columns: minmax(76px, 32%) 1fr;
+                gap: 8px 10px;
+                align-items: start;
+                padding: 8px 12px;
+                font-size: 0.82rem;
+                border-bottom: 1px solid #f0f2f5;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .companies-table tr.company-row td:last-child { border-bottom: none; }
+            .companies-table td::before {
+                content: attr(data-label);
+                font-weight: 700;
+                color: #233a8b;
+                font-size: 0.68rem;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                line-height: 1.3;
+                padding-top: 2px;
+            }
+            .companies-table td a { word-break: break-all; }
         }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
         .page-header h2 { color: #233a8b; margin: 0; font-size: 1.8rem; }
@@ -154,6 +212,7 @@ function formatDate($d) {
                     <p style="font-size: 1.1rem; margin: 0;">No companies registered yet.</p>
                 </div>
             <?php else: ?>
+                <div class="companies-table-wrap">
                 <table class="companies-table" id="companiesTable">
                     <thead>
                         <tr>
@@ -167,10 +226,10 @@ function formatDate($d) {
                     <tbody>
                         <?php foreach ($companies as $i => $c): ?>
                         <tr class="company-row" data-name="<?php echo htmlspecialchars(strtolower($c['company_name'] ?? '')); ?>" data-email="<?php echo htmlspecialchars(strtolower($c['email'] ?? '')); ?>" data-verified="<?php echo (isset($c['email_verified']) && (int)$c['email_verified'] === 1) ? '1' : '0'; ?>">
-                            <td><?php echo $i + 1; ?></td>
-                            <td><?php echo htmlspecialchars($c['company_name'] ?? '—'); ?></td>
-                            <td><a href="mailto:<?php echo htmlspecialchars($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo htmlspecialchars($c['email'] ?? '—'); ?></a></td>
-                            <td><?php
+                            <td data-label="No."><?php echo $i + 1; ?></td>
+                            <td data-label="Company"><?php echo htmlspecialchars($c['company_name'] ?? '—'); ?></td>
+                            <td data-label="Email"><a href="mailto:<?php echo htmlspecialchars($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo htmlspecialchars($c['email'] ?? '—'); ?></a></td>
+                            <td data-label="Status"><?php
                                 $ev = isset($c['email_verified']) ? (int)$c['email_verified'] : null;
                                 if ($ev === 1) {
                                     echo '<span style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Verified</span>';
@@ -180,11 +239,12 @@ function formatDate($d) {
                                     echo '<span style="color:#888;">—</span>';
                                 }
                             ?></td>
-                            <td><?php echo formatDate($c['created_at'] ?? null); ?></td>
+                            <td data-label="Registered"><?php echo formatDate($c['created_at'] ?? null); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </div>
     </div>

@@ -405,6 +405,44 @@ if ($conn) {
                 color: #666;
             }
             
+            .main-content > div:first-child > div:last-child {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                width: 100%;
+            }
+            .main-content > div:first-child > div:last-child button {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 10px 14px !important;
+                font-size: 0.85rem !important;
+            }
+            
+            /* Stats: 2×2 grid, compact (do not stack as single column) */
+            .announcement-stats-grid {
+                display: grid !important;
+                flex-direction: unset !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 8px !important;
+                margin-bottom: 16px !important;
+                min-width: 0;
+            }
+            .announcement-stats-grid > div {
+                padding: 10px 8px !important;
+                border-radius: 10px !important;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+            .announcement-stats-grid > div > div:first-child {
+                font-size: 1.35rem !important;
+                line-height: 1.15 !important;
+            }
+            .announcement-stats-grid > div > div:last-child {
+                font-size: 0.62rem !important;
+                margin-top: 4px !important;
+                line-height: 1.25 !important;
+            }
+            
             .main-content > div:nth-child(2) {
                 grid-template-columns: 1fr;
                 gap: 12px;
@@ -451,14 +489,13 @@ if ($conn) {
                 margin: 0 auto !important;
             }
             
-            /* Override any existing grid styles */
-            .main-content > div[style*="grid-template-columns"] {
+            /* Override grid → column stack (except stats grid) */
+            .main-content > div[style*="grid-template-columns"]:not(.announcement-stats-grid) {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 16px !important;
             }
             
-            .main-content > div:nth-child(2) > div,
             .main-content > div:nth-child(3) > div,
             .main-content > div:nth-child(4) > div {
                 background: #fff;
@@ -528,27 +565,23 @@ if ($conn) {
                 font-size: 0.85rem;
             }
             
-            .main-content > div:nth-child(2) > div,
             .main-content > div:nth-child(3) > div,
             .main-content > div:nth-child(4) > div {
                 padding: 14px;
                 border-radius: 10px;
             }
             
-            .main-content > div:nth-child(2) > div > div:first-child {
-                font-size: 1.8rem;
+            .announcement-stats-grid {
+                gap: 6px !important;
             }
-            
-            .main-content > div:nth-child(2) > div > div:nth-child(3) {
-                font-size: 2rem;
+            .announcement-stats-grid > div {
+                padding: 8px 6px !important;
             }
-            
-            .main-content > div:nth-child(2) > div > div:nth-child(4) {
-                font-size: 0.9rem;
+            .announcement-stats-grid > div > div:first-child {
+                font-size: 1.2rem !important;
             }
-            
-            .main-content > div:nth-child(2) > div > div:nth-child(5) {
-                font-size: 0.75rem;
+            .announcement-stats-grid > div > div:last-child {
+                font-size: 0.58rem !important;
             }
         }
         
@@ -1086,7 +1119,7 @@ if ($conn) {
             </div>
 
             <!-- Stats Overview -->
-            <div id="statsOverview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px;">
+            <div id="statsOverview" class="announcement-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 32px;">
                 <!-- Stats will be loaded here -->
             </div>
 

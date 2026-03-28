@@ -2196,6 +2196,8 @@ $conn->close();
         background: #f8f9fa;
         border-radius: 8px;
         color: #666;
+        box-sizing: border-box;
+        max-width: 100%;
     }
     
     @media (max-width: 992px) {
@@ -4486,7 +4488,7 @@ $conn->close();
             
             if (data.total_applications === 0) {
                 container.innerHTML = `
-                    <div class="analytics-loading" style="width:100%;">
+                    <div class="analytics-loading">
                         <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">📊</div>
                         <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No job applications yet</div>
                         <div style="color: #999; font-size: 0.9rem;">Apply to a job from <strong>Recommended Jobs</strong> to see your success rate here.</div>

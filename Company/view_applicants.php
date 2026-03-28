@@ -338,6 +338,49 @@ $conn->close();
             margin: 0;
         }
         
+        .job-filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 16px;
+            margin-bottom: 24px;
+            padding: 14px 18px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e8eaf0;
+        }
+        
+        .job-filter-bar label {
+            font-weight: 600;
+            color: #1a3876;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+        
+        .job-posting-filter-select {
+            flex: 1;
+            min-width: min(100%, 220px);
+            max-width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #333;
+            background: #fff;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        
+        .job-posting-filter-select:focus {
+            outline: none;
+            border-color: #1a3876;
+            box-shadow: 0 0 0 3px rgba(26, 56, 118, 0.12);
+        }
+        
         .job-card {
             background: white;
             border-radius: 12px;
@@ -404,6 +447,14 @@ $conn->close();
             border-radius: 20px;
             font-weight: 600;
             font-size: 0.9rem;
+        }
+        
+        .job-header-badges {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
         }
         
         .applicants-list {
@@ -793,6 +844,39 @@ $conn->close();
             .job-header {
                 flex-direction: column;
                 gap: 15px;
+                align-items: stretch;
+            }
+            
+            /* Status + applicant count on one row, aligned with content */
+            .job-header-badges {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 8px;
+                width: 100%;
+            }
+            
+            .job-header .job-status-badge,
+            .job-header .applicants-count {
+                font-size: 0.78rem;
+                padding: 6px 12px;
+            }
+            
+            .job-title-section {
+                min-width: 0;
+            }
+            
+            .job-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+                margin-bottom: 18px;
+                padding: 12px 14px;
+            }
+            
+            .job-posting-filter-select {
+                min-width: 0;
+                width: 100%;
             }
             
             .applicant-header {
@@ -801,16 +885,28 @@ $conn->close();
             }
             
             .applicant-actions {
-                flex-direction: column;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+            
+            .applicant-actions .btn:last-child:nth-child(odd) {
+                grid-column: 1 / -1;
             }
             
             .applicant-actions .btn {
                 width: 100%;
-                display: flex;
+                min-width: 0;
+                box-sizing: border-box;
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 8px;
-                padding: 10px 20px;
+                gap: 6px;
+                padding: 10px 8px;
+                font-size: 0.8rem;
+                white-space: normal;
+                text-align: center;
+                line-height: 1.2;
             }
             
             .detail-row {
@@ -883,13 +979,25 @@ $conn->close();
                         <a href="jobposting.php" class="btn btn-view" style="margin-top: 20px; display: inline-block; text-decoration: none;">Post a Job</a>
                     </div>
                 <?php else: ?>
+                    <div class="job-filter-bar">
+                        <label for="jobPostingFilter">
+                            <i class="fas fa-briefcase" aria-hidden="true"></i>
+                            Filter by job posting
+                        </label>
+                        <select id="jobPostingFilter" class="job-posting-filter-select" aria-label="Filter applicants by job posting">
+                            <option value="">All job postings</option>
+                            <?php foreach ($jobs as $fj): ?>
+                                <option value="<?php echo (int) $fj['id']; ?>"><?php echo htmlspecialchars($fj['title']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <?php foreach ($jobs as $job): ?>
                         <?php 
                             $job_id = $job['id'];
                             $applicants = $job_applicants[$job_id] ?? [];
                             $applicant_count = count($applicants);
                         ?>
-                        <div class="job-card">
+                        <div class="job-card" data-job-id="<?php echo (int) $job_id; ?>">
                             <div class="job-header">
                                 <div class="job-title-section">
                                     <h2><?php echo htmlspecialchars($job['title']); ?></h2>
@@ -914,7 +1022,7 @@ $conn->close();
                                         </div>
                                     </div>
                                 </div>
-                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                                <div class="job-header-badges">
                                     <span class="job-status-badge status-<?php echo strtolower($job['status']); ?>">
                                         <?php echo htmlspecialchars($job['status']); ?>
                                     </span>
@@ -1102,6 +1210,41 @@ $conn->close();
     </div>
 
     <script>
+        (function initJobPostingFilter() {
+            var sel = document.getElementById('jobPostingFilter');
+            if (!sel) return;
+            function applyJobFilter() {
+                var v = sel.value;
+                document.querySelectorAll('.job-card').forEach(function (card) {
+                    var id = card.getAttribute('data-job-id');
+                    card.style.display = (!v || v === String(id)) ? '' : 'none';
+                });
+                try {
+                    var params = new URLSearchParams(window.location.search);
+                    if (v) {
+                        params.set('job', v);
+                    } else {
+                        params.delete('job');
+                    }
+                    var q = params.toString();
+                    var newUrl = window.location.pathname + (q ? '?' + q : '') + window.location.hash;
+                    history.replaceState(null, '', newUrl);
+                } catch (e) { /* ignore */ }
+            }
+            sel.addEventListener('change', applyJobFilter);
+            var params = new URLSearchParams(window.location.search);
+            var jobParam = params.get('job');
+            if (jobParam && /^\d+$/.test(jobParam)) {
+                var hasOpt = Array.prototype.some.call(sel.options, function (o) {
+                    return o.value === jobParam;
+                });
+                if (hasOpt) {
+                    sel.value = jobParam;
+                }
+            }
+            applyJobFilter();
+        })();
+
         function toggleProfileMenu() {
             const dropdown = document.getElementById('profileDropdown');
             dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';

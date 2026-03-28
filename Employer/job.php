@@ -459,9 +459,10 @@ if ($conn) {
             min-width: 0;
         }
         
+        /* Two compact cards per row on phone */
         .jobseeker-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
             padding: 0;
             width: 100%;
             max-width: 100%;
@@ -471,8 +472,44 @@ if ($conn) {
             max-width: 100%;
             width: 100%;
             margin: 0;
-            padding: 16px 12px 12px 12px;
-            min-height: 200px;
+            padding: 10px 6px 8px 6px;
+            min-height: 0;
+            border-radius: 10px;
+        }
+        
+        .jobseeker-card > div:first-child {
+            margin-bottom: 6px !important;
+        }
+        
+        .jobseeker-card > div:first-child > img {
+            width: 48px !important;
+            height: 48px !important;
+            margin-bottom: 0 !important;
+            border-radius: 8px !important;
+        }
+        
+        .jobseeker-card > div:first-child > div[style*="position: absolute"][style*="right"] {
+            top: -4px !important;
+            right: -4px !important;
+            padding: 2px 5px !important;
+            font-size: 0.62rem !important;
+            border-radius: 8px !important;
+        }
+        
+        .jobseeker-card > div:first-child > div:not(.checkbox-container):not([style*="position: absolute"]) {
+            width: 48px !important;
+            height: 48px !important;
+            margin-bottom: 0 !important;
+            border-radius: 8px !important;
+        }
+        
+        .jobseeker-card > div:first-child > div:not(.checkbox-container):not([style*="position: absolute"]) > div:nth-child(1) {
+            font-size: 1.05rem !important;
+            margin-bottom: 0 !important;
+        }
+        
+        .jobseeker-card > div:first-child > div:not(.checkbox-container):not([style*="position: absolute"]) > div:nth-child(2) {
+            font-size: 0.55rem !important;
         }
         
         .jobseeker-card .action-buttons {
@@ -480,14 +517,20 @@ if ($conn) {
             max-width: 100%;
             flex-wrap: wrap !important;
             box-sizing: border-box;
-            padding: 0 4px;
+            padding: 0;
+            margin-top: 6px !important;
+            gap: 4px !important;
         }
         .jobseeker-card .action-buttons .accept-btn,
         .jobseeker-card .action-buttons .reject-btn {
-            flex: 1 1 calc(50% - 6px);
+            flex: 1 1 calc(50% - 4px);
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
+            padding: 5px 4px !important;
+            font-size: 0.62rem !important;
+            letter-spacing: 0.15px !important;
+            border-radius: 6px !important;
         }
         
         /* Toolbar under header: don’t extend past viewport */
@@ -498,18 +541,36 @@ if ($conn) {
         }
         
         .jobseeker-card .jobseeker-name {
-            font-size: 0.95rem;
+            font-size: 0.72rem;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            line-height: 1.25;
         }
         
         .jobseeker-card .jobseeker-info {
-            font-size: 0.8rem;
-            padding: 4px 6px;
+            font-size: 0.62rem;
+            padding: 2px 4px;
+            margin-bottom: 4px;
+            min-height: 0;
+            line-height: 1.3;
         }
         
         .jobseeker-card .view-details-btn {
-            padding: 6px 16px;
-            font-size: 0.8rem;
-            max-width: 140px;
+            padding: 5px 6px;
+            font-size: 0.62rem;
+            max-width: 100%;
+            width: 100%;
+            margin-top: 6px;
+            letter-spacing: 0.2px;
+        }
+        
+        .jobseeker-card .status-pending,
+        .jobseeker-card .status-accepted,
+        .jobseeker-card .status-referred,
+        .jobseeker-card .status-rejected {
+            font-size: 0.58rem !important;
+            padding: 2px 5px !important;
+            letter-spacing: 0.2px !important;
         }
     }
     
@@ -547,39 +608,58 @@ if ($conn) {
         }
         
         .jobseeker-grid {
-            gap: 12px;
-            padding: 0 5px;
+            gap: 6px;
+            padding: 0 2px;
         }
         
         .jobseeker-card {
-            padding: 14px 10px 10px 10px;
-            min-height: 180px;
+            padding: 8px 4px 6px 4px;
         }
         
         .jobseeker-card .jobseeker-name {
-            font-size: 0.9rem;
-            margin-top: 8px;
-            margin-bottom: 4px;
+            font-size: 0.68rem;
+            margin-top: 2px;
+            margin-bottom: 3px;
         }
         
         .jobseeker-card .jobseeker-info {
-            font-size: 0.75rem;
-            padding: 3px 5px;
-            margin-bottom: 8px;
+            font-size: 0.58rem;
+            padding: 2px 3px;
+            margin-bottom: 3px;
         }
         
         .jobseeker-card .view-details-btn {
-            padding: 5px 12px;
-            font-size: 0.75rem;
-            max-width: 120px;
+            padding: 4px 4px;
+            font-size: 0.58rem;
+            margin-top: 4px;
+        }
+        
+        .jobseeker-card > div:first-child > img,
+        .jobseeker-card > div:first-child > div:not(.checkbox-container):not([style*="position: absolute"]) {
+            width: 44px !important;
+            height: 44px !important;
+        }
+        
+        .jobseeker-card .action-buttons .accept-btn,
+        .jobseeker-card .action-buttons .reject-btn {
+            padding: 4px 2px !important;
+            font-size: 0.58rem !important;
         }
         
         .status-pending,
         .status-accepted,
         .status-referred,
         .status-rejected {
-            font-size: 0.75rem;
+            font-size: 0.68rem;
             padding: 3px 8px;
+        }
+        
+        .jobseeker-card .status-pending,
+        .jobseeker-card .status-accepted,
+        .jobseeker-card .status-referred,
+        .jobseeker-card .status-rejected {
+            font-size: 0.52rem !important;
+            padding: 1px 4px !important;
         }
     }
     

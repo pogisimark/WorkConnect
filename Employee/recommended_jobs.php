@@ -531,6 +531,10 @@ $conn->close();
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 30px;
             border-left: 4px solid #233a8b;
+            box-sizing: border-box;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
         }
         
         .nrsp-info-card h3 {
@@ -543,15 +547,19 @@ $conn->close();
         
         .nrsp-info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
             gap: 20px;
             margin-top: 20px;
+            min-width: 0;
         }
         
         .nrsp-info-section {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .nrsp-info-section h4 {
@@ -567,6 +575,8 @@ $conn->close();
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+            min-width: 0;
+            align-content: flex-start;
         }
         
         .nrsp-badge {
@@ -577,6 +587,13 @@ $conn->close();
             font-size: 0.85rem;
             font-weight: 500;
             display: inline-block;
+            max-width: 100%;
+            box-sizing: border-box;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            text-align: center;
+            line-height: 1.35;
         }
         
         .nrsp-badge.skill {
@@ -744,29 +761,120 @@ $conn->close();
         }
 
         @media (max-width: 768px) {
+            /* Two job cards per row; breakdown stays stacked so all fields stay readable */
+            .jobs-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            .job-card {
+                min-width: 0;
+            }
+            .job-card-header {
+                padding: 10px 10px 12px;
+            }
+            .compatibility-score {
+                position: static;
+                display: inline-flex;
+                align-items: center;
+                margin: 0 0 8px 0;
+                font-size: 0.72rem;
+                padding: 5px 8px;
+            }
+            .job-title {
+                font-size: 0.82rem;
+                margin: 0 0 6px 0;
+                line-height: 1.25;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .company-name {
+                font-size: 0.72rem;
+                margin: 0 0 8px 0;
+                line-height: 1.3;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .job-meta {
+                flex-direction: column;
+                gap: 5px;
+                font-size: 0.68rem;
+            }
+            .job-meta-item {
+                gap: 4px;
+                line-height: 1.3;
+                word-break: break-word;
+            }
+            .job-card-body {
+                padding: 10px;
+            }
+            .job-description {
+                font-size: 0.72rem;
+                line-height: 1.45;
+                margin-bottom: 10px;
+                -webkit-line-clamp: 8;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .match-breakdown {
+                padding: 10px 8px;
+                margin-bottom: 12px;
+            }
+            .match-breakdown h4 {
+                font-size: 0.78rem;
+                margin-bottom: 8px;
+                line-height: 1.3;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
             .breakdown-grid {
                 grid-template-columns: 1fr;
+                gap: 8px;
             }
-            .jobs-grid {
-                grid-template-columns: 1fr;
+            .breakdown-item {
+                padding: 8px 6px;
+                min-width: 0;
+            }
+            .breakdown-label {
+                font-size: 0.68rem;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .breakdown-score {
+                font-size: 0.95rem;
+            }
+            .breakdown-details {
+                font-size: 0.65rem;
+                line-height: 1.35;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .job-actions {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .btn-apply,
+            .btn-view {
+                width: 100%;
+                padding: 8px 10px;
+                font-size: 0.76rem;
+            }
+            .btn-apply-disabled,
+            .not-eligible-badge {
+                padding: 8px 10px !important;
+                font-size: 0.72rem !important;
+            }
+            .applied-badge,
+            .rejected-badge,
+            .accepted-badge,
+            .withdrawn-badge {
+                font-size: 0.68rem;
+                padding: 6px 8px;
             }
             
             .filters-grid {
                 grid-template-columns: 1fr;
-            }
-            
-            .job-meta {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .job-actions {
-                flex-direction: column;
-            }
-            
-            .btn-apply,
-            .btn-view {
-                width: 100%;
             }
             
             .job-details-modal .swal2-popup {
@@ -790,6 +898,116 @@ $conn->close();
                 font-size: 14px !important;
                 width: 100% !important;
                 margin: 5px 0 !important;
+            }
+
+            /* NSRP preferences card: avoid tags hugging the right / horizontal overflow in dashboard iframe */
+            .main-content {
+                padding: 12px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden;
+            }
+            .content-section {
+                padding: 14px !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden;
+            }
+            .welcome-card {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            .nrsp-info-card {
+                padding: 16px 12px !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            .nrsp-info-card > p {
+                max-width: 100%;
+            }
+            .nrsp-info-grid {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+            .nrsp-info-section {
+                padding: 12px 10px !important;
+            }
+            .nrsp-info-section h4 {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            
+            /* Your Job Recommendations — compact 2-column stats */
+            .stats-summary {
+                padding: 14px 12px !important;
+                margin-bottom: 18px !important;
+            }
+            .stats-summary > h3 {
+                font-size: 1.1rem !important;
+                margin: 0 0 8px 0 !important;
+            }
+            .stats-summary > p {
+                font-size: 0.78rem !important;
+                line-height: 1.35 !important;
+                margin-bottom: 10px !important;
+            }
+            .stats-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .stats-grid .stat-item:last-child:nth-child(odd) {
+                grid-column: 1 / -1;
+            }
+            .stat-item {
+                padding: 10px 6px !important;
+                border-radius: 8px !important;
+                min-width: 0;
+            }
+            .stat-number {
+                font-size: 1.35rem !important;
+                margin-bottom: 2px !important;
+                line-height: 1.1 !important;
+            }
+            .stat-label {
+                font-size: 0.62rem !important;
+                line-height: 1.25 !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .jobs-grid {
+                gap: 8px !important;
+            }
+            .main-content {
+                padding: 10px !important;
+            }
+            .content-section {
+                padding: 12px !important;
+            }
+            .nrsp-info-card {
+                padding: 14px 10px !important;
+            }
+            .nrsp-badge {
+                font-size: 0.8rem !important;
+                padding: 6px 10px !important;
+            }
+            .stats-summary {
+                padding: 12px 10px !important;
+            }
+            .stats-grid {
+                gap: 6px !important;
+            }
+            .stat-item {
+                padding: 8px 4px !important;
+            }
+            .stat-number {
+                font-size: 1.2rem !important;
+            }
+            .stat-label {
+                font-size: 0.58rem !important;
             }
         }
     </style>

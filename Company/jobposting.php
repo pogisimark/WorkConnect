@@ -391,7 +391,9 @@ $conn->close();
         
         @media (max-width: 700px) {
             .jobs-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 20px;
             }
         }
         
@@ -1176,7 +1178,81 @@ $conn->close();
             }
             
             .jobs-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 20px;
+            }
+            
+            .job-card-inner {
+                padding: 10px 8px 8px;
+            }
+            .job-card-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+                margin-bottom: 6px;
+            }
+            .job-card-title {
+                font-size: 0.74rem;
+                line-height: 1.25;
+                margin: 0 0 2px 0;
+            }
+            .job-card-company {
+                display: none;
+            }
+            .job-card .status-badge {
+                align-self: flex-start;
+                padding: 3px 7px;
+                font-size: 0.55rem;
+                letter-spacing: 0.04em;
+            }
+            .job-card-meta {
+                gap: 3px;
+                margin-bottom: 6px;
+                padding: 6px 0;
+                border-bottom: none;
+            }
+            .job-meta-item {
+                font-size: 0.58rem;
+                gap: 4px;
+                line-height: 1.2;
+            }
+            .job-meta-item i {
+                font-size: 0.55rem;
+                margin-top: 1px;
+                width: 0.7rem;
+            }
+            .job-card-description {
+                display: none;
+            }
+            .job-card-footer {
+                padding: 8px 6px 10px;
+                gap: 8px;
+            }
+            .job-card-footer-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 3px;
+                font-size: 0.55rem;
+            }
+            .job-card-footer-meta .job-stat-pill {
+                gap: 4px;
+            }
+            .job-card-actions {
+                gap: 4px;
+                grid-template-columns: 1fr 1fr;
+            }
+            .job-card .btn-small {
+                padding: 5px 4px;
+                font-size: 0.52rem;
+                min-height: 30px;
+                border-radius: 6px;
+                gap: 3px;
+                white-space: normal;
+                line-height: 1.15;
+            }
+            .job-card .btn-small i {
+                font-size: 0.55rem;
             }
             
             .page-header {
@@ -1188,6 +1264,20 @@ $conn->close();
             .add-job-btn {
                 width: 100%;
                 justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .jobs-grid {
+                gap: 6px;
+            }
+            .job-card-title {
+                font-size: 0.68rem;
+            }
+            .job-card .btn-small {
+                font-size: 0.48rem;
+                min-height: 28px;
+                padding: 4px 2px;
             }
         }
     </style>

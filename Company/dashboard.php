@@ -411,22 +411,65 @@ $conn->close();
         }
         
         @media (max-width: 768px) {
+            .welcome-card {
+                padding: 16px 14px;
+                margin-bottom: 16px;
+            }
             .welcome-card h1 {
-                font-size: 1.5rem;
+                font-size: 1.35rem;
             }
             
             .welcome-card p {
-                font-size: 1rem;
+                font-size: 0.88rem;
             }
             
             .stats-grid {
-                grid-template-columns: 1fr;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+            .stat-card {
+                padding: 12px 8px;
+                border-radius: 10px;
+                min-width: 0;
+            }
+            .stat-card .stat-icon {
+                font-size: 1.6rem;
+                margin-bottom: 6px;
+            }
+            .stat-card .stat-value {
+                font-size: 1.45rem;
+                margin-bottom: 4px;
+            }
+            .stat-card .stat-label {
+                font-size: 0.65rem;
+                line-height: 1.25;
             }
             
             .job-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                gap: 6px;
+            }
+            .stat-card {
+                padding: 10px 6px;
+            }
+            .stat-card .stat-icon {
+                font-size: 1.4rem;
+                margin-bottom: 4px;
+            }
+            .stat-card .stat-value {
+                font-size: 1.25rem;
+            }
+            .stat-card .stat-label {
+                font-size: 0.6rem;
             }
         }
         

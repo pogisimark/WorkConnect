@@ -160,6 +160,14 @@ if ($conn) {
             max-width: 100%;
         }
         
+        /* Demographic chart area — fixed height so Chart.js fills predictably */
+        .analytics-demographic-chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            min-height: 0;
+        }
+        
         .analytics-line-chart-wrap canvas,
         .analytics-doughnut-chart-wrap canvas {
             display: block;
@@ -488,6 +496,102 @@ if ($conn) {
             .registration-chart-container {
                 position: relative;
             }
+            
+            /* Job Applicants' Most Common Skills — 2 columns, compact tiles */
+            .analytics-skills-block {
+                padding: 16px !important;
+                margin-bottom: 20px !important;
+            }
+            .analytics-skills-block > h3 {
+                font-size: 1.05rem !important;
+                margin-bottom: 12px !important;
+            }
+            .analytics-skills-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .analytics-skills-grid .analytics-skill-tile {
+                padding: 10px 6px !important;
+                border-radius: 10px !important;
+            }
+            .analytics-skills-grid .analytics-skill-tile > div:nth-child(1) {
+                font-size: 1.1rem !important;
+                margin-bottom: 4px !important;
+            }
+            .analytics-skills-grid .analytics-skill-tile > div:nth-child(2) {
+                font-size: 0.68rem !important;
+                font-weight: 600 !important;
+                line-height: 1.25 !important;
+                margin-bottom: 2px !important;
+            }
+            .analytics-skills-grid .analytics-skill-tile > div:nth-child(3) {
+                font-size: 1.35rem !important;
+                margin-bottom: 2px !important;
+            }
+            .analytics-skills-grid .analytics-skill-tile > div:nth-child(4) {
+                font-size: 0.65rem !important;
+            }
+            
+            /* Demographic Analytics — 2×2 grid, shorter charts */
+            .analytics-demographic-block {
+                padding: 16px !important;
+                margin-bottom: 20px !important;
+            }
+            .analytics-demographic-block .analytics-demographic-head h3 {
+                font-size: 1.05rem !important;
+            }
+            .analytics-demographic-block .analytics-demographic-head p {
+                font-size: 0.8rem !important;
+            }
+            .analytics-demographic-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 10px !important;
+            }
+            .analytics-demographic-grid > .analytics-demo-chart-card {
+                padding: 10px !important;
+                border-radius: 10px !important;
+            }
+            .analytics-demographic-grid > .analytics-demo-chart-card > h4 {
+                font-size: 0.8rem !important;
+                margin: 0 0 8px 0 !important;
+            }
+            .analytics-demographic-chart-wrap {
+                position: relative;
+                width: 100%;
+                height: 150px;
+                min-height: 0;
+            }
+            
+            /* Success rate / processing / uptime — 3 in one row */
+            .analytics-kpi-row {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+                margin-bottom: 0 !important;
+            }
+            .analytics-kpi-row > div {
+                padding: 10px 4px !important;
+                border-radius: 10px !important;
+                box-sizing: border-box;
+                min-width: 0;
+            }
+            .analytics-kpi-row > div > div:nth-child(1) {
+                font-size: 1.15rem !important;
+                margin-bottom: 4px !important;
+            }
+            .analytics-kpi-row > div > div:nth-child(2) {
+                font-size: clamp(0.8rem, 4.2vw, 1.05rem) !important;
+                font-weight: 700 !important;
+                margin-bottom: 4px !important;
+                line-height: 1.15 !important;
+            }
+            .analytics-kpi-row > div > div:nth-child(3) {
+                font-size: 0.55rem !important;
+                line-height: 1.25 !important;
+                opacity: 0.95 !important;
+            }
         }
         
         @media (max-width: 480px) {
@@ -586,6 +690,16 @@ if ($conn) {
             .status-chart-container {
                 min-height: 0 !important;
             }
+            
+            .analytics-demographic-chart-wrap {
+                height: 125px;
+            }
+            .analytics-kpi-row > div > div:nth-child(2) {
+                font-size: clamp(0.72rem, 3.8vw, 0.95rem) !important;
+            }
+            .analytics-kpi-row > div > div:nth-child(3) {
+                font-size: 0.5rem !important;
+            }
         }
         
         @media (max-width: 800px) {
@@ -614,6 +728,75 @@ if ($conn) {
                 display: block;
                 width: 90%;
                 text-align: left;
+            }
+        }
+
+        /* Key Insights — insight rows (all viewports) */
+        .analytics-insight-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        .analytics-insight-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .analytics-insight-text {
+            flex: 1;
+            min-width: 0;
+            color: #333;
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.4;
+            overflow-wrap: break-word;
+        }
+
+        /* Key Insights — narrow screens: balanced insets, wrap text, single column */
+        @media (max-width: 768px) {
+            .analytics-key-insights-card {
+                padding-left: 18px !important;
+                padding-right: 22px !important;
+            }
+            .analytics-insights-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+                min-width: 0 !important;
+            }
+            .analytics-insight-item {
+                min-width: 0 !important;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            .analytics-insight-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                min-width: 0;
+            }
+            .analytics-insight-icon {
+                font-size: 1.35rem !important;
+                line-height: 1.2;
+                flex-shrink: 0;
+                margin-top: 2px;
+            }
+            .analytics-insight-text {
+                flex: 1;
+                min-width: 0;
+                color: #333;
+                font-size: 0.9rem !important;
+                font-weight: 500;
+                line-height: 1.45;
+                overflow-wrap: break-word;
+                word-break: break-word;
+                padding-right: 6px;
+            }
+        }
+        @media (max-width: 480px) {
+            .analytics-key-insights-card {
+                padding-left: 14px !important;
+                padding-right: 20px !important;
             }
         }
     </style>
@@ -677,15 +860,15 @@ if ($conn) {
             </div>
 
             <!-- Quick Insights Widget -->
-            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
-                <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                    <div style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">💡</div>
-                    <div>
+            <div class="analytics-key-insights-card" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px; box-sizing: border-box;">
+                <div class="analytics-key-insights-head" style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem; flex-shrink: 0;">💡</div>
+                    <div style="min-width: 0;">
                         <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Key Insights</h3>
                         <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Auto-generated insights from your data</p>
                     </div>
                 </div>
-                <div id="insightsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                <div id="insightsContainer" class="analytics-insights-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; min-width: 0;">
                     <!-- Insights will be populated by JavaScript -->
                 </div>
             </div>
@@ -820,45 +1003,45 @@ if ($conn) {
             </div>
 
             <!-- Skills Distribution -->
-            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+            <div class="analytics-skills-block" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
                 <h3 style="margin: 0 0 20px 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">🛠️ Job Applicants' Most Common Skills</h3>
-                <div id="skillsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <div id="skillsList" class="analytics-skills-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                     <!-- Skills will be populated by JavaScript -->
                 </div>
             </div>
 
             <!-- Demographic Analytics Section -->
-            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
-                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+            <div class="analytics-demographic-block" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+                <div class="analytics-demographic-head" style="display: flex; align-items: center; margin-bottom: 20px;">
                     <div style="background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">👥</div>
                     <div>
                         <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Demographic Analytics</h3>
                         <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Age, gender, education, and employment distribution</p>
                     </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                <div class="analytics-demographic-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
                     <!-- Age Distribution Chart -->
-                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                    <div class="analytics-demo-chart-card" style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
                         <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Age Distribution</h4>
-                        <canvas id="ageChart" width="300" height="200"></canvas>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="ageChart"></canvas></div>
                     </div>
                     
                     <!-- Gender Distribution Chart -->
-                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                    <div class="analytics-demo-chart-card" style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
                         <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Gender Distribution</h4>
-                        <canvas id="genderChart" width="300" height="200"></canvas>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="genderChart"></canvas></div>
                     </div>
                     
                     <!-- Education Distribution Chart -->
-                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                    <div class="analytics-demo-chart-card" style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
                         <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Education Level</h4>
-                        <canvas id="educationChart" width="300" height="200"></canvas>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="educationChart"></canvas></div>
                     </div>
                     
                     <!-- Employment Status Chart -->
-                    <div style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
+                    <div class="analytics-demo-chart-card" style="background: rgba(156,39,176,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(156,39,176,0.1);">
                         <h4 style="margin: 0 0 16px 0; color: #7b1fa2; font-size: 1.1rem; font-weight: 600;">Employment Status</h4>
-                        <canvas id="employmentChart" width="300" height="200"></canvas>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="employmentChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -887,7 +1070,7 @@ if ($conn) {
                     <canvas id="barangayChart" width="400" height="300"></canvas>
                 </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+            <div class="analytics-kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
                 
                 <!-- Success Rate -->
                 <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; border-radius: 16px; padding: 24px; text-align: center;">
@@ -1617,6 +1800,7 @@ if ($conn) {
         
         insights.forEach(insight => {
             const insightElement = document.createElement('div');
+            insightElement.className = 'analytics-insight-item';
             insightElement.style.cssText = `
                 background: linear-gradient(135deg, ${insight.color}15, ${insight.color}25);
                 border-radius: 12px;
@@ -1625,9 +1809,9 @@ if ($conn) {
                 transition: transform 0.2s ease;
             `;
             insightElement.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="font-size: 1.5rem;">${insight.icon}</div>
-                    <div style="color: #333; font-size: 0.95rem; font-weight: 500;">${insight.text}</div>
+                <div class="analytics-insight-row">
+                    <div class="analytics-insight-icon">${insight.icon}</div>
+                    <div class="analytics-insight-text">${insight.text}</div>
                 </div>
             `;
             insightElement.addEventListener('mouseenter', () => {
@@ -1645,6 +1829,23 @@ if ($conn) {
         if (!analyticsData.demographicData) return;
         
         const data = analyticsData.demographicData;
+        const narrow = window.innerWidth <= 768;
+        const demoLegend = {
+            position: 'bottom',
+            labels: {
+                padding: narrow ? 4 : 15,
+                usePointStyle: true,
+                boxWidth: narrow ? 6 : 12,
+                font: { size: narrow ? 8 : 12 }
+            }
+        };
+        const barAxisMobile = narrow ? {
+            x: { grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
+            y: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 8 } } }
+        } : {
+            y: { beginAtZero: true, grid: { display: false } },
+            x: { grid: { display: false } }
+        };
         
         // Age Distribution Chart
         const ageCtx = document.getElementById('ageChart');
@@ -1663,10 +1864,7 @@ if ($conn) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 15, usePointStyle: true }
-                        }
+                        legend: demoLegend
                     }
                 }
             });
@@ -1689,10 +1887,7 @@ if ($conn) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 15, usePointStyle: true }
-                        }
+                        legend: demoLegend
                     }
                 }
             });
@@ -1717,10 +1912,7 @@ if ($conn) {
                     plugins: {
                         legend: { display: false }
                     },
-                    scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
-                        x: { grid: { display: false } }
-                    }
+                    scales: barAxisMobile
                 }
             });
         }
@@ -1742,10 +1934,7 @@ if ($conn) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 15, usePointStyle: true }
-                        }
+                        legend: demoLegend
                     }
                 }
             });
@@ -1884,7 +2073,7 @@ if ($conn) {
         
         if (analyticsData.skillsDistribution.length === 0) {
             skillsList.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: linear-gradient(135deg, #f5f5f5, #fafafa); border-radius: 12px; border: 2px dashed #bdbdbd;">
+                <div class="analytics-skills-empty" style="grid-column: 1 / -1; text-align: center; padding: 40px; background: linear-gradient(135deg, #f5f5f5, #fafafa); border-radius: 12px; border: 2px dashed #bdbdbd;">
                     <div style="font-size: 3rem; color: #999; margin-bottom: 16px;">🛠️</div>
                     <div style="font-weight: 600; color: #666; margin-bottom: 8px; font-size: 1.1rem;">No Skills Data Available</div>
                     <div style="color: #999; font-size: 0.9rem;">Skills will appear here once jobseekers register with their skills</div>
@@ -1896,6 +2085,7 @@ if ($conn) {
         analyticsData.skillsDistribution.forEach(skill => {
             const percentage = analyticsData.totalSkills > 0 ? Math.round((skill.count / analyticsData.totalSkills) * 100) : 0;
             const skillElement = document.createElement('div');
+            skillElement.className = 'analytics-skill-tile';
             skillElement.style.cssText = `
                 background: linear-gradient(135deg, #e3f2fd, #f0f4ff);
                 border-radius: 12px;
