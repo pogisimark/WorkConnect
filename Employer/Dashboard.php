@@ -1,5 +1,12 @@
 <?php
 include 'session_protect.php';
+
+$showEmployerAddAccountUnauthorized = false;
+if (!empty($_SESSION['employer_unauthorized_add_account'])) {
+    $showEmployerAddAccountUnauthorized = true;
+    unset($_SESSION['employer_unauthorized_add_account']);
+}
+
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
 require_once __DIR__ . '/jobseeker_pending_badge.php';
@@ -1173,5 +1180,21 @@ window.onclick = function(e) {
     }
 };
 </script>
+<?php if (!empty($showEmployerAddAccountUnauthorized)): ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Not authorized',
+            text: 'Only the super admin (main Admin account) can open Add Account. Sub-admin accounts cannot manage admin accounts.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#233a8b'
+        });
+    }
+});
+</script>
+<?php endif; ?>
 </body>
 </html>

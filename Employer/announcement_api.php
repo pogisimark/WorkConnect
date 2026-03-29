@@ -1,8 +1,55 @@
 <?php
 session_start();
 include 'db.php';
+require_once __DIR__ . '/announcement_schema_helper.php';
+ensure_announcements_publish_tracking($conn);
 
 header('Content-Type: application/json');
+
+/**
+ * Send JSON to client immediately, then optional heavy work after connection flush (PHP-FPM).
+ */
+function announcement_send_json_and_flush(array $payload): void
+{
+    echo json_encode($payload);
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+        @flush();
+    }
+}
+
+/** Release session write lock so parallel requests (e.g. list refresh) are not blocked during slow work. */
+function announcement_release_session_lock(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+}
+
+/** Queue emails/notifications after HTTP response (first publish only — caller decides). */
+function announcement_queue_first_publish_delivery(string $title, string $description): void
+{
+    // After fastcgi_finish_request(), the client may disconnect; keep shutdown work running (HTTPS/production).
+    ignore_user_abort(true);
+    register_shutdown_function(static function () use ($title, $description) {
+        try {
+            require_once __DIR__ . '/../Employee/create_notification.php';
+            createAnnouncementNotification($title, $description);
+        } catch (Throwable $e) {
+            error_log('Announcement notification: ' . $e->getMessage());
+        }
+        try {
+            require_once __DIR__ . '/send_announcement_emails.php';
+            sendAnnouncementEmailsToJobseekers($title, $description);
+        } catch (Throwable $e) {
+            error_log('Announcement email: ' . $e->getMessage());
+        }
+    });
+}
 
 // Check for valid session (either admin or employee)
 $isAdmin = isset($_SESSION['username']); // Admin session
@@ -174,8 +221,13 @@ function createAnnouncement() {
         $admin_id = $admin_data['id'];
     }
     
-    // Validate status
-    if (!in_array($status, ['draft', 'published', 'archived'])) {
+    announcement_release_session_lock();
+    
+    // Validate status (cannot create as closed)
+    if (!in_array($status, ['draft', 'published', 'archived', 'closed'], true)) {
+        $status = 'draft';
+    }
+    if ($status === 'closed') {
         $status = 'draft';
     }
     
@@ -189,8 +241,12 @@ function createAnnouncement() {
     $conn->begin_transaction();
     
     try {
-        // Insert announcement
-        $stmt = $conn->prepare("INSERT INTO announcements (title, category, description, status, expiration_date, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+        // Insert announcement (first_published_at only when creating as published)
+        if ($status === 'published') {
+            $stmt = $conn->prepare("INSERT INTO announcements (title, category, description, status, expiration_date, created_by, first_published_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+        } else {
+            $stmt = $conn->prepare("INSERT INTO announcements (title, category, description, status, expiration_date, created_by, first_published_at) VALUES (?, ?, ?, ?, ?, ?, NULL)");
+        }
         $stmt->bind_param("sssssi", $title, $category, $description, $status, $expiration_date, $admin_id);
         
         if (!$stmt->execute()) {
@@ -213,29 +269,15 @@ function createAnnouncement() {
         
         $conn->commit();
         
-        // Send in-app notifications and emails if published
-        if ($status === 'published') {
-            try {
-                include '../Employee/create_notification.php';
-                $notification_result = createAnnouncementNotification($title, $description);
-                error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
-            } catch (Exception $e) {
-                error_log("Failed to send announcement notifications: " . $e->getMessage());
-            }
-            try {
-                include 'send_announcement_emails.php';
-                $email_result = sendAnnouncementEmailsToJobseekers($title, $description);
-                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
-            } catch (Exception $e) {
-                error_log("Failed to send announcement emails: " . $e->getMessage());
-            }
-        }
-        
-        echo json_encode([
+        $doNotify = ($status === 'published');
+        announcement_send_json_and_flush([
             'success' => true,
             'message' => 'Announcement created successfully',
             'announcement_id' => $announcement_id
         ]);
+        if ($doNotify) {
+            announcement_queue_first_publish_delivery($title, $description);
+        }
         
     } catch (Exception $e) {
         $conn->rollback();
@@ -245,6 +287,8 @@ function createAnnouncement() {
 
 function readAnnouncements() {
     global $conn;
+    
+    announcement_release_session_lock();
     
     $page = intval($_GET['page'] ?? 1);
     $limit = intval($_GET['limit'] ?? 10);
@@ -302,6 +346,7 @@ function readAnnouncements() {
             a.description,
             a.status,
             a.date_posted,
+            a.first_published_at,
             a.expiration_date,
             a.created_at,
             a.updated_at,
@@ -347,6 +392,8 @@ function readAnnouncements() {
 
 function getSingleAnnouncement() {
     global $conn;
+    
+    announcement_release_session_lock();
     
     $id = intval($_GET['id'] ?? 0);
     
@@ -397,6 +444,7 @@ function updateAnnouncement() {
     if (!$isAdmin) {
         throw new Exception('Admin privileges required');
     }
+    announcement_release_session_lock();
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -418,7 +466,7 @@ function updateAnnouncement() {
     $tags = $input['tags'] ?? [];
     
     // Validate status
-    if (!in_array($status, ['draft', 'published', 'archived'])) {
+    if (!in_array($status, ['draft', 'published', 'archived', 'closed'], true)) {
         $status = 'draft';
     }
     
@@ -428,13 +476,31 @@ function updateAnnouncement() {
         $category = 'Update';
     }
     
+    $prevStmt = $conn->prepare('SELECT status, first_published_at FROM announcements WHERE id = ?');
+    $prevStmt->bind_param('i', $id);
+    $prevStmt->execute();
+    $prev = $prevStmt->get_result()->fetch_assoc();
+    $prevStmt->close();
+    if (!$prev) {
+        throw new Exception('Announcement not found');
+    }
+    // Saving "draft" on an item that was already published once → store as closed (visibility off, no duplicate emails later)
+    if ($status === 'draft' && !empty($prev['first_published_at'])) {
+        $status = 'closed';
+    }
+    
+    $isFirstPublish = ($status === 'published' && empty($prev['first_published_at']));
+    
     // Start transaction
     $conn->begin_transaction();
     
     try {
-        // Update announcement
-        $stmt = $conn->prepare("UPDATE announcements SET title = ?, category = ?, description = ?, status = ?, expiration_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-        $stmt->bind_param("sssssi", $title, $category, $description, $status, $expiration_date, $id);
+        if ($isFirstPublish) {
+            $stmt = $conn->prepare('UPDATE announcements SET title = ?, category = ?, description = ?, status = ?, expiration_date = ?, first_published_at = NOW(), updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        } else {
+            $stmt = $conn->prepare('UPDATE announcements SET title = ?, category = ?, description = ?, status = ?, expiration_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        }
+        $stmt->bind_param('sssssi', $title, $category, $description, $status, $expiration_date, $id);
         
         if (!$stmt->execute()) {
             throw new Exception('Failed to update announcement');
@@ -457,28 +523,13 @@ function updateAnnouncement() {
         
         $conn->commit();
         
-        // Send in-app notifications and emails if published
-        if ($status === 'published') {
-            try {
-                include '../Employee/create_notification.php';
-                $notification_result = createAnnouncementNotification($title, $description);
-                error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
-            } catch (Exception $e) {
-                error_log("Failed to send announcement notifications: " . $e->getMessage());
-            }
-            try {
-                include 'send_announcement_emails.php';
-                $email_result = sendAnnouncementEmailsToJobseekers($title, $description);
-                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
-            } catch (Exception $e) {
-                error_log("Failed to send announcement emails: " . $e->getMessage());
-            }
-        }
-        
-        echo json_encode([
+        announcement_send_json_and_flush([
             'success' => true,
             'message' => 'Announcement updated successfully'
         ]);
+        if ($isFirstPublish) {
+            announcement_queue_first_publish_delivery($title, $description);
+        }
         
     } catch (Exception $e) {
         $conn->rollback();
@@ -493,6 +544,7 @@ function deleteAnnouncement() {
     if (!$isAdmin) {
         throw new Exception('Admin privileges required');
     }
+    announcement_release_session_lock();
     
     $input = json_decode(file_get_contents('php://input'), true);
     $id = intval($input['id'] ?? 0);
@@ -546,6 +598,7 @@ function changeStatus() {
     if (!$isAdmin) {
         throw new Exception('Admin privileges required');
     }
+    announcement_release_session_lock();
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -556,44 +609,42 @@ function changeStatus() {
         throw new Exception('Announcement ID is required');
     }
     
-    if (!in_array($status, ['draft', 'published', 'archived'])) {
+    if (!in_array($status, ['draft', 'published', 'archived', 'closed'], true)) {
         throw new Exception('Invalid status');
     }
     
-    $stmt = $conn->prepare("UPDATE announcements SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-    $stmt->bind_param("si", $status, $id);
+    $prevStmt = $conn->prepare('SELECT status, first_published_at, title, description FROM announcements WHERE id = ?');
+    $prevStmt->bind_param('i', $id);
+    $prevStmt->execute();
+    $prev = $prevStmt->get_result()->fetch_assoc();
+    $prevStmt->close();
+    if (!$prev) {
+        throw new Exception('Announcement not found');
+    }
+    if ($status === 'draft' && !empty($prev['first_published_at'])) {
+        $status = 'closed';
+    }
+    
+    $isFirstPublish = ($status === 'published' && empty($prev['first_published_at']));
+    
+    if ($isFirstPublish) {
+        $stmt = $conn->prepare('UPDATE announcements SET status = ?, first_published_at = NOW(), updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    } else {
+        $stmt = $conn->prepare('UPDATE announcements SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    }
+    $stmt->bind_param('si', $status, $id);
     
     if (!$stmt->execute()) {
         throw new Exception('Failed to update status');
     }
     
-    // Send in-app notifications and emails if status changed to published
-    if ($status === 'published') {
-        try {
-            // Get announcement details
-            $stmt = $conn->prepare("SELECT title, description FROM announcements WHERE id = ?");
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-            $announcement = $stmt->get_result()->fetch_assoc();
-            
-            if ($announcement) {
-                include '../Employee/create_notification.php';
-                $notification_result = createAnnouncementNotification($announcement['title'], $announcement['description']);
-                error_log("Announcement notification sent to {$notification_result['sent']}/{$notification_result['total']} users");
-                
-                include 'send_announcement_emails.php';
-                $email_result = sendAnnouncementEmailsToJobseekers($announcement['title'], $announcement['description']);
-                error_log("Announcement email sent to {$email_result['sent']}/{$email_result['total']} jobseekers");
-            }
-        } catch (Exception $e) {
-            error_log("Failed to send announcement notifications/emails: " . $e->getMessage());
-        }
-    }
-    
-    echo json_encode([
+    announcement_send_json_and_flush([
         'success' => true,
         'message' => 'Status updated successfully'
     ]);
+    if ($isFirstPublish) {
+        announcement_queue_first_publish_delivery((string) $prev['title'], (string) $prev['description']);
+    }
 }
 
 function uploadFile() {
@@ -603,6 +654,7 @@ function uploadFile() {
     if (!$isAdmin) {
         throw new Exception('Admin privileges required');
     }
+    announcement_release_session_lock();
     
     $announcement_id = intval($_POST['announcement_id'] ?? 0);
     
@@ -671,6 +723,7 @@ function deleteFile() {
     if (!$isAdmin) {
         throw new Exception('Admin privileges required');
     }
+    announcement_release_session_lock();
     
     $input = json_decode(file_get_contents('php://input'), true);
     $file_id = intval($input['file_id'] ?? 0);

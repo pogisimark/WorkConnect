@@ -1,6 +1,20 @@
 (function () {
   "use strict";
 
+  /** Company portal: only show full-page loader for main sidebar navigation, not in-page actions or forms. */
+  function isCompanyPortalPath() {
+    try {
+      const p = (window.location.pathname || "").replace(/\\/g, "/").toLowerCase();
+      return p.includes("/company/");
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function isSidebarNavigationLink(anchor) {
+    return !!(anchor && anchor.closest && anchor.closest(".sidebar-nav"));
+  }
+
   function isNavigatingLink(anchor, event) {
     if (!anchor || !anchor.href) return false;
     if (anchor.hasAttribute("download")) return false;
@@ -84,6 +98,9 @@
       "click",
       function (event) {
         const anchor = event.target.closest("a");
+        if (isCompanyPortalPath() && !isSidebarNavigationLink(anchor)) {
+          return;
+        }
         if (isNavigatingLink(anchor, event)) {
           showLoading();
         }
@@ -91,9 +108,11 @@
       true
     );
 
+    // Bubble phase so handlers that call preventDefault() on the form run first (avoids stuck overlay on AJAX forms).
     document.addEventListener(
       "submit",
       function (event) {
+        if (isCompanyPortalPath()) return;
         if (skipSubmitLoadingForSkillRegistry()) return;
         const form = event.target;
         const action = ((form && form.getAttribute("action")) || "").toLowerCase();
@@ -102,7 +121,7 @@
           showLoading();
         }
       },
-      true
+      false
     );
 
     window.addEventListener("pageshow", function () {

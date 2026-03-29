@@ -28,12 +28,15 @@ if ($username === 'Admin') {
 $stmt = $conn->prepare('DELETE FROM admin_accounts WHERE id = ?');
 $stmt->bind_param('i', $id);
 if ($stmt->execute()) {
-    // Get the highest remaining ID and set auto-increment to next value
+    // Optional: realign AUTO_INCREMENT (may fail without ALTER privilege; delete still succeeded)
     $result = $conn->query('SELECT MAX(id) as max_id FROM admin_accounts');
-    $max_id = $result->fetch_assoc()['max_id'];
-    $next_id = ($max_id ? $max_id + 1 : 1);
-    $conn->query("ALTER TABLE admin_accounts AUTO_INCREMENT = $next_id");
-    echo json_encode(['success' => true]);
+    if ($result) {
+        $row = $result->fetch_assoc();
+        $max_id = $row['max_id'] ?? null;
+        $next_id = ($max_id ? (int) $max_id + 1 : 1);
+        @$conn->query('ALTER TABLE admin_accounts AUTO_INCREMENT = ' . (int) $next_id);
+    }
+    echo json_encode(['success' => true, 'message' => 'Admin account removed.']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Delete failed.']);
 }

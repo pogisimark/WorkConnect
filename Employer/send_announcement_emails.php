@@ -128,27 +128,40 @@ function sendAnnouncementEmailsToJobseekers($title, $description) {
     $sent = 0;
     
     if ($phpmailer_available) {
-        foreach ($emails as $to_email) {
-            try {
-                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-                $mail->isSMTP();
-                $mail->Host = SMTP_HOST;
-                $mail->SMTPAuth = true;
-                $mail->Username = SMTP_USERNAME;
-                $mail->Password = SMTP_PASSWORD;
-                $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port = SMTP_PORT;
-                $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-                $mail->addAddress($to_email);
-                $mail->isHTML(true);
-                $mail->CharSet = 'UTF-8';
-                $mail->Subject = $subject;
-                $mail->Body = $message;
-                $mail->send();
-                $sent++;
-            } catch (Exception $e) {
-                error_log("sendAnnouncementEmailsToJobseekers: Failed to send to $to_email - " . $e->getMessage());
+        // Reuse one SMTP connection (huge win vs new PHPMailer + TCP+TLS per recipient)
+        try {
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = SMTP_PORT;
+            $mail->SMTPKeepAlive = true;
+            $mail->Timeout = 45;
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = $subject;
+            $mail->Body = $message;
+            
+            foreach ($emails as $to_email) {
+                try {
+                    $mail->clearAddresses();
+                    $mail->clearAttachments();
+                    $mail->clearReplyTos();
+                    $mail->clearCustomHeaders();
+                    $mail->addAddress($to_email);
+                    $mail->send();
+                    $sent++;
+                } catch (Exception $e) {
+                    error_log("sendAnnouncementEmailsToJobseekers: Failed to send to $to_email - " . $e->getMessage());
+                }
             }
+            $mail->smtpClose();
+        } catch (Exception $e) {
+            error_log('sendAnnouncementEmailsToJobseekers: SMTP setup failed - ' . $e->getMessage());
         }
     } else {
         $headers = "MIME-Version: 1.0\r\n";

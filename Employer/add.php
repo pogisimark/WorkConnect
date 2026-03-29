@@ -1,5 +1,11 @@
 <?php
 include 'session_protect.php';
+// Only the super admin (username exactly "Admin") may access this page
+if (!isset($_SESSION['username']) || $_SESSION['username'] !== 'Admin') {
+    $_SESSION['employer_unauthorized_add_account'] = 1;
+    header('Location: Dashboard.php');
+    exit;
+}
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
 require_once __DIR__ . '/jobseeker_pending_badge.php';
@@ -228,12 +234,37 @@ if ($conn) {
         .admin-action-btn.delete:hover {
             background: #a31515;
         }
-        .edit-row input {
-            width: 90%;
-            padding: 4px 6px;
-            border-radius: 4px;
+        /* Edit row: keep Actions column same shape as view mode (two buttons only) */
+        .admin-username-edit-stack {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            max-width: 100%;
+        }
+        .admin-username-edit-stack .edit-username,
+        .admin-username-edit-stack .edit-password {
+            flex: 1 1 130px;
+            min-width: 0;
+            max-width: 220px;
+            box-sizing: border-box;
+            padding: 6px 8px;
+            border-radius: 6px;
             border: 1px solid #b3c6e0;
-            font-size: 1rem;
+            font-size: 0.95rem;
+        }
+        .admin-edit-actions-inline {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .edit-row td {
+            vertical-align: middle;
         }
         #adminCreateMsg {
             text-align: center;
@@ -519,6 +550,7 @@ if ($conn) {
         }
     </style>
     <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
@@ -807,6 +839,20 @@ if ($conn) {
                 .catch(() => {
                     console.error('Session check failed');
                 });
+            function escapeHtml(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+            function escapeAttr(s) {
+                return String(s)
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
             // Create admin
             document.getElementById('createAdminForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -815,6 +861,7 @@ if ($conn) {
                 fetch('add_admin.php', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
+                    credentials: 'same-origin',
                     body: JSON.stringify({
                         username: document.getElementById('newUsername').value.trim(),
                         password: document.getElementById('newPassword').value.trim()
@@ -825,6 +872,12 @@ if ($conn) {
                     msg.textContent = d.message;
                     msg.style.color = d.success ? '#388e3c' : '#d32f2f';
                     if (d.success) {
+                        Swal.fire({
+                            title: 'Created',
+                            text: d.message || 'Admin account created.',
+                            icon: 'success',
+                            confirmButtonColor: '#233a8b'
+                        });
                         document.getElementById('createAdminForm').reset();
                         loadAdmins();
                     }
@@ -832,28 +885,35 @@ if ($conn) {
                 .catch(() => {
                     msg.textContent = 'Server error.';
                     msg.style.color = '#d32f2f';
+                    Swal.fire({ title: 'Error', text: 'Server or network error.', icon: 'error', confirmButtonColor: '#233a8b' });
                 });
             });
             // Load admin accounts
             function loadAdmins() {
-                fetch('admin_accounts.php')
+                fetch('admin_accounts.php', { credentials: 'same-origin' })
                     .then(r => r.json())
                     .then(admins => {
+                        if (!Array.isArray(admins)) {
+                            return;
+                        }
                         var tbody = document.querySelector('#adminTable tbody');
                         tbody.innerHTML = '';
                         admins.forEach(function(admin) {
                             var tr = document.createElement('tr');
                             tr.innerHTML =
-                                '<td>' + admin.id + '</td>' +
-                                '<td>' + (admin.username === 'Admin' ? '<b>' + admin.username + '</b>' : '<span class="admin-username">' + admin.username + '</span>') + '</td>' +
+                                '<td>' + escapeHtml(String(admin.id)) + '</td>' +
+                                '<td>' + (admin.username === 'Admin' ? '<b>' + escapeHtml(admin.username) + '</b>' : '<span class="admin-username">' + escapeHtml(admin.username) + '</span>') + '</td>' +
                                 '<td>' +
                                 (admin.username === 'Admin' ? '' :
-                                    '<button class="admin-action-btn edit" data-id="' + admin.id + '" data-username="' + admin.username + '">Edit</button>' +
-                                    '<button class="admin-action-btn delete" data-id="' + admin.id + '">Delete</button>'
+                                    '<button type="button" class="admin-action-btn edit" data-id="' + escapeAttr(String(admin.id)) + '" data-username="' + escapeAttr(admin.username) + '">Edit</button>' +
+                                    '<button type="button" class="admin-action-btn delete" data-id="' + escapeAttr(String(admin.id)) + '">Delete</button>'
                                 ) +
                                 '</td>';
                             tbody.appendChild(tr);
                         });
+                    })
+                    .catch(function() {
+                        Swal.fire({ title: 'Error', text: 'Could not load admin list.', icon: 'error', confirmButtonColor: '#233a8b' });
                     });
             }
             loadAdmins();
@@ -862,33 +922,66 @@ if ($conn) {
                 // Handle delete button (only if it has 'delete' class but NOT 'cancel')
                 if (e.target.classList.contains('delete') && !e.target.classList.contains('cancel')) {
                     var id = e.target.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this admin?')) {
+                    Swal.fire({
+                        title: 'Delete this admin?',
+                        text: 'This cannot be undone.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d32f2f',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete',
+                        cancelButtonText: 'Cancel'
+                    }).then(function(result) {
+                        if (!result.isConfirmed) return;
                         fetch('delete_admin.php', {
                             method: 'POST',
                             headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({id: id})
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ id: parseInt(id, 10) })
                         })
                         .then(r => r.json())
-                        .then(d => {
-                            if (d.success) loadAdmins();
-                            else alert(d.message || 'Delete failed.');
+                        .then(function(d) {
+                            if (d.success) {
+                                Swal.fire({
+                                    title: 'Deleted',
+                                    text: d.message || 'Admin account removed.',
+                                    icon: 'success',
+                                    confirmButtonColor: '#233a8b'
+                                });
+                                loadAdmins();
+                            } else {
+                                Swal.fire({
+                                    title: 'Could not delete',
+                                    text: d.message || 'Delete failed.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#233a8b'
+                                });
+                            }
+                        })
+                        .catch(function() {
+                            Swal.fire({ title: 'Error', text: 'Network or server error.', icon: 'error', confirmButtonColor: '#233a8b' });
                         });
-                    }
+                    });
                 }
                 // Handle edit button (only if it has 'edit' class but NOT 'save')
                 else if (e.target.classList.contains('edit') && !e.target.classList.contains('save')) {
                     var tr = e.target.closest('tr');
                     var id = e.target.getAttribute('data-id');
-                    var username = e.target.getAttribute('data-username');
+                    var username = e.target.getAttribute('data-username') || '';
                     tr.classList.add('edit-row');
+                    tr.setAttribute('data-original-username', username);
                     tr.innerHTML =
-                        '<td>' + id + '</td>' +
-                        '<td><input type="text" value="' + username + '" class="edit-username"></td>' +
-                        '<td>' +
-                        '<input type="text" placeholder="New Password" class="edit-password"> ' +
-                        '<button class="admin-action-btn edit save" data-id="' + id + '">Save</button>' +
-                        '<button class="admin-action-btn delete cancel">Cancel</button>' +
-                        '</td>';
+                        '<td>' + escapeHtml(String(id)) + '</td>' +
+                        '<td class="td-admin-username-edit">' +
+                        '<div class="admin-username-edit-stack">' +
+                        '<input type="text" class="edit-username" value="' + escapeAttr(username) + '" autocomplete="username">' +
+                        '<input type="password" class="edit-password" placeholder="New password (optional)" autocomplete="new-password">' +
+                        '</div></td>' +
+                        '<td class="td-admin-edit">' +
+                        '<div class="admin-edit-actions-inline">' +
+                        '<button type="button" class="admin-action-btn edit save" data-id="' + escapeAttr(String(id)) + '">Save</button>' +
+                        '<button type="button" class="admin-action-btn delete cancel">Cancel</button>' +
+                        '</div></td>';
                 }
                 // Handle save button
                 else if (e.target.classList.contains('save')) {
@@ -896,19 +989,54 @@ if ($conn) {
                     var id = e.target.getAttribute('data-id');
                     var username = tr.querySelector('.edit-username').value.trim();
                     var password = tr.querySelector('.edit-password').value.trim();
-                    if (!username || !password) {
-                        alert('Username and password required.');
+                    if (!username) {
+                        Swal.fire({
+                            title: 'Username required',
+                            text: 'Enter a username.',
+                            icon: 'warning',
+                            confirmButtonColor: '#233a8b'
+                        });
+                        return;
+                    }
+                    var originalUsername = (tr.getAttribute('data-original-username') || '').trim();
+                    if (username === originalUsername && password === '') {
+                        Swal.fire({
+                            title: 'No changes',
+                            text: 'You did not change the username or password.',
+                            icon: 'info',
+                            confirmButtonColor: '#233a8b'
+                        }).then(function() {
+                            loadAdmins();
+                        });
                         return;
                     }
                     fetch('edit_admin.php', {
                         method: 'POST',
                         headers: {'Content-Type':'application/json'},
-                        body: JSON.stringify({id: id, username: username, password: password})
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ id: parseInt(id, 10), username: username, password: password })
                     })
                     .then(r => r.json())
-                    .then(d => {
-                        if (d.success) loadAdmins();
-                        else alert(d.message || 'Update failed.');
+                    .then(function(d) {
+                        if (d.success) {
+                            Swal.fire({
+                                title: 'Saved',
+                                text: d.message || 'Account updated.',
+                                icon: 'success',
+                                confirmButtonColor: '#233a8b'
+                            });
+                            loadAdmins();
+                        } else {
+                            Swal.fire({
+                                title: 'Could not save',
+                                text: d.message || 'Update failed.',
+                                icon: 'error',
+                                confirmButtonColor: '#233a8b'
+                            });
+                        }
+                    })
+                    .catch(function() {
+                        Swal.fire({ title: 'Error', text: 'Network or server error.', icon: 'error', confirmButtonColor: '#233a8b' });
                     });
                 }
                 // Handle cancel button

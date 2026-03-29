@@ -852,7 +852,12 @@ $conn->close();
             if (event.target == resumeModal) {
                 resumeModal.style.display = 'none';
             }
-        }
+        };
+
+        fetch('session_check.php').then(function(r) { return r.json(); }).then(function(d) {
+            var a = document.getElementById('addAccountLink');
+            if (a) { a.style.display = d.isMainAdmin ? 'block' : 'none'; }
+        }).catch(function() {});
     </script>
 </body>
 </html>

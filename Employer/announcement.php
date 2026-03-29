@@ -835,6 +835,27 @@ if ($conn) {
             border: 1px solid #616161;
         }
         
+        .badge.status.closed {
+            background: linear-gradient(135deg, #78909c, #546e7a);
+            color: white;
+            border: 1px solid #455a64;
+        }
+        
+        .action-btn.open-ann {
+            background: #2e7d32;
+            color: #fff;
+        }
+        .action-btn.open-ann:hover {
+            background: #1b5e20;
+        }
+        .action-btn.close-ann {
+            background: #607d8b;
+            color: #fff;
+        }
+        .action-btn.close-ann:hover {
+            background: #455a64;
+        }
+        
         /* Mobile responsive buttons */
         @media (max-width: 768px) {
             .action-btn {
@@ -1139,6 +1160,7 @@ if ($conn) {
                             <option value="">All Status</option>
                             <option value="published">Published</option>
                             <option value="draft">Draft</option>
+                            <option value="closed">Closed</option>
                             <option value="archived">Archived</option>
                         </select>
                     </div>
@@ -1537,6 +1559,10 @@ function loadStats() {
                         <div style="color: #666; font-size: 14px;">Draft</div>
                     </div>
                     <div style="background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+                        <div style="font-size: 2rem; color: #607d8b; font-weight: bold;">${stats.closed != null ? stats.closed : 0}</div>
+                        <div style="color: #666; font-size: 14px;">Closed (hidden)</div>
+                    </div>
+                    <div style="background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
                         <div style="font-size: 2rem; color: #2196f3; font-weight: bold;">${stats.total_views}</div>
                         <div style="color: #666; font-size: 14px;">Total Views</div>
                     </div>
@@ -1609,6 +1635,27 @@ function stripHtmlToText(html) {
     return (d.textContent || '').replace(/\s+/g, ' ').trim();
 }
 
+function announcementRowEverPublished(row) {
+    const fp = row && row.first_published_at;
+    if (fp == null || fp === '') return false;
+    const s = String(fp).trim();
+    if (!s || s.indexOf('0000-00-00') === 0) return false;
+    return true;
+}
+
+function announcementStatusDisplayLabel(status) {
+    if (status === 'published') return 'Open';
+    if (status === 'closed') return 'Closed';
+    if (status === 'draft') return 'Draft';
+    return status;
+}
+
+function announcementStatusBadgeClass(status) {
+    if (status === 'published') return 'published';
+    if (status === 'closed') return 'closed';
+    return status;
+}
+
 // Render announcements table
 function renderAnnouncementsTable(announcements) {
     if (announcements.length === 0) {
@@ -1641,7 +1688,28 @@ function renderAnnouncementsTable(announcements) {
                     const excerpt = descPlain.length > 160 ? descPlain.substring(0, 160) + '…' : descPlain;
                     const safeTitle = escapeHtml(announcement.title);
                     const safeExcerpt = escapeHtml(excerpt);
-                    const st = announcement.status === 'published' ? 'draft' : 'published';
+                    const everPub = announcementRowEverPublished(announcement);
+                    const st = announcement.status;
+                    let toggleButtonHtml = '';
+                    if (st !== 'archived') {
+                        if (!everPub) {
+                            if (st === 'draft') {
+                                toggleButtonHtml = `<button type="button" onclick="changeAnnouncementStatus(event, ${announcement.id}, 'published')" class="action-btn publish"><span>Publish</span></button>`;
+                            } else if (st === 'published') {
+                                toggleButtonHtml = `<button type="button" onclick="changeAnnouncementStatus(event, ${announcement.id}, 'draft')" class="action-btn unpublish"><span>Unpublish</span></button>`;
+                            }
+                        } else {
+                            if (st === 'published') {
+                                toggleButtonHtml = `<button type="button" onclick="changeAnnouncementStatus(event, ${announcement.id}, 'closed')" class="action-btn close-ann"><span>Close</span></button>`;
+                            } else if (st === 'closed') {
+                                toggleButtonHtml = `<button type="button" onclick="changeAnnouncementStatus(event, ${announcement.id}, 'published')" class="action-btn open-ann"><span>Open</span></button>`;
+                            } else if (st === 'draft') {
+                                toggleButtonHtml = `<button type="button" onclick="changeAnnouncementStatus(event, ${announcement.id}, 'published')" class="action-btn publish"><span>Publish</span></button>`;
+                            }
+                        }
+                    }
+                    const statusLabel = announcementStatusDisplayLabel(st);
+                    const statusClass = announcementStatusBadgeClass(st);
                     return `
                     <tr style="border-bottom: 1px solid #f0f0f0;">
                         <td class="ann-cell--title" style="padding: 16px; vertical-align: top;">
@@ -1654,8 +1722,8 @@ function renderAnnouncementsTable(announcements) {
                             </span>
                         </td>
                         <td data-label="Status" style="padding: 16px; vertical-align: middle;">
-                            <span class="badge status ${announcement.status}">
-                                ${escapeHtml(announcement.status)}
+                            <span class="badge status ${statusClass}">
+                                ${escapeHtml(statusLabel)}
                             </span>
                         </td>
                         <td data-label="Date posted" style="padding: 16px; color: #666; font-size: 14px; vertical-align: middle;">
@@ -1666,13 +1734,11 @@ function renderAnnouncementsTable(announcements) {
                         </td>
                         <td class="ann-cell--actions" style="padding: 16px; vertical-align: middle;">
                             <div class="ann-actions-row" style="display: flex; gap: 10px;">
-                                <button type="button" onclick="editAnnouncement(${announcement.id})" class="action-btn edit">
+                                <button type="button" onclick="editAnnouncement(event, ${announcement.id})" class="action-btn edit">
                                     <span>Edit</span>
                                 </button>
-                                <button type="button" onclick="changeAnnouncementStatus(${announcement.id}, '${st}')" class="action-btn ${announcement.status === 'published' ? 'unpublish' : 'publish'}">
-                                    <span>${announcement.status === 'published' ? 'Unpublish' : 'Publish'}</span>
-                                </button>
-                                <button type="button" onclick="deleteAnnouncement(${announcement.id})" class="action-btn delete">
+                                ${toggleButtonHtml}
+                                <button type="button" onclick="deleteAnnouncement(event, ${announcement.id})" class="action-btn delete">
                                     <span>Delete</span>
                                 </button>
                             </div>
@@ -1693,6 +1759,7 @@ function getStatusColor(status) {
         case 'published': return '#4caf50';
         case 'draft': return '#ff9800';
         case 'archived': return '#9e9e9e';
+        case 'closed': return '#607d8b';
         default: return '#666';
     }
 }
@@ -1790,6 +1857,31 @@ function getAnnouncementDescriptionHtml() {
     return ta ? ta.value : '';
 }
 
+function setAnnouncementModalMode(everPublished, currentStatus) {
+    const sel = document.getElementById('announcementStatus');
+    const form = document.getElementById('announcementForm');
+    const cur = currentStatus || sel.value || 'draft';
+    form.dataset.everPublished = everPublished ? '1' : '0';
+    sel.innerHTML = '';
+    if (everPublished) {
+        sel.innerHTML = '<option value="published">Open (visible to job seekers)</option><option value="closed">Closed (hidden)</option>';
+        if (cur === 'closed' || cur === 'published') {
+            sel.value = cur;
+        } else if (cur === 'draft') {
+            sel.value = 'closed';
+        } else {
+            sel.value = 'published';
+        }
+    } else {
+        sel.innerHTML = '<option value="draft">Draft</option><option value="published">Published</option>';
+        if (cur === 'draft' || cur === 'published') {
+            sel.value = cur;
+        } else {
+            sel.value = 'draft';
+        }
+    }
+}
+
 // Create new announcement
 function createAnnouncement() {
     currentAnnouncementId = null;
@@ -1799,16 +1891,17 @@ function createAnnouncement() {
     uploadedFiles = [];
     updateFilesList();
     setAnnouncementDescriptionHtml('');
+    setAnnouncementModalMode(false, 'draft');
     document.getElementById('announcementModal').style.display = 'flex';
 }
 
 // Edit announcement
-function editAnnouncement(id) {
+function editAnnouncement(evt, id) {
     currentAnnouncementId = id;
     document.getElementById('modalTitle').textContent = 'Edit Announcement';
     
     // Find the edit button that was clicked and show loading state
-    const editButton = event.target.closest('.action-btn');
+    const editButton = evt && evt.target ? evt.target.closest('.action-btn') : null;
     if (editButton) {
         const originalText = editButton.innerHTML;
         editButton.innerHTML = `<span class="spinner"></span><span>Loading...</span>`;
@@ -1831,7 +1924,7 @@ function editAnnouncement(id) {
                 document.getElementById('announcementCategory').value = announcement.category;
                 document.getElementById('announcementTags').value = announcement.tags || '';
                 document.getElementById('announcementExpiration').value = announcement.expiration_date || '';
-                document.getElementById('announcementStatus').value = announcement.status;
+                setAnnouncementModalMode(announcementRowEverPublished(announcement), announcement.status);
                 
                 uploadedFiles = announcement.attachments || [];
                 updateFilesList();
@@ -1909,7 +2002,9 @@ function saveAnnouncement(status = 'draft') {
 
     var spinnerOnly = '<span class="ann-modal-btn-spinner" role="status" aria-label="Loading"></span>';
 
-    if (status === 'draft') {
+    // "Save Draft" sends draft (new) or closed (already published once); only green Publish uses published
+    const showSpinnerOnSaveBtn = (status === 'draft' || status === 'closed');
+    if (showSpinnerOnSaveBtn) {
         saveBtn.innerHTML = spinnerOnly;
         saveBtn.classList.add('btn-loading');
         saveBtn.setAttribute('aria-busy', 'true');
@@ -1926,40 +2021,13 @@ function saveAnnouncement(status = 'draft') {
         },
         body: JSON.stringify(formData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (data.announcement_id && !currentAnnouncementId) {
-                currentAnnouncementId = data.announcement_id;
-                document.getElementById('announcementId').value = data.announcement_id;
-            }
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Announcement saved successfully!',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            document.getElementById('announcementModal').style.display = 'none';
-            loadAnnouncements();
-            loadStats();
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error saving announcement: ' + data.error
-            });
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network error');
         }
+        return response.json();
     })
-    .catch(error => {
-        console.error('Error saving announcement:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error saving announcement'
-        });
-    })
-    .finally(() => {
+    .then(data => {
         announcementSaveInFlight = false;
         saveBtn.innerHTML = originalSaveText;
         saveBtn.classList.remove('btn-loading');
@@ -1971,17 +2039,60 @@ function saveAnnouncement(status = 'draft') {
         publishBtn.disabled = false;
         cancelBtn.disabled = false;
         previewBtn.disabled = false;
+
+        if (data.success) {
+            if (data.announcement_id && !currentAnnouncementId) {
+                currentAnnouncementId = data.announcement_id;
+                document.getElementById('announcementId').value = data.announcement_id;
+            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: data.message || 'Announcement saved successfully!',
+                confirmButtonColor: '#233a8b'
+            });
+            document.getElementById('announcementModal').style.display = 'none';
+            loadAnnouncements();
+            loadStats();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error saving announcement: ' + (data.error || 'Unknown error')
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error saving announcement:', error);
+        announcementSaveInFlight = false;
+        saveBtn.innerHTML = originalSaveText;
+        saveBtn.classList.remove('btn-loading');
+        saveBtn.removeAttribute('aria-busy');
+        saveBtn.disabled = false;
+        publishBtn.innerHTML = originalPublishText;
+        publishBtn.classList.remove('btn-loading');
+        publishBtn.removeAttribute('aria-busy');
+        publishBtn.disabled = false;
+        cancelBtn.disabled = false;
+        previewBtn.disabled = false;
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error saving announcement'
+        });
     });
 }
 
 // Change announcement status
-function changeAnnouncementStatus(id, newStatus) {
-    // Find the button that was clicked using event target
-    const targetButton = event.target.closest('.action-btn');
+function changeAnnouncementStatus(evt, id, newStatus) {
+    const targetButton = evt && evt.target ? evt.target.closest('.action-btn') : null;
     
     if (targetButton) {
         const originalText = targetButton.innerHTML;
-        const loadingText = newStatus === 'published' ? 'Publishing...' : 'Unpublishing...';
+        let loadingText = 'Updating...';
+        if (newStatus === 'published') loadingText = 'Opening...';
+        else if (newStatus === 'closed') loadingText = 'Closing...';
+        else if (newStatus === 'draft') loadingText = 'Unpublishing...';
         targetButton.innerHTML = `<span class="spinner"></span><span>${loadingText}</span>`;
         targetButton.classList.add('btn-loading');
         targetButton.disabled = true;
@@ -2001,15 +2112,26 @@ function changeAnnouncementStatus(id, newStatus) {
         },
         body: JSON.stringify({ id: id, status: newStatus })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Network error');
+        return response.json();
+    })
     .then(data => {
+        if (targetButton) {
+            const originalText = targetButton.getAttribute('data-original-text');
+            targetButton.innerHTML = originalText;
+            targetButton.classList.remove('btn-loading');
+            targetButton.disabled = false;
+            targetButton.removeAttribute('data-original-text');
+            targetButton.style.minWidth = '';
+            targetButton.style.width = '';
+        }
         if (data.success) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: 'Status updated successfully!',
-                timer: 2000,
-                showConfirmButton: false
+                text: data.message || 'Status updated successfully!',
+                confirmButtonColor: '#233a8b'
             });
             loadAnnouncements();
             loadStats();
@@ -2017,12 +2139,21 @@ function changeAnnouncementStatus(id, newStatus) {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error updating status: ' + data.error
+                text: 'Error updating status: ' + (data.error || 'Unknown error')
             });
         }
     })
     .catch(error => {
         console.error('Error updating status:', error);
+        if (targetButton) {
+            const originalText = targetButton.getAttribute('data-original-text');
+            targetButton.innerHTML = originalText;
+            targetButton.classList.remove('btn-loading');
+            targetButton.disabled = false;
+            targetButton.removeAttribute('data-original-text');
+            targetButton.style.minWidth = '';
+            targetButton.style.width = '';
+        }
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -2030,10 +2161,9 @@ function changeAnnouncementStatus(id, newStatus) {
         });
     })
     .finally(() => {
-        // Reset button state
-        if (targetButton) {
-            const originalText = targetButton.getAttribute('data-original-text');
-            targetButton.innerHTML = originalText;
+        if (targetButton && targetButton.hasAttribute('data-original-text')) {
+            const t = targetButton.getAttribute('data-original-text');
+            targetButton.innerHTML = t;
             targetButton.classList.remove('btn-loading');
             targetButton.disabled = false;
             targetButton.removeAttribute('data-original-text');
@@ -2044,11 +2174,11 @@ function changeAnnouncementStatus(id, newStatus) {
 }
 
 // Delete announcement
-function deleteAnnouncement(id) {
+function deleteAnnouncement(evt, id) {
     currentAnnouncementId = id;
     
     // Find the delete button that was clicked and show loading state
-    const deleteButton = event.target.closest('.action-btn');
+    const deleteButton = evt && evt.target ? evt.target.closest('.action-btn') : null;
     if (deleteButton) {
         const originalText = deleteButton.innerHTML;
         deleteButton.innerHTML = `<span class="spinner"></span><span>Deleting...</span>`;
@@ -2425,9 +2555,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupFileUpload();
     initTinyMCE();
     
-    // Auto-refresh data every 30 seconds to update view counts
-    setInterval(refreshData, 30000);
-    
     // Event listeners
     document.getElementById('createAnnouncementBtn').addEventListener('click', createAnnouncement);
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
@@ -2437,7 +2564,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('closePreviewBtn').addEventListener('click', () => document.getElementById('previewModal').style.display = 'none');
     document.getElementById('saveBtn').addEventListener('click', (e) => {
         e.preventDefault();
-        saveAnnouncement('draft');
+        const form = document.getElementById('announcementForm');
+        const st = form.dataset.everPublished === '1' ? 'closed' : 'draft';
+        saveAnnouncement(st);
     });
     document.getElementById('publishBtn').addEventListener('click', (e) => {
         e.preventDefault();
@@ -2445,7 +2574,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('announcementForm').addEventListener('submit', (e) => {
         e.preventDefault();
-        saveAnnouncement('draft');
+        const form = document.getElementById('announcementForm');
+        const st = form.dataset.everPublished === '1' ? 'closed' : 'draft';
+        saveAnnouncement(st);
     });
     
     // Filter event listeners

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS job_postings (
     location VARCHAR(255) NOT NULL,
     job_type ENUM('Full-time', 'Part-time', 'Contract', 'Internship') DEFAULT 'Full-time',
     industry VARCHAR(100),
-    status ENUM('Active', 'Closed', 'Draft') DEFAULT 'Active',
+    status ENUM('Active', 'Closed', 'Draft', 'Deleted') DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

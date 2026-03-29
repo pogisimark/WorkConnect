@@ -1,4 +1,6 @@
 <?php
+// Set timezone to Philippines
+date_default_timezone_set('Asia/Manila');
 include 'session_protect.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
@@ -1669,18 +1671,19 @@ if ($conn) {
                     <div class="filter-group">
                         <label for="filterMonth" class="filter-label">📅 Month:</label>
                         <select id="filterMonth" class="filter-select">
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
+                            <?php $skillFilterDefaultMonth = date('m'); ?>
+                            <option value="01"<?php echo $skillFilterDefaultMonth === '01' ? ' selected' : ''; ?>>January</option>
+                            <option value="02"<?php echo $skillFilterDefaultMonth === '02' ? ' selected' : ''; ?>>February</option>
+                            <option value="03"<?php echo $skillFilterDefaultMonth === '03' ? ' selected' : ''; ?>>March</option>
+                            <option value="04"<?php echo $skillFilterDefaultMonth === '04' ? ' selected' : ''; ?>>April</option>
+                            <option value="05"<?php echo $skillFilterDefaultMonth === '05' ? ' selected' : ''; ?>>May</option>
+                            <option value="06"<?php echo $skillFilterDefaultMonth === '06' ? ' selected' : ''; ?>>June</option>
+                            <option value="07"<?php echo $skillFilterDefaultMonth === '07' ? ' selected' : ''; ?>>July</option>
+                            <option value="08"<?php echo $skillFilterDefaultMonth === '08' ? ' selected' : ''; ?>>August</option>
+                            <option value="09"<?php echo $skillFilterDefaultMonth === '09' ? ' selected' : ''; ?>>September</option>
+                            <option value="10"<?php echo $skillFilterDefaultMonth === '10' ? ' selected' : ''; ?>>October</option>
+                            <option value="11"<?php echo $skillFilterDefaultMonth === '11' ? ' selected' : ''; ?>>November</option>
+                            <option value="12"<?php echo $skillFilterDefaultMonth === '12' ? ' selected' : ''; ?>>December</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1970,11 +1973,11 @@ function populateYearFilter() {
 populateYearFilter();
 
 let filterMonth = document.getElementById('filterMonth');
-let filterMonthVal = '01'; // Default to January
+let filterMonthVal =
+    filterMonth && filterMonth.value
+        ? filterMonth.value
+        : String(new Date().getMonth() + 1).padStart(2, '0');
 let filterYearVal = new Date().getFullYear();
-
-// Set default month to January
-filterMonth.value = '01';
 filterMonth.addEventListener('change', function() {
     filterMonthVal = this.value;
     fetchBarangayTable(currentBarangay);

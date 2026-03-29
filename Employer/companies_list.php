@@ -510,6 +510,11 @@ function company_list_contact_display(array $c): string {
                 }
             });
         }
+
+        fetch('session_check.php').then(function(r) { return r.json(); }).then(function(d) {
+            var a = document.getElementById('addAccountLink');
+            if (a) { a.style.display = d.isMainAdmin ? 'block' : 'none'; }
+        }).catch(function() {});
     </script>
 </body>
 </html>

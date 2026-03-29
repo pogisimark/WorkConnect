@@ -55,6 +55,13 @@ function getOverviewStats() {
     $archived_stmt = $conn->query("SELECT COUNT(*) as archived FROM announcements WHERE status = 'archived'");
     $archived = $archived_stmt->fetch_assoc()['archived'];
     
+    // Closed (hidden after first publish)
+    $closed_cnt = 0;
+    $closed_stmt = @$conn->query("SELECT COUNT(*) as c FROM announcements WHERE status = 'closed'");
+    if ($closed_stmt) {
+        $closed_cnt = (int) ($closed_stmt->fetch_assoc()['c'] ?? 0);
+    }
+    
     // Total views
     $views_stmt = $conn->query("SELECT COUNT(*) as total_views FROM announcement_views");
     $total_views = $views_stmt->fetch_assoc()['total_views'];
@@ -78,6 +85,7 @@ function getOverviewStats() {
             'published' => $published,
             'draft' => $draft,
             'archived' => $archived,
+            'closed' => $closed_cnt,
             'total_views' => $total_views,
             'total_clicks' => $total_clicks,
             'month_views' => $month_views,

@@ -11,8 +11,8 @@ if (!isset($_SESSION['username']) || $_SESSION['username'] !== 'Admin') {
 $data = json_decode(file_get_contents('php://input'), true);
 $id = intval($data['id'] ?? 0);
 $username = trim($data['username'] ?? '');
-$password = trim($data['password'] ?? '');
-if ($id <= 0 || $username === '' || $password === '') {
+$password = isset($data['password']) ? trim((string) $data['password']) : '';
+if ($id <= 0 || $username === '') {
     echo json_encode(['success' => false, 'message' => 'Invalid input']);
     exit;
 }
@@ -34,10 +34,15 @@ if ($oldUsername === 'Admin') {
     echo json_encode(['success' => false, 'message' => 'Cannot edit main admin.']);
     exit;
 }
-$stmt = $conn->prepare('UPDATE admin_accounts SET username = ?, password = ? WHERE id = ?');
-$stmt->bind_param('ssi', $username, $password, $id);
+if ($password !== '') {
+    $stmt = $conn->prepare('UPDATE admin_accounts SET username = ?, password = ? WHERE id = ?');
+    $stmt->bind_param('ssi', $username, $password, $id);
+} else {
+    $stmt = $conn->prepare('UPDATE admin_accounts SET username = ? WHERE id = ?');
+    $stmt->bind_param('si', $username, $id);
+}
 if ($stmt->execute()) {
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'message' => $password !== '' ? 'Account updated (username and password).' : 'Username updated.']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Update failed.']);
 }
