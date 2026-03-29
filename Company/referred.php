@@ -223,6 +223,7 @@ $referral_stats = [
     'total_accepted' => 0,
     'total_rejected' => 0,
     'total_pending' => 0,
+    'total_withdrawn' => 0,
     'acceptance_rate' => 0
 ];
 
@@ -237,6 +238,7 @@ if ($use_referrals_table) {
         ['accepted', 'total_accepted'],
         ['rejected', 'total_rejected'],
         ['pending', 'total_pending'],
+        ['withdrawn', 'total_withdrawn'],
     ];
     foreach ($statusPairs as $pair) {
         $stVal = $pair[0];
@@ -911,6 +913,17 @@ $conn->close();
                                 <?php echo $referral_stats['total_pending']; ?>
                             </div>
                             <div style="color: #666; font-size: 0.9rem;">Pending Review</div>
+                        </div>
+
+                        <!-- Withdrawn -->
+                        <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; border-left: 4px solid #6c757d;">
+                            <div style="font-size: 2rem; color: #6c757d; margin-bottom: 8px;">
+                                <i class="fas fa-undo-alt"></i>
+                            </div>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #6c757d; margin-bottom: 5px;">
+                                <?php echo $referral_stats['total_withdrawn']; ?>
+                            </div>
+                            <div style="color: #666; font-size: 0.9rem;">Withdrawn</div>
                         </div>
                         
                         <!-- Acceptance Rate -->
