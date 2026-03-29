@@ -2380,6 +2380,93 @@ const barangayTitle = document.getElementById('barangayModalTitle');
 const cards = document.querySelectorAll('.barangay-card');
 let barangayTable = document.querySelector('.barangay-table-form');
 let editMode = false;
+let originalRowSnapshots = new Map();
+
+function countEditableRows() {
+    if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+    return barangayTable ? barangayTable.querySelectorAll('tr[data-id]').length : 0;
+}
+
+function setEditButtonAvailability() {
+    const editBtn = document.getElementById('editModalBtn');
+    if (!editBtn) return;
+    const hasRows = countEditableRows() > 0;
+    editBtn.disabled = !hasRows;
+    editBtn.style.opacity = hasRows ? '1' : '0.55';
+    editBtn.style.cursor = hasRows ? 'pointer' : 'not-allowed';
+    editBtn.title = hasRows ? '' : 'No data available to edit for this filter.';
+}
+
+function exitEditModeWithoutSave() {
+    editMode = false;
+    originalRowSnapshots.clear();
+    const editBtn = document.getElementById('editModalBtn');
+    if (editBtn) editBtn.textContent = 'Edit';
+    if (barangayTable) {
+        barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+            tr.querySelectorAll('input').forEach(inp => {
+                if (inp.type === 'checkbox') inp.disabled = true;
+                else inp.readOnly = true;
+            });
+        });
+    }
+}
+
+function captureCurrentRowSnapshots() {
+    originalRowSnapshots.clear();
+    if (!barangayTable) return;
+    barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
+        const id = tr.getAttribute('data-id');
+        const tds = tr.querySelectorAll('td');
+        if (!id || tds.length < 20) return;
+        const snapshot = {
+            survey_date: (tds[1].querySelector('input')?.value || '').trim(),
+            printed_name: (tds[2].querySelector('input')?.value || '').trim(),
+            ftjs: tds[3].querySelector('input')?.checked ? 'yes' : (tds[4].querySelector('input')?.checked ? 'no' : ''),
+            covid: tds[5].querySelector('input')?.checked ? 'yes' : (tds[6].querySelector('input')?.checked ? 'no' : ''),
+            address: (tds[7].querySelector('input')?.value || '').trim(),
+            dob: (tds[8].querySelector('input')?.value || '').trim(),
+            contact: (tds[9].querySelector('input')?.value || '').trim(),
+            age: (tds[10].querySelector('input')?.value || '').trim(),
+            sex: (tds[11].querySelector('input')?.value || '').trim(),
+            marital: (tds[12].querySelector('input')?.value || '').trim(),
+            education: (tds[13].querySelector('input')?.value || '').trim(),
+            we_position: (tds[14].querySelector('input')?.value || '').trim(),
+            we_months: (tds[15].querySelector('input')?.value || '').trim(),
+            se_business: (tds[16].querySelector('input')?.value || '').trim(),
+            se_months: (tds[17].querySelector('input')?.value || '').trim(),
+            ue: tds[18].querySelector('input')?.checked ? 'yes' : '',
+            skills: (tds[19].querySelector('input')?.value || '').trim()
+        };
+        originalRowSnapshots.set(id, snapshot);
+    });
+}
+
+function getRowPayload(tr) {
+    const id = tr.getAttribute('data-id');
+    const tds = tr.querySelectorAll('td');
+    const surveyDateInput = tds[1].querySelector('input');
+    return {
+        id,
+        survey_date: (surveyDateInput?.value || '').trim(),
+        printed_name: tds[2].querySelector('input').value.trim(),
+        ftjs: tds[3].querySelector('input').checked ? 'yes' : (tds[4].querySelector('input').checked ? 'no' : ''),
+        covid: tds[5].querySelector('input').checked ? 'yes' : (tds[6].querySelector('input').checked ? 'no' : ''),
+        address: tds[7].querySelector('input').value.trim(),
+        dob: tds[8].querySelector('input').value.trim(),
+        contact: tds[9].querySelector('input').value.trim(),
+        age: tds[10].querySelector('input').value.trim(),
+        sex: tds[11].querySelector('input').value.trim(),
+        marital: tds[12].querySelector('input').value.trim(),
+        education: tds[13].querySelector('input').value.trim(),
+        we_position: tds[14].querySelector('input').value.trim(),
+        we_months: tds[15].querySelector('input').value.trim(),
+        se_business: tds[16].querySelector('input').value.trim(),
+        se_months: tds[17].querySelector('input').value.trim(),
+        ue: tds[18].querySelector('input').checked ? 'yes' : '',
+        skills: tds[19].querySelector('input').value.trim()
+    };
+}
 cards.forEach(card => {
     card.addEventListener('click', () => {
         const name = card.getAttribute('data-barangay');
@@ -2497,6 +2584,7 @@ function fetchBarangayTable(barangay) {
             barangayTable.querySelectorAll('input[type="text"]').forEach(inp => inp.readOnly = true);
             barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
             barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
+            setEditButtonAvailability();
         });
     // Always reset edit mode and button
     editMode = false;
@@ -2507,6 +2595,7 @@ function fetchBarangayTable(barangay) {
         barangayTable.querySelectorAll('input[type="checkbox"]').forEach(inp => inp.disabled = true);
         barangayTable.querySelectorAll('input[type="date"]').forEach(inp => inp.readOnly = true);
     }
+    setEditButtonAvailability();
 }
 
 // Auto-calculate age from Date of Birth
@@ -2703,6 +2792,16 @@ document.getElementById('addSkillForm').addEventListener('submit', function(e) {
 
 document.getElementById('editModalBtn').addEventListener('click', function() {
     if (!barangayTable) barangayTable = document.querySelector('.barangay-table-form');
+    if (countEditableRows() === 0) {
+        Swal.fire({
+            title: 'No Data to Edit',
+            text: 'There are no records shown in the table for the selected month and year.',
+            icon: 'info',
+            confirmButtonColor: '#233a8b',
+            customClass: { popup: 'swal-high-zindex' }
+        });
+        return;
+    }
     editMode = !editMode;
     // Toggle all inputs except No. column
     barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -2717,40 +2816,20 @@ document.getElementById('editModalBtn').addEventListener('click', function() {
         });
     });
     if (editMode) {
+        captureCurrentRowSnapshots();
         this.textContent = 'Save';
     } else {
-        // Save all edited rows
+        // Save only changed rows
         let updatePromises = [];
+        let changedCount = 0;
+        let hasFailed = false;
         barangayTable.querySelectorAll('tr[data-id]').forEach(tr => {
-            const id = tr.getAttribute('data-id');
-            const tds = tr.querySelectorAll('td');
-            let surveyDateInput = tds[1].querySelector('input');
-            let surveyDateVal = surveyDateInput.value;
-            if (!surveyDateVal) {
-                surveyDateVal = surveyDateInput.getAttribute('data-prev') || '';
-            } else {
-                surveyDateInput.setAttribute('data-prev', surveyDateVal);
+            const data = getRowPayload(tr);
+            const original = originalRowSnapshots.get(data.id) || {};
+            if (JSON.stringify(data) === JSON.stringify(original)) {
+                return;
             }
-            const data = {
-                id,
-                survey_date: surveyDateVal,
-                printed_name: tds[2].querySelector('input').value,
-                ftjs: tds[3].querySelector('input').checked ? 'yes' : (tds[4].querySelector('input').checked ? 'no' : ''),
-                covid: tds[5].querySelector('input').checked ? 'yes' : (tds[6].querySelector('input').checked ? 'no' : ''),
-                address: tds[7].querySelector('input').value,
-                dob: tds[8].querySelector('input').value,
-                contact: tds[9].querySelector('input').value,
-                age: tds[10].querySelector('input').value,
-                sex: tds[11].querySelector('input').value,
-                marital: tds[12].querySelector('input').value,
-                education: tds[13].querySelector('input').value,
-                we_position: tds[14].querySelector('input').value,
-                we_months: tds[15].querySelector('input').value,
-                se_business: tds[16].querySelector('input').value,
-                se_months: tds[17].querySelector('input').value,
-                ue: tds[18].querySelector('input').checked ? 'yes' : '',
-                skills: tds[19].querySelector('input').value
-            };
+            changedCount++;
             updatePromises.push(
                 fetch('skill_registry.php', {
                     method: 'PUT',
@@ -2759,12 +2838,43 @@ document.getElementById('editModalBtn').addEventListener('click', function() {
                 })
                 .then(r=>r.json())
                 .then(resp=>{
-                    if (!resp.success) alert('Failed to update row');
+                    if (!resp.success) hasFailed = true;
+                })
+                .catch(() => {
+                    hasFailed = true;
                 })
             );
         });
+        if (changedCount === 0) {
+            exitEditModeWithoutSave();
+            Swal.fire({
+                title: 'No Changes Detected',
+                text: 'Nothing was edited. Edit mode has been cancelled.',
+                icon: 'info',
+                confirmButtonColor: '#233a8b',
+                customClass: { popup: 'swal-high-zindex' }
+            });
+            return;
+        }
         Promise.all(updatePromises).then(() => {
-            this.textContent = 'Edit';
+            if (hasFailed) {
+                Swal.fire({
+                    title: 'Save Failed',
+                    text: 'Some changes were not saved. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545',
+                    customClass: { popup: 'swal-high-zindex' }
+                });
+                fetchBarangayTable(currentBarangay);
+                return;
+            }
+            Swal.fire({
+                title: 'Changes Saved',
+                text: changedCount + ' row(s) updated successfully.',
+                icon: 'success',
+                confirmButtonColor: '#233a8b',
+                customClass: { popup: 'swal-high-zindex' }
+            });
             fetchBarangayTable(currentBarangay);
         });
     }
