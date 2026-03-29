@@ -34,12 +34,10 @@ if ($message === null || $message === '') {
     exit;
 }
 
-// Re-check eligibility: Pending or Referred application (disabled when Rejected or Accepted)
+// Re-check eligibility: any registered jobseeker row (same rules as check_follow_up_eligibility.php)
 $sql = "SELECT j.id AS jobseeker_id
         FROM jobseeker j
         WHERE j.user_id = ?
-        AND (j.application_status IS NULL OR j.application_status = '' OR j.application_status = 'Pending' OR j.application_status = 'Referred')
-        /* AND COALESCE(j.submission_date, j.created_at) <= DATE_SUB(CURDATE(), INTERVAL 7 DAY) */
         ORDER BY j.id DESC
         LIMIT 1";
 $stmt = $conn->prepare($sql);
@@ -49,7 +47,7 @@ $result = $stmt->get_result();
 $stmt->close();
 
 if ($result->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'You have no pending or referred application. Follow-up requests are only available when your application status is Pending or Referred.']);
+    echo json_encode(['success' => false, 'message' => 'Complete your NSRP registration before sending a follow-up request.']);
     exit;
 }
 

@@ -24,6 +24,9 @@ if ($conn->connect_error) {
     exit;
 }
 require_once __DIR__ . '/referrals_schema.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
+require_once __DIR__ . '/job_applications_withdraw_helper.php';
+require_once __DIR__ . '/referral_company_blocklist_helper.php';
 
 // Email sender setup (server-side guarantee for status updates)
 $phpmailer_available = false;
@@ -76,7 +79,90 @@ function sendStatusEmail($to, $subject, $htmlBody, $plainBody, $phpmailer_availa
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $input = json_decode(file_get_contents('php://input'), true);
-    
+    if (!is_array($input)) {
+        $input = [];
+    }
+
+    workconnect_ensure_jobseeker_placement_columns($conn);
+
+    // PESO: return jobseeker to active pool (resigned / terminated / contract ended)
+    if (($input['action'] ?? '') === 'end_placement') {
+        $jobseeker_id = (int) ($input['jobseeker_id'] ?? 0);
+        $end_reason = isset($input['placement_end_reason']) ? trim((string) $input['placement_end_reason']) : '';
+        if ($jobseeker_id <= 0) {
+            ob_clean();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Missing jobseeker_id']);
+            exit;
+        }
+        $chk = $conn->prepare('SELECT id, user_id, application_status, placement_active, email, firstname, surname FROM jobseeker WHERE id = ?');
+        $chk->bind_param('i', $jobseeker_id);
+        $chk->execute();
+        $row = $chk->get_result()->fetch_assoc();
+        $chk->close();
+        if (!$row) {
+            ob_clean();
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Jobseeker not found']);
+            exit;
+        }
+        if (!workconnect_jobseeker_is_actively_placed($row)) {
+            ob_clean();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'This jobseeker is not in an active placed state.']);
+            exit;
+        }
+        $reasonSql = $end_reason === '' ? 'NULL' : "'" . $conn->real_escape_string(substr($end_reason, 0, 250)) . "'";
+        $sql = "UPDATE jobseeker SET application_status = 'Pending', placement_active = 0, placement_ended_at = NOW(), placement_end_reason = $reasonSql WHERE id = $jobseeker_id AND application_status = 'Accepted'";
+        if ($conn->query($sql)) {
+            close_accepted_applications_when_placement_ends($conn, $jobseeker_id);
+            $user_id = (int) ($row['user_id'] ?? 0);
+            $jobseeker_email = trim($row['email'] ?? '');
+            $jobseeker_name = trim(($row['firstname'] ?? '') . ' ' . ($row['surname'] ?? ''));
+            if ($jobseeker_name === '') {
+                $jobseeker_name = 'Job seeker';
+            }
+            $notifTitle = 'You can apply again';
+            $notifMsg = 'Your placement has been closed by PESO. You may update your NSRP form and apply to jobs again.';
+            if ($end_reason !== '') {
+                $notifMsg .= ' Note: ' . $end_reason;
+            }
+            $table_result = $conn->query("SHOW TABLES LIKE 'notifications'");
+            $check_col = $conn->query("SHOW COLUMNS FROM notifications LIKE 'type'");
+            $has_type = $check_col && $check_col->num_rows > 0;
+            if ($table_result && $table_result->num_rows > 0 && $user_id > 0) {
+                if ($has_type) {
+                    $ins = $conn->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, 'application')");
+                    if ($ins) {
+                        $ins->bind_param('iss', $user_id, $notifTitle, $notifMsg);
+                        $ins->execute();
+                        $ins->close();
+                    }
+                } else {
+                    $ins = $conn->prepare('INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)');
+                    if ($ins) {
+                        $ins->bind_param('iss', $user_id, $notifTitle, $notifMsg);
+                        $ins->execute();
+                        $ins->close();
+                    }
+                }
+            }
+            $emailPlain = "Hi {$jobseeker_name},\n\n{$notifMsg}\n\n- WorkConnect";
+            $emailHtml = '<p>Hi ' . htmlspecialchars($jobseeker_name) . ',</p><p>' . nl2br(htmlspecialchars($notifMsg)) . '</p><p>- WorkConnect</p>';
+            sendStatusEmail($jobseeker_email, 'WorkConnect: placement closed — you can apply again', $emailHtml, $emailPlain, $phpmailer_available);
+            ob_clean();
+            echo json_encode(['success' => true, 'message' => 'Jobseeker returned to the active pool.']);
+        } else {
+            ob_clean();
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
+        }
+        if (isset($conn)) {
+            $conn->close();
+        }
+        exit;
+    }
+
     if (!isset($input['jobseeker_id']) || !isset($input['status'])) {
         ob_clean();
         http_response_code(400);
@@ -213,6 +299,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         $company_ids = $verified_ids;
 
+        $blockedCompanyMap = workconnect_referral_blocked_company_map($conn, $jobseeker_id);
+        $company_ids = array_values(array_filter($company_ids, static function ($cid) use ($blockedCompanyMap) {
+            return empty($blockedCompanyMap[(int) $cid]);
+        }));
+        if (count($company_ids) === 0) {
+            ob_clean();
+            echo json_encode([
+                'success' => false,
+                'message' => 'None of the selected companies are available for this jobseeker. They may already have a concluded referral (accepted/rejected) or a job application with that employer (accepted, closed after placement, or rejected). Choose other companies.',
+            ]);
+            exit;
+        }
+
         $check_stmt = $conn->prepare("SELECT id FROM jobseeker WHERE id = ?");
         $check_stmt->bind_param("i", $jobseeker_id);
         $check_stmt->execute();
@@ -258,6 +357,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     
     if ($query_result === TRUE) {
+        workconnect_sync_jobseeker_placement_flags($conn, $jobseeker_id, $status);
+
         $rows_affected = $conn->affected_rows;
         error_log("Update successful - Rows affected: $rows_affected");
         

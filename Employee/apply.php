@@ -102,6 +102,8 @@ $db   = "WorkConnect";
 
 // Create connection with timeout and retry logic
 $conn = new mysqli($host, $user, $pass, $db);
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
+workconnect_ensure_jobseeker_placement_columns($conn);
 
 // Check if user has existing NRSP form and its status
 $userId = $_SESSION['user_id'];
@@ -116,7 +118,7 @@ $isPending = false;
 $isRejected = false;
 $autoLoadForm = false;
 
-$stmt = $conn->prepare("SELECT id, application_status, submission_date, submission_month, submission_year, created_at, updated_at, resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt = $conn->prepare("SELECT id, application_status, placement_active, submission_date, submission_month, submission_year, created_at, updated_at, resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -150,7 +152,7 @@ if ($result->num_rows > 0) {
     $canEditNRSP = false;
     $canSubmitNRSP = true;
     
-    if ($statusLower === 'accepted') {
+    if ($statusLower === 'accepted' && workconnect_jobseeker_is_actively_placed($existingNRSP)) {
         $canEditNRSP = false;
         $canSubmitNRSP = false;
         $autoLoadForm = true;
@@ -555,7 +557,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Check for existing NRSP form - we'll determine if this is an update or new submission later
     // This early check only prevents new submissions when there's an accepted form
-    $checkStmt = $conn->prepare("SELECT id, application_status, updated_at, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    $checkStmt = $conn->prepare("SELECT id, application_status, placement_active, updated_at, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
     $checkStmt->bind_param("i", $userId);
     $checkStmt->execute();
     $checkResult = $checkStmt->get_result();
@@ -566,9 +568,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Only prevent NEW submissions if status is Accepted (updates are handled later)
         // For pending/rejected forms, we'll allow updates (checked later in the code)
-        if ($existingStatus === 'accepted') {
+        if ($existingStatus === 'accepted' && workconnect_jobseeker_is_actively_placed($existingForm)) {
             $checkStmt->close();
-            sendJsonResponse(false, 'Your NRSP form has already been accepted and sent to companies. You cannot submit a new form.');
+            sendJsonResponse(false, 'Your NRSP form is in an active placement. You cannot submit a new form until PESO returns you to the active job seeker pool.');
         }
     }
     $checkStmt->close();
@@ -942,7 +944,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_id = $_SESSION['user_id'];
     
     // Check if user has existing form to update
-    $checkExistingStmt = $conn->prepare("SELECT id, application_status FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    $checkExistingStmt = $conn->prepare("SELECT id, application_status, placement_active, updated_at, created_at FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
     $checkExistingStmt->bind_param("i", $user_id);
     $checkExistingStmt->execute();
     $existingResult = $checkExistingStmt->get_result();
@@ -956,6 +958,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Check if status is Pending - allow update
         if ($existingStatus === 'pending') {
+            $isUpdate = true;
+        }
+        // Accepted but placement closed by PESO — treat like pending (edit / resubmit same row)
+        elseif ($existingStatus === 'accepted' && !workconnect_jobseeker_is_actively_placed($existingForm)) {
             $isUpdate = true;
         }
         // Check if status is Rejected - allow resubmit only after cooldown

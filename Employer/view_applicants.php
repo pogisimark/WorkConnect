@@ -4,6 +4,10 @@ date_default_timezone_set('Asia/Manila');
 
 require_once 'session_protect.php';
 require_once 'db.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
+require_once __DIR__ . '/job_applications_withdraw_helper.php';
+workconnect_ensure_jobseeker_placement_columns($conn);
+ensure_withdrawn_status_job_applications_extended($conn);
 
 // Get job_id from query parameter if provided
 $job_id_filter = isset($_GET['job_id']) ? intval($_GET['job_id']) : null;
@@ -51,7 +55,8 @@ if ($table_check && $table_check->num_rows > 0) {
                     j.municipality,
                     j.province,
                     j.resume_file,
-                    j.application_status as jobseeker_status
+                    j.application_status as jobseeker_status,
+                    COALESCE(j.placement_active, 0) AS placement_active
                 FROM job_applications_extended jae
                 INNER JOIN jobseeker j ON jae.jobseeker_id = j.id
                 WHERE jae.job_posting_id = ?
@@ -336,6 +341,17 @@ $conn->close();
         .status-rejected {
             background: #ffebee;
             color: #c62828;
+        }
+
+        .status-withdrawn {
+            background: #eceff1;
+            color: #546e7a;
+        }
+
+        .status-closed {
+            background: #eceff1;
+            color: #37474f;
+            border: 1px solid #cfd8dc;
         }
         
         .applicant-actions {
@@ -627,6 +643,11 @@ $conn->close();
                                             ($applicant['municipality'] ?? '') . ', ' . 
                                             ($applicant['province'] ?? ''));
                                         $address = trim($address, ', ');
+                                        $appCardSt = workconnect_company_application_card_status($applicant);
+                                        $applicantModal = array_merge($applicant, [
+                                            'display_status' => $appCardSt['label'],
+                                            'display_status_class' => $appCardSt['css'],
+                                        ]);
                                     ?>
                                     <div class="applicant-card">
                                         <div class="applicant-header">
@@ -675,12 +696,12 @@ $conn->close();
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
-                                            <span class="application-status-badge status-<?php echo strtolower($applicant['application_status'] ?? 'applied'); ?>">
-                                                <?php echo htmlspecialchars($applicant['application_status'] ?? 'Applied'); ?>
+                                            <span class="application-status-badge status-<?php echo htmlspecialchars($appCardSt['css']); ?>">
+                                                <?php echo htmlspecialchars($appCardSt['label']); ?>
                                             </span>
                                         </div>
                                         <div class="applicant-actions">
-                                            <button class="btn btn-view" onclick="viewApplicantDetails(<?php echo htmlspecialchars(json_encode($applicant)); ?>)">
+                                            <button class="btn btn-view" onclick="viewApplicantDetails(<?php echo htmlspecialchars(json_encode($applicantModal)); ?>)">
                                                 <i class="fas fa-eye"></i> View Details
                                             </button>
                                             <?php if ($applicant['resume_file']): ?>
@@ -808,8 +829,8 @@ $conn->close();
                     <div class="detail-row">
                         <div class="detail-label">Application Status:</div>
                         <div class="detail-value">
-                            <span class="application-status-badge status-${(applicant.application_status || 'applied').toLowerCase()}">
-                                ${applicant.application_status || 'Applied'}
+                            <span class="application-status-badge status-${(applicant.display_status_class || (applicant.application_status || 'applied').toLowerCase())}">
+                                ${applicant.display_status || applicant.application_status || 'Applied'}
                             </span>
                         </div>
                     </div>

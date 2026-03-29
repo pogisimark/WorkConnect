@@ -2,6 +2,7 @@
 /**
  * Ensure job_applications_extended can use Withdrawn; cascade when one acceptance wins.
  */
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
 if (!function_exists('ensure_withdrawn_status_job_applications_extended')) {
     function ensure_withdrawn_status_job_applications_extended($conn)
     {
@@ -20,12 +21,32 @@ if (!function_exists('ensure_withdrawn_status_job_applications_extended')) {
         }
         $row = $r->fetch_assoc();
         $type = strtolower($row['Type'] ?? '');
-        if (strpos($type, 'withdrawn') !== false) {
+        if (strpos($type, 'withdrawn') !== false && strpos($type, 'closed') !== false) {
             return;
         }
-        // ENUM extension (common schema from setup_complete_database.php)
-        $alter = "ALTER TABLE job_applications_extended MODIFY COLUMN status ENUM('Applied', 'Viewed', 'Interview', 'Accepted', 'Rejected', 'Withdrawn') DEFAULT 'Applied'";
+        // ENUM: Withdrawn + Closed (placement ended / returned to pool)
+        $alter = "ALTER TABLE job_applications_extended MODIFY COLUMN status ENUM('Applied', 'Viewed', 'Interview', 'Accepted', 'Rejected', 'Withdrawn', 'Closed') DEFAULT 'Applied'";
         @$conn->query($alter);
+    }
+}
+
+if (!function_exists('close_accepted_applications_when_placement_ends')) {
+    /**
+     * After PESO ends placement: company portal must not keep showing "Accepted" on applications.
+     */
+    function close_accepted_applications_when_placement_ends(mysqli $conn, int $jobseeker_id): void
+    {
+        ensure_withdrawn_status_job_applications_extended($conn);
+        $jobseeker_id = (int) $jobseeker_id;
+        if ($jobseeker_id <= 0) {
+            return;
+        }
+        $st = $conn->prepare("UPDATE job_applications_extended SET status = 'Closed' WHERE jobseeker_id = ? AND status = 'Accepted'");
+        if ($st) {
+            $st->bind_param('i', $jobseeker_id);
+            $st->execute();
+            $st->close();
+        }
     }
 }
 
@@ -80,7 +101,8 @@ if (!function_exists('reconcile_stale_open_applications_for_accepted_jobseeker')
         if ($jobseeker_id <= 0 || !$conn) {
             return;
         }
-        $st = $conn->prepare('SELECT application_status FROM jobseeker WHERE id = ?');
+        workconnect_ensure_jobseeker_placement_columns($conn);
+        $st = $conn->prepare('SELECT application_status, placement_active FROM jobseeker WHERE id = ?');
         if (!$st) {
             return;
         }
@@ -88,7 +110,7 @@ if (!function_exists('reconcile_stale_open_applications_for_accepted_jobseeker')
         $st->execute();
         $row = $st->get_result()->fetch_assoc();
         $st->close();
-        if (!$row || strcasecmp(trim($row['application_status'] ?? ''), 'Accepted') !== 0) {
+        if (!$row || !workconnect_jobseeker_is_actively_placed($row)) {
             return;
         }
         withdraw_open_job_applications_for_jobseeker($conn, $jobseeker_id, 0);
@@ -112,18 +134,32 @@ if (!function_exists('reconcile_stale_applications_for_company_jobs')) {
             return;
         }
         ensure_withdrawn_status_job_applications_extended($conn);
+        workconnect_ensure_jobseeker_placement_columns($conn);
         $sql = 'UPDATE job_applications_extended jae
             INNER JOIN jobseeker j ON j.id = jae.jobseeker_id
             INNER JOIN job_postings jp ON jp.id = jae.job_posting_id
             SET jae.status = \'Withdrawn\', jae.viewed_date = COALESCE(jae.viewed_date, NOW())
             WHERE jp.company_id = ?
-            AND j.application_status = \'Accepted\'
+            AND j.application_status = \'Accepted\' AND COALESCE(j.placement_active, 1) = 1
             AND jae.status IN (\'Applied\', \'Viewed\', \'Interview\')';
         $stmt = $conn->prepare($sql);
         if ($stmt) {
             $stmt->bind_param('i', $company_id);
             $stmt->execute();
             $stmt->close();
+        }
+        $sqlClose = 'UPDATE job_applications_extended jae
+            INNER JOIN jobseeker j ON j.id = jae.jobseeker_id
+            INNER JOIN job_postings jp ON jp.id = jae.job_posting_id
+            SET jae.status = \'Closed\'
+            WHERE jp.company_id = ?
+            AND jae.status = \'Accepted\'
+            AND NOT (j.application_status = \'Accepted\' AND COALESCE(j.placement_active, 1) = 1)';
+        $stmt2 = $conn->prepare($sqlClose);
+        if ($stmt2) {
+            $stmt2->bind_param('i', $company_id);
+            $stmt2->execute();
+            $stmt2->close();
         }
     }
 }

@@ -12,6 +12,7 @@ if ($conn->connect_error) {
     exit;
 }
 require_once __DIR__ . '/referrals_schema.php';
+require_once __DIR__ . '/referral_company_blocklist_helper.php';
 ensure_jobseeker_referrals_table($conn);
 
 $sql = "SELECT *, 
@@ -25,6 +26,13 @@ $data = [];
 while ($row = $res->fetch_assoc()) {
     $data[] = $row;
 }
+
+$blockedByJobseeker = [];
+if (count($data) > 0) {
+    $allJsIds = array_map('intval', array_column($data, 'id'));
+    $blockedByJobseeker = workconnect_referral_blocked_company_map_batch($conn, $allJsIds);
+}
+
 $refMap = [];
 if (count($data) > 0) {
     $ids = array_map('intval', array_column($data, 'id'));
@@ -86,8 +94,9 @@ if ($jaeCheck && $jaeCheck->num_rows > 0 && count($data) > 0) {
 }
 
 foreach ($data as &$row) {
-    $row['referrals'] = $refMap[(int)$row['id']] ?? [];
-    $jid = (int)$row['id'];
+    $jid = (int) $row['id'];
+    $row['blocked_referral_company_ids'] = $blockedByJobseeker[$jid] ?? [];
+    $row['referrals'] = $refMap[$jid] ?? [];
     if (!empty($appMap[$jid])) {
         $row['accepted_job_title'] = $appMap[$jid]['accepted_job_title'];
         $row['accepted_company_name'] = $appMap[$jid]['accepted_company_name'];

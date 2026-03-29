@@ -1,7 +1,9 @@
 <?php
 header('Content-Type: application/json');
 require_once 'db.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
 require_once 'session_init.php';
+workconnect_ensure_jobseeker_placement_columns($conn);
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -77,7 +79,7 @@ try {
         skill_computer, skill_masonry, skill_stenography, skill_domestic, skill_painter, 
         skill_tailoring, skill_driver, skill_painting, skill_others
         FROM jobseeker
-        WHERE application_status = 'Accepted'";
+        WHERE " . workconnect_jobseeker_sql_actively_placed_condition();
     
     $result = $conn->query($acceptedSkillsQuery);
     $acceptedSkillCounts = [];

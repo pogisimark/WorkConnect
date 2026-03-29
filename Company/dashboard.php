@@ -48,17 +48,25 @@ $active_jobs = 0;
 $closed_jobs = 0;
 $recent_jobs = [];
 $total_applications = 0;
-$applications_by_status = ['Applied' => 0, 'Accepted' => 0, 'Rejected' => 0];
+$applications_by_status = [
+    'Applied' => 0,
+    'Viewed' => 0,
+    'Interview' => 0,
+    'Accepted' => 0,
+    'Rejected' => 0,
+    'Withdrawn' => 0,
+    'Closed' => 0,
+];
 $recent_applications = [];
 
 // Additional statistics
 $avg_compatibility_score = 0;
 $acceptance_rate = 0;
 $rejection_rate = 0;
-$avg_applications_per_job = 0;
 $jobs_with_no_applications = 0;
 $most_popular_job = null;
-$avg_response_time_days = 0;
+$withdrawn_rate = 0;
+$closed_rate = 0;
 
 // Check if job_postings table exists and get company's jobs
 $table_check = $conn->query("SHOW TABLES LIKE 'job_postings'");
@@ -122,7 +130,11 @@ if ($table_check && $table_check->num_rows > 0) {
             $stmt->execute();
             $result = $stmt->get_result();
             while ($row = $result->fetch_assoc()) {
-                $applications_by_status[$row['status']] = $row['count'];
+                $st = trim((string) ($row['status'] ?? ''));
+                if ($st === '') {
+                    continue;
+                }
+                $applications_by_status[$st] = (int) ($row['count'] ?? 0);
             }
             $stmt->close();
             
@@ -140,15 +152,12 @@ if ($table_check && $table_check->num_rows > 0) {
             $avg_compatibility_score = $avg_row['avg_score'] ?? 0;
             $stmt->close();
             
-            // Calculate acceptance and rejection rates
+            // Calculate acceptance, rejection, withdrawn, and closed rates (% of all applications)
             if ($total_applications > 0) {
                 $acceptance_rate = ($applications_by_status['Accepted'] / $total_applications) * 100;
                 $rejection_rate = ($applications_by_status['Rejected'] / $total_applications) * 100;
-            }
-            
-            // Get average applications per job
-            if ($job_count > 0) {
-                $avg_applications_per_job = $total_applications / $job_count;
+                $withdrawn_rate = ((int) ($applications_by_status['Withdrawn'] ?? 0) / $total_applications) * 100;
+                $closed_rate = ((int) ($applications_by_status['Closed'] ?? 0) / $total_applications) * 100;
             }
             
             // Count jobs with no applications
@@ -178,23 +187,6 @@ if ($table_check && $table_check->num_rows > 0) {
             $stmt->execute();
             $result = $stmt->get_result();
             $most_popular_job = $result->fetch_assoc();
-            $stmt->close();
-            
-            // Calculate average response time (days between applied_date and viewed_date for accepted/rejected)
-            $stmt = $conn->prepare("
-                SELECT AVG(DATEDIFF(jae.viewed_date, jae.applied_date)) as avg_days
-                FROM job_applications_extended jae
-                INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
-                WHERE jp.company_id = ? 
-                    AND jae.status IN ('Accepted', 'Rejected')
-                    AND jae.viewed_date IS NOT NULL
-                    AND jae.applied_date IS NOT NULL
-            ");
-            $stmt->bind_param("i", $company_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $avg_response = $result->fetch_assoc();
-            $avg_response_time_days = $avg_response['avg_days'] ?? 0;
             $stmt->close();
             
             // Get recent applications grouped by job with counts and latest date
@@ -803,16 +795,25 @@ $conn->close();
                     <h2 class="section-title">Application Status Breakdown</h2>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                         <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #1976d2;"><?php echo $applications_by_status['Applied']; ?></div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #1976d2;"><?php echo (int) ($applications_by_status['Applied'] ?? 0); ?></div>
                             <div style="color: #666; font-size: 0.9rem;">Applied</div>
                         </div>
                         <div style="padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #388e3c;"><?php echo $applications_by_status['Accepted']; ?></div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #388e3c;"><?php echo (int) ($applications_by_status['Accepted'] ?? 0); ?></div>
                             <div style="color: #666; font-size: 0.9rem;">Accepted</div>
                         </div>
                         <div style="padding: 15px; background: #ffebee; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: bold; color: #c62828;"><?php echo $applications_by_status['Rejected']; ?></div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #c62828;"><?php echo (int) ($applications_by_status['Rejected'] ?? 0); ?></div>
                             <div style="color: #666; font-size: 0.9rem;">Rejected</div>
+                        </div>
+                        <div style="padding: 15px; background: #eceff1; border-radius: 8px; text-align: center; border: 1px solid #cfd8dc;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #546e7a;"><?php echo (int) ($applications_by_status['Withdrawn'] ?? 0); ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Withdrawn</div>
+                        </div>
+                        <div style="padding: 15px; background: #eceff1; border-radius: 8px; text-align: center; border: 1px solid #90a4ae;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #37474f;"><?php echo (int) ($applications_by_status['Closed'] ?? 0); ?></div>
+                            <div style="color: #666; font-size: 0.9rem;">Closed</div>
+                            <div style="color: #999; font-size: 0.72rem; margin-top: 6px; line-height: 1.3;">Placement ended / returned to pool</div>
                         </div>
                     </div>
                 </div>
@@ -853,29 +854,27 @@ $conn->close();
                             </div>
                             <div style="color: #666; font-size: 0.9rem;">Rejection Rate</div>
                         </div>
-                        <?php endif; ?>
                         
-                        <?php if ($job_count > 0): ?>
                         <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
-                            <div style="font-size: 2rem; color: #1976d2; margin-bottom: 8px;">
-                                <i class="fas fa-chart-line"></i>
+                            <div style="font-size: 2rem; color: #546e7a; margin-bottom: 8px;">
+                                <i class="fas fa-ban"></i>
                             </div>
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #1976d2; margin-bottom: 5px;">
-                                <?php echo number_format($avg_applications_per_job, 1); ?>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #546e7a; margin-bottom: 5px;">
+                                <?php echo number_format($withdrawn_rate, 1); ?>%
                             </div>
-                            <div style="color: #666; font-size: 0.9rem;">Avg. Applications/Job</div>
+                            <div style="color: #666; font-size: 0.9rem;">Withdrawn</div>
+                            <div style="color: #999; font-size: 0.75rem; margin-top: 6px;">% of all applications</div>
                         </div>
-                        <?php endif; ?>
                         
-                        <?php if ($avg_response_time_days > 0): ?>
                         <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center;">
-                            <div style="font-size: 2rem; color: #f57c00; margin-bottom: 8px;">
-                                <i class="fas fa-clock"></i>
+                            <div style="font-size: 2rem; color: #37474f; margin-bottom: 8px;">
+                                <i class="fas fa-door-closed"></i>
                             </div>
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #f57c00; margin-bottom: 5px;">
-                                <?php echo number_format($avg_response_time_days, 1); ?>
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #37474f; margin-bottom: 5px;">
+                                <?php echo number_format($closed_rate, 1); ?>%
                             </div>
-                            <div style="color: #666; font-size: 0.9rem;">Avg. Response Time (Days)</div>
+                            <div style="color: #666; font-size: 0.9rem;">Closed</div>
+                            <div style="color: #999; font-size: 0.75rem; margin-top: 6px;">% of all · placement ended / pool</div>
                         </div>
                         <?php endif; ?>
                     </div>

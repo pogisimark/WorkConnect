@@ -19,14 +19,13 @@ if (!$conn || $conn->connect_error) {
 
 $user_id = (int) $_SESSION['user_id'];
 
-// Eligible: has a Pending or Referred application (disabled when Rejected or Accepted)
+// Eligible: any registered jobseeker (Pending, Referred, Accepted, Rejected, etc.) — e.g. placed workers
+// may request admin action (return to pool after resignation, NSRP updates, appeals).
 $sql = "SELECT j.id AS jobseeker_id,
         COALESCE(j.submission_date, j.created_at) AS pending_since,
         DATEDIFF(CURDATE(), COALESCE(j.submission_date, j.created_at)) AS days_pending
         FROM jobseeker j
         WHERE j.user_id = ?
-        AND (j.application_status IS NULL OR j.application_status = '' OR j.application_status = 'Pending' OR j.application_status = 'Referred')
-        /* AND COALESCE(j.submission_date, j.created_at) <= DATE_SUB(CURDATE(), INTERVAL 7 DAY) */
         ORDER BY j.id DESC
         LIMIT 1";
 $stmt = $conn->prepare($sql);
@@ -39,7 +38,7 @@ if ($result->num_rows === 0) {
     echo json_encode([
         'success' => true,
         'eligible' => false,
-        'message' => 'You have no pending or referred application. Follow-up requests are only available when your application status is Pending or Referred.'
+        'message' => 'Complete your NSRP registration first. After that, you can send follow-up messages to admin from here.'
     ]);
     exit;
 }

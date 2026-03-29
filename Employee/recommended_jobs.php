@@ -7,6 +7,7 @@ require_once 'session_check.php';
 require_once 'db.php';
 require_once 'job_matching_algorithm.php';
 require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
 
 // Ensure user is authenticated
 if (!isset($_SESSION['user_id'])) {
@@ -15,6 +16,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = $_SESSION['user_id'];
+workconnect_ensure_jobseeker_placement_columns($conn);
 $matching = new JobMatchingAlgorithm($conn);
 
 /** Show NSRP preference in UI; keep raw value in DB (hide placeholders like n/a). */
@@ -47,12 +49,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     if ($jobseeker) {
         $jobseekerId = $jobseeker['id'];
 
-        $stJs = $conn->prepare("SELECT application_status FROM jobseeker WHERE id = ?");
+        $stJs = $conn->prepare("SELECT application_status, placement_active FROM jobseeker WHERE id = ?");
         $stJs->bind_param("i", $jobseekerId);
         $stJs->execute();
         $jsStatus = $stJs->get_result()->fetch_assoc();
         $stJs->close();
-        if ($jsStatus && strcasecmp(trim($jsStatus['application_status'] ?? ''), 'Accepted') === 0) {
+        if ($jsStatus && workconnect_jobseeker_is_actively_placed($jsStatus)) {
             if ($isAjaxApply) {
                 header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['success' => false, 'message' => 'You have already been accepted for employment. Other job applications are no longer active.']);
@@ -81,6 +83,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                 }
                 $stmt->close();
             } elseif (isset($existing['status']) && strcasecmp($existing['status'], 'Rejected') === 0) {
+                $stmt = $conn->prepare("UPDATE job_applications_extended SET status = 'Applied', compatibility_score = ?, applied_date = NOW(), notes = NULL, viewed_date = NULL WHERE id = ?");
+                $stmt->bind_param("di", $compatibility_score, $existing['id']);
+                if ($stmt->execute()) {
+                    $success_message = "Application submitted successfully!";
+                } else {
+                    $error_message = "Error submitting application: " . $conn->error;
+                }
+                $stmt->close();
+            } elseif (isset($existing['status']) && strcasecmp($existing['status'], 'Closed') === 0) {
+                $error_message = 'This application is closed (placement ended). You cannot apply again to this job on this record.';
+            } elseif (
+                isset($existing['status'])
+                && !workconnect_jobseeker_is_actively_placed($jsStatus)
+                && (
+                    strcasecmp($existing['status'], 'Withdrawn') === 0
+                    || strcasecmp($existing['status'], 'Accepted') === 0
+                )
+            ) {
                 $stmt = $conn->prepare("UPDATE job_applications_extended SET status = 'Applied', compatibility_score = ?, applied_date = NOW(), notes = NULL, viewed_date = NULL WHERE id = ?");
                 $stmt->bind_param("di", $compatibility_score, $existing['id']);
                 if ($stmt->execute()) {
@@ -138,16 +158,15 @@ $stmt = $conn->prepare("SELECT occupation1, occupation2, occupation3, fulltime, 
     skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, 
     skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, 
     skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting,
-    application_status
+    application_status, placement_active
     FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $nrspData = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-/** When Accepted (referral or job), user cannot apply anywhere — stats must not count blank rows as "open". */
-$globallyAcceptedForStats = is_array($nrspData) && !empty($nrspData['application_status'])
-    && strcasecmp(trim((string) $nrspData['application_status']), 'Accepted') === 0;
+/** When actively placed (Accepted + placement), user cannot apply — stats must not count blank rows as "open". */
+$globallyAcceptedForStats = is_array($nrspData) && workconnect_jobseeker_is_actively_placed($nrspData);
 
 $conn->close();
 ?>
@@ -416,6 +435,7 @@ $conn->close();
         .job-actions > .applied-badge,
         .job-actions > .rejected-badge,
         .job-actions > .accepted-badge,
+        .job-actions > .closed-badge,
         .job-actions > .withdrawn-badge,
         .job-actions > .not-eligible-badge {
             flex: 0 0 auto;
@@ -481,6 +501,15 @@ $conn->close();
             font-weight: bold;
         }
         
+        .closed-badge {
+            background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
         .withdrawn-badge {
             background: #eceff1;
             color: #455a64;
@@ -877,6 +906,7 @@ $conn->close();
             .applied-badge,
             .rejected-badge,
             .accepted-badge,
+            .closed-badge,
             .withdrawn-badge {
                 font-size: 0.68rem;
                 padding: 6px 8px;
@@ -1231,9 +1261,21 @@ $conn->close();
                             <div class="stat-label">Good Match (60-79%)</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number"><?php echo count(array_filter($recommendations, function($job) {
-                                $st = isset($job['my_application_status']) ? trim((string)$job['my_application_status']) : '';
-                                return $st !== '' && strcasecmp($st, 'Rejected') !== 0 && strcasecmp($st, 'Withdrawn') !== 0;
+                            <div class="stat-number"><?php echo count(array_filter($recommendations, function ($job) use ($globallyAcceptedForStats) {
+                                $st = isset($job['my_application_status']) ? trim((string) $job['my_application_status']) : '';
+                                if ($st === '' || strcasecmp($st, 'Rejected') === 0) {
+                                    return false;
+                                }
+                                if (!$globallyAcceptedForStats && strcasecmp($st, 'Withdrawn') === 0) {
+                                    return false;
+                                }
+                                if (!$globallyAcceptedForStats && strcasecmp($st, 'Accepted') === 0) {
+                                    return false;
+                                }
+                                if (!$globallyAcceptedForStats && strcasecmp($st, 'Closed') === 0) {
+                                    return false;
+                                }
+                                return true;
                             })); ?></div>
                             <div class="stat-label">Submitted / In progress</div>
                         </div>
@@ -1244,7 +1286,9 @@ $conn->close();
                                 }
                                 $st = isset($job['my_application_status']) ? trim((string) $job['my_application_status']) : '';
 
-                                return $st === '' || strcasecmp($st, 'Rejected') === 0;
+                                return $st === '' || strcasecmp($st, 'Rejected') === 0
+                                    || strcasecmp($st, 'Withdrawn') === 0
+                                    || strcasecmp($st, 'Accepted') === 0;
                             })); ?></div>
                             <div class="stat-label">Open to apply</div>
                         </div>
@@ -1529,11 +1573,14 @@ $conn->close();
                                     <div class="job-actions">
                                         <?php
                                         $appSt = isset($job['my_application_status']) ? trim((string)$job['my_application_status']) : '';
-                                        $globallyAccepted = !empty($nrspData['application_status']) && strcasecmp(trim((string) $nrspData['application_status']), 'Accepted') === 0;
+                                        $globallyAccepted = workconnect_jobseeker_is_actively_placed(is_array($nrspData) ? $nrspData : null);
                                         $isRejected = $appSt !== '' && strcasecmp($appSt, 'Rejected') === 0;
                                         $isAccepted = $appSt !== '' && strcasecmp($appSt, 'Accepted') === 0;
+                                        $isDbClosed = $appSt !== '' && strcasecmp($appSt, 'Closed') === 0;
                                         $isWithdrawn = $appSt !== '' && strcasecmp($appSt, 'Withdrawn') === 0;
-                                        $showApplied = $appSt !== '' && !$isRejected && !$isAccepted && !$isWithdrawn;
+                                        $isPastClosedPlacement = $isDbClosed || ($isAccepted && !$globallyAccepted);
+                                        $withdrawnWhilePlaced = $isWithdrawn && $globallyAccepted;
+                                        $showApplied = $appSt !== '' && !$isRejected && !($isAccepted && $globallyAccepted) && !$withdrawnWhilePlaced && !($isWithdrawn && !$globallyAccepted) && !$isPastClosedPlacement;
                                         ?>
                                         <?php if ($globallyAccepted && $appSt === ''): ?>
                                             <div class="not-eligible-badge" title="You are already accepted for employment. You cannot apply to additional jobs.">
@@ -1543,11 +1590,24 @@ $conn->close();
                                             <div class="rejected-badge">
                                                 <i class="fas fa-times-circle"></i> Rejected
                                             </div>
-                                        <?php elseif ($isAccepted): ?>
+                                        <?php elseif ($isAccepted && $globallyAccepted): ?>
                                             <div class="accepted-badge">
                                                 <i class="fas fa-check-circle"></i> Accepted
                                             </div>
-                                        <?php elseif ($isWithdrawn): ?>
+                                        <?php elseif ($isPastClosedPlacement): ?>
+                                            <div class="closed-badge" title="<?php echo $isDbClosed ? 'This application is closed (placement ended). Not an open application.' : 'Placement ended; you may apply again if the role is open.'; ?>">
+                                                <i class="fas fa-door-closed"></i> Closed
+                                            </div>
+                                            <?php if (!$isDbClosed): ?>
+                                            <form method="POST" style="flex: 1;" id="applyForm_<?php echo $job['id']; ?>">
+                                                <input type="hidden" name="action" value="apply_job">
+                                                <input type="hidden" name="job_id" value="<?php echo $job['id']; ?>">
+                                                <button type="button" class="btn-apply" onclick="confirmApply(<?php echo $job['id']; ?>)">
+                                                    <i class="fas fa-paper-plane"></i> Apply Now
+                                                </button>
+                                            </form>
+                                            <?php endif; ?>
+                                        <?php elseif ($withdrawnWhilePlaced): ?>
                                             <div class="withdrawn-badge" title="Closed because you were accepted for employment elsewhere.">
                                                 <i class="fas fa-ban"></i> Withdrawn
                                             </div>

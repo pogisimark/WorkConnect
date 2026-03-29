@@ -27,6 +27,7 @@ require_once 'db.php';
 require_once '../Employee/create_notification.php';
 require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
 require_once __DIR__ . '/../Employer/referrals_schema.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
 
 // Check if PHPMailer is available and load it
 $phpmailer_available = false;
@@ -122,13 +123,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Rejected = NSRP was declined first; a company can still accept them via Recommended Jobs.
             $rejCol = @$conn->query("SHOW COLUMNS FROM jobseeker LIKE 'rejection_reason'");
             $hasRejectionReason = $rejCol && $rejCol->num_rows > 0;
+            workconnect_ensure_jobseeker_placement_columns($conn);
             if ($hasRejectionReason) {
                 $stmt_jobseeker = $conn->prepare(
-                    "UPDATE jobseeker SET application_status = 'Accepted', rejection_reason = NULL WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
+                    "UPDATE jobseeker SET application_status = 'Accepted', rejection_reason = NULL, placement_active = 1, placement_ended_at = NULL, placement_end_reason = NULL WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
                 );
             } else {
                 $stmt_jobseeker = $conn->prepare(
-                    "UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
+                    "UPDATE jobseeker SET application_status = 'Accepted', placement_active = 1, placement_ended_at = NULL, placement_end_reason = NULL WHERE id = ? AND application_status IN ('Pending', 'Referred', 'Rejected')"
                 );
             }
             if ($stmt_jobseeker) {

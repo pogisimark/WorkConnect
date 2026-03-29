@@ -27,6 +27,7 @@ require_once 'db.php';
 require_once '../Employee/create_notification.php';
 require_once __DIR__ . '/../Employer/referrals_schema.php';
 require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
 
 // Check if PHPMailer is available and load it
 $phpmailer_available = false;
@@ -228,7 +229,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 // Jobseeker accepted via referral — withdraw all open job applications (recommended jobs)
                 withdraw_open_job_applications_for_jobseeker($conn, $jobseeker_id, 0);
-                $stmt = $conn->prepare("UPDATE jobseeker SET application_status = 'Accepted' WHERE id = ? AND application_status = 'Referred'");
+                workconnect_ensure_jobseeker_placement_columns($conn);
+                $stmt = $conn->prepare("UPDATE jobseeker SET application_status = 'Accepted', placement_active = 1, placement_ended_at = NULL, placement_end_reason = NULL WHERE id = ? AND application_status = 'Referred'");
                 $stmt->bind_param("i", $jobseeker_id);
                 $stmt->execute();
                 $stmt->close();

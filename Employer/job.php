@@ -1170,6 +1170,18 @@ if ($conn) {
         background: #1565c0;
     }
 
+    .company-item.company-item-blocked {
+        opacity: 0.45;
+        cursor: not-allowed;
+        background: #f5f5f5;
+        pointer-events: none;
+    }
+
+    .company-item.company-item-blocked .company-item-name,
+    .company-item.company-item-blocked .company-item-email {
+        color: #9e9e9e;
+    }
+
     .company-item-name {
         font-weight: 600;
         font-size: 0.95rem;
@@ -2260,8 +2272,13 @@ if ($conn) {
                 // Different button layout based on status
                 let actionButtons = '';
                 if (j.application_status === 'Accepted' || j.application_status === 'Rejected' || j.application_status === 'Referred') {
-                    actionButtons = `<div class="action-buttons" style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
-                        
+                    const pa = j.placement_active !== undefined && j.placement_active !== null ? parseInt(j.placement_active, 10) : 1;
+                    const activelyPlaced = j.application_status === 'Accepted' && (isNaN(pa) || pa === 1);
+                    const returnPoolBtn = activelyPlaced
+                        ? `<button type="button" class="return-pool-btn" onclick="endJobseekerActivePlacement(${j.id})" style="background: #ff9800; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; cursor: pointer;" title="Use when the jobseeker left employment and may apply again">Return to job seeker pool</button>`
+                        : '';
+                    actionButtons = `<div class="action-buttons" style="margin-top: 8px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        ${returnPoolBtn}
                     </div>`;
                 } else {
                     actionButtons = `<div class="action-buttons" style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
@@ -2766,6 +2783,12 @@ if ($conn) {
         
         function showAcceptModal(jobseekerId) {
             currentJobseekerId = jobseekerId;
+            const j = allJobseekers.find(function (x) { return String(x.id) === String(jobseekerId); });
+            currentReferralBlockedIds = new Set(
+                (j && Array.isArray(j.blocked_referral_company_ids))
+                    ? j.blocked_referral_company_ids.map(function (id) { return parseInt(id, 10); }).filter(function (n) { return !isNaN(n); })
+                    : []
+            );
             selectedCompanies = [];
             clearCompanySelection();
             document.getElementById('acceptModal').style.display = 'flex';
@@ -2915,6 +2938,50 @@ if ($conn) {
                 
                 // Call callback with failure
                 if (callback) callback(false);
+            });
+        }
+
+        function endJobseekerActivePlacement(jobseekerId) {
+            Swal.fire({
+                title: 'Return to job seeker pool?',
+                html: 'Use this when the jobseeker <strong>left employment</strong> (resigned, terminated, end of contract). They will be set to <strong>Pending</strong>, can update NSRP, and apply to jobs again.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ff9800',
+                confirmButtonText: 'Yes, return to pool',
+                cancelButtonText: 'Cancel',
+                input: 'textarea',
+                inputPlaceholder: 'Optional note (e.g. reason — visible to staff only in DB)',
+                inputAttributes: { 'aria-label': 'Optional reason' }
+            }).then(function (res) {
+                if (!res.isConfirmed) return;
+                const reason = (res.value && String(res.value).trim()) ? String(res.value).trim() : '';
+                fetch('update_jobseeker_status.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'end_placement',
+                        jobseeker_id: jobseekerId,
+                        placement_end_reason: reason
+                    })
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.success) {
+                            const js = allJobseekers.find(function (x) { return x.id == jobseekerId; });
+                            if (js) {
+                                js.application_status = 'Pending';
+                                js.placement_active = 0;
+                            }
+                            filterAndDisplayJobseekers();
+                            Swal.fire({ icon: 'success', title: 'Updated', text: data.message || 'Jobseeker can use the system again.', confirmButtonColor: '#2196f3' });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Request failed', confirmButtonColor: '#f44336' });
+                        }
+                    })
+                    .catch(function () {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Network or server error', confirmButtonColor: '#f44336' });
+                    });
             });
         }
 
@@ -3144,6 +3211,34 @@ if ($conn) {
         let allCompanies = [];
         let selectedCompanies = [];
         let selectedBulkCompanies = [];
+        /** Company IDs this jobseeker cannot be referred to again (from jobseekers.php). */
+        let currentReferralBlockedIds = new Set();
+
+        /** Bulk: block a company if ANY selected jobseeker cannot be referred there (strict — no bypass). */
+        function isBulkReferralCompanyBlockedForAnySelected(companyId) {
+            const cid = parseInt(companyId, 10);
+            if (!selectedJobseekers.length || isNaN(cid)) {
+                return false;
+            }
+            return selectedJobseekers.some(function (js) {
+                const arr = js.blocked_referral_company_ids || [];
+                return arr.some(function (x) { return parseInt(x, 10) === cid; });
+            });
+        }
+
+        function pruneSelectedBulkCompaniesForCurrentSelection() {
+            if (selectedBulkCompanies.length === 0) {
+                return;
+            }
+            const before = selectedBulkCompanies.length;
+            selectedBulkCompanies = selectedBulkCompanies.filter(function (c) {
+                return !isBulkReferralCompanyBlockedForAnySelected(c.id);
+            });
+            if (selectedBulkCompanies.length !== before) {
+                renderSelectedBulkCompaniesChips();
+                refreshCompanyDropdowns();
+            }
+        }
 
         function renderSelectedCompaniesChips() {
             const wrap = document.getElementById('selectedCompaniesChips');
@@ -3216,11 +3311,13 @@ if ($conn) {
             const bulkCompanySearch = document.getElementById('bulkCompanySearch');
             const multiOpt = {
                 getList: function () { return selectedCompanies; },
-                afterChange: function () { renderSelectedCompaniesChips(); }
+                afterChange: function () { renderSelectedCompaniesChips(); },
+                isReferralBlocked: function (c) { return currentReferralBlockedIds.has(parseInt(c.id, 10)); }
             };
             const multiOptBulk = {
                 getList: function () { return selectedBulkCompanies; },
-                afterChange: function () { renderSelectedBulkCompaniesChips(); }
+                afterChange: function () { renderSelectedBulkCompaniesChips(); },
+                isReferralBlocked: function (c) { return isBulkReferralCompanyBlockedForAnySelected(c.id); }
             };
             if (companySearch) {
                 setupCompanySelector(companySearch, 'companyDropdown', 'selectedCompanyDisplay',
@@ -3266,11 +3363,13 @@ if ($conn) {
             const bulkCompanySearch = document.getElementById('bulkCompanySearch');
             const multiOpt = {
                 getList: function () { return selectedCompanies; },
-                afterChange: function () { renderSelectedCompaniesChips(); }
+                afterChange: function () { renderSelectedCompaniesChips(); },
+                isReferralBlocked: function (c) { return currentReferralBlockedIds.has(parseInt(c.id, 10)); }
             };
             const multiOptBulk = {
                 getList: function () { return selectedBulkCompanies; },
-                afterChange: function () { renderSelectedBulkCompaniesChips(); }
+                afterChange: function () { renderSelectedBulkCompaniesChips(); },
+                isReferralBlocked: function (c) { return isBulkReferralCompanyBlockedForAnySelected(c.id); }
             };
             if (companySearch && allCompanies.length > 0) {
                 const searchTerm = companySearch.value.toLowerCase().trim();
@@ -3310,9 +3409,18 @@ if ($conn) {
                 : `Found ${companies.length} ${companies.length === 1 ? 'company' : 'companies'}`;
             dropdown.innerHTML = '<div class="company-count">' + countText + '</div>';
             
+            const blockCheck = multiOptions && typeof multiOptions.isReferralBlocked === 'function'
+                ? multiOptions.isReferralBlocked
+                : null;
+            const blockedTitle = 'Not available: prior referral (accepted/rejected) or job application (accepted, closed, or rejected) with this employer.';
+
             companies.forEach(company => {
                 const item = document.createElement('div');
-                item.className = 'company-item';
+                const isBlocked = blockCheck && blockCheck(company);
+                item.className = 'company-item' + (isBlocked ? ' company-item-blocked' : '');
+                if (isBlocked) {
+                    item.title = blockedTitle;
+                }
                 item.innerHTML = `
                     <div class="company-item-name">${escapeHtml(company.company_name)}</div>
                     <div class="company-item-email">${escapeHtml(company.email)}</div>
@@ -3323,6 +3431,9 @@ if ($conn) {
                 }
                 item.addEventListener('click', function (e) {
                     e.stopPropagation();
+                    if (blockCheck && blockCheck(company)) {
+                        return;
+                    }
                     if (multiOptions && multiOptions.getList) {
                         const arr = multiOptions.getList();
                         const companyObj = { id: company.id, company_name: company.company_name, email: company.email };
@@ -3394,11 +3505,14 @@ if ($conn) {
             const spinner = document.getElementById('acceptSpinner');
             const cancelBtn = document.getElementById('cancelAcceptBtn');
             
-            if (selectedCompanies.length === 0) {
+            const safeCompanies = selectedCompanies.filter(function (c) {
+                return !currentReferralBlockedIds.has(parseInt(c.id, 10));
+            });
+            if (safeCompanies.length === 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Required',
-                    text: 'Add at least one verified company from the list.',
+                    text: 'Add at least one verified company that is allowed for this jobseeker (not blocked due to a prior referral or application with that employer).',
                     confirmButtonColor: '#4caf50'
                 });
                 return;
@@ -3410,10 +3524,10 @@ if ($conn) {
             spinner.style.display = 'flex';
             
             if (currentJobseekerId) {
-                const emails = [...new Set(selectedCompanies.map(c => c.email).filter(Boolean))];
+                const emails = [...new Set(safeCompanies.map(c => c.email).filter(Boolean))];
                 const referredMeta = {
-                    companyIds: selectedCompanies.map(c => parseInt(c.id, 10)),
-                    companyNames: selectedCompanies.map(c => c.company_name),
+                    companyIds: safeCompanies.map(c => parseInt(c.id, 10)),
+                    companyNames: safeCompanies.map(c => c.company_name),
                     companyEmails: emails
                 };
                 updateJobseekerStatusWithCallback(currentJobseekerId, 'Referred', null, emails[0] || '', function(success) {
@@ -3618,6 +3732,7 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             
             updateBulkAcceptButton();
             updateSelectedJobseekersList();
+            pruneSelectedBulkCompaniesForCurrentSelection();
         }
         
         function updateBulkAcceptButton() {
@@ -3664,6 +3779,7 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             
             updateBulkAcceptButton();
             updateSelectedJobseekersList();
+            pruneSelectedBulkCompaniesForCurrentSelection();
         }
         
         function showBulkAcceptModal() {
@@ -3700,6 +3816,19 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
                 });
                 return;
             }
+
+            const safeBulkCompanies = selectedBulkCompanies.filter(function (c) {
+                return !isBulkReferralCompanyBlockedForAnySelected(c.id);
+            });
+            if (safeBulkCompanies.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No valid companies',
+                    text: 'One or more selected companies are not allowed for at least one jobseeker in this batch (prior referral or application). Remove those companies or change the selection.',
+                    confirmButtonColor: '#4caf50'
+                });
+                return;
+            }
             
             // Show loading state
             bulkAcceptBtn.disabled = true;
@@ -3713,10 +3842,10 @@ document.getElementById('cancelLogoutBtn').onclick = function() {
             let successCount = 0;
             let errorCount = 0;
             
-            const bulkEmails = [...new Set(selectedBulkCompanies.map(c => c.email).filter(Boolean))];
+            const bulkEmails = [...new Set(safeBulkCompanies.map(c => c.email).filter(Boolean))];
             const referredMetaBulk = {
-                companyIds: selectedBulkCompanies.map(c => parseInt(c.id, 10)),
-                companyNames: selectedBulkCompanies.map(c => c.company_name),
+                companyIds: safeBulkCompanies.map(c => parseInt(c.id, 10)),
+                companyNames: safeBulkCompanies.map(c => c.company_name),
                 companyEmails: bulkEmails
             };
             

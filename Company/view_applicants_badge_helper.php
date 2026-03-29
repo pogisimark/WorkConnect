@@ -3,13 +3,15 @@
  * Job applications awaiting company accept/reject — sidebar "View Applicants" badge.
  * Matches logic in view_applicants.php (Accept/Reject buttons when status is not accepted/rejected).
  */
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
+
 if (!function_exists('company_pending_applicants_from_applicant_rows')) {
     function company_pending_applicants_from_applicant_rows(array $applicants)
     {
         $n = 0;
         foreach ($applicants as $a) {
-            $s = strtolower(trim($a['application_status'] ?? ''));
-            if (!in_array($s, ['accepted', 'rejected', 'withdrawn'], true)) {
+            $card = workconnect_company_application_card_status($a);
+            if (in_array($card['css'], ['applied', 'viewed', 'interview'], true)) {
                 $n++;
             }
         }
@@ -35,7 +37,7 @@ if (!function_exists('company_pending_applicants_count_for_sidebar')) {
             FROM job_applications_extended jae
             INNER JOIN job_postings jp ON jae.job_posting_id = jp.id
             WHERE jp.company_id = ?
-            AND LOWER(TRIM(COALESCE(jae.status, \'\'))) NOT IN (\'accepted\', \'rejected\', \'withdrawn\')'
+            AND LOWER(TRIM(COALESCE(jae.status, \'\'))) IN (\'applied\', \'viewed\', \'interview\')'
         );
         if (!$stmt) {
             return 0;

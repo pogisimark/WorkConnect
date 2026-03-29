@@ -1934,7 +1934,7 @@ $conn->close();
         margin-bottom: 30px;
     }
     
-    /* Stack: top row = stat cards (Accepted / Rejected / Pending / Withdrawn); below = optional rejection panel */
+    /* Stack: top row = stat cards (Accepted / Rejected / Pending / Closed / Withdrawn); below = optional rejection panel */
     .success-rate-stack {
         display: flex;
         flex-direction: column;
@@ -1997,6 +1997,10 @@ $conn->close();
     .success-rate-card.withdrawn {
         border-top: 4px solid #78909c;
     }
+
+    .success-rate-card.closed {
+        border-top: 4px solid #455a64;
+    }
     
     .success-rate-number {
         font-size: 3rem;
@@ -2019,6 +2023,10 @@ $conn->close();
     .success-rate-card.withdrawn .success-rate-number {
         color: #546e7a;
     }
+
+    .success-rate-card.closed .success-rate-number {
+        color: #37474f;
+    }
     
     .success-rate-label {
         color: #666;
@@ -2034,6 +2042,10 @@ $conn->close();
     
     .success-rate-card.withdrawn .success-rate-percentage {
         color: #546e7a;
+    }
+
+    .success-rate-card.closed .success-rate-percentage {
+        color: #455a64;
     }
     
     .rejection-reasons {
@@ -3490,7 +3502,7 @@ $conn->close();
                         return;
                     }
                     if (!data.eligible) {
-                        bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'You have no pending or referred application. Follow-up requests are only available when your application status is Pending or Referred.') + '</p>';
+                        bodyEl.innerHTML = '<p style="color: #666;">' + (data.message || 'Complete your NSRP registration to use follow-up.') + '</p>';
                         return;
                     }
                     var requests = data.requests || [];
@@ -3536,8 +3548,8 @@ $conn->close();
                         html += '</div>';
                     }
                     if (!data.already_pending) {
-                        html += '<p style="color: #333; margin-bottom: 15px;">You have a pending or referred application. You can request a follow-up below. Admin will be notified and may respond via your notifications.</p>';
-                        html += '<textarea id="follow_up_message" placeholder="Add a message for admin (required)..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>';
+                        html += '<p style="color: #333; margin-bottom: 15px;">Send a message to PESO/admin (NSRP updates, questions, or if you resigned from a placement and need to be returned to the job seeker pool). You will be notified when they respond.</p>';
+                        html += '<textarea id="follow_up_message" placeholder="Required. Example: request an NSRP update, or ask to be returned to the pending job seeker pool after resigning from a placement..." style="width:100%; min-height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box;"></textarea>';
                         html += '<button type="button" class="apply-now-btn" id="submit_follow_up_btn">Submit follow-up request</button>';
                     }
                     bodyEl.innerHTML = html;
@@ -4600,6 +4612,8 @@ $conn->close();
             
             const wCount = typeof data.withdrawn_count === 'number' ? data.withdrawn_count : 0;
             const wRate = typeof data.withdrawn_rate === 'number' ? data.withdrawn_rate : 0;
+            const cCount = typeof data.closed_count === 'number' ? data.closed_count : 0;
+            const cRate = typeof data.closed_rate === 'number' ? data.closed_rate : 0;
             let html = `
                 <div class="success-rate-cards-row">
                     <div class="success-rate-card accepted">
@@ -4616,6 +4630,11 @@ $conn->close();
                         <div class="success-rate-label">Pending Applications</div>
                         <div class="success-rate-number">${data.pending_count}</div>
                         <div class="success-rate-percentage">${data.pending_rate}%</div>
+                    </div>
+                    <div class="success-rate-card closed">
+                        <div class="success-rate-label">Closed Applications</div>
+                        <div class="success-rate-number">${cCount}</div>
+                        <div class="success-rate-percentage">${cRate}%</div>
                     </div>
                     <div class="success-rate-card withdrawn">
                         <div class="success-rate-label">Withdrawn Applications</div>

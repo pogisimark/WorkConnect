@@ -33,6 +33,8 @@ if (in_array('logo', $existing_columns)) {
 
 // Fix stale "Applied" rows when jobseeker is already Accepted elsewhere (e.g. referral at another company)
 require_once __DIR__ . '/../Employer/job_applications_withdraw_helper.php';
+require_once __DIR__ . '/../jobseeker_placement_helper.php';
+workconnect_ensure_jobseeker_placement_columns($conn);
 reconcile_stale_applications_for_company_jobs($conn, (int) $company_id);
 
 // Get all job postings for this company
@@ -76,7 +78,8 @@ if ($table_check && $table_check->num_rows > 0) {
                         j.municipality,
                         j.province,
                         j.resume_file,
-                        j.application_status as jobseeker_status
+                        j.application_status as jobseeker_status,
+                        COALESCE(j.placement_active, 0) AS placement_active
                     FROM job_applications_extended jae
                     INNER JOIN jobseeker j ON jae.jobseeker_id = j.id
                     WHERE jae.job_posting_id = ?
@@ -538,6 +541,12 @@ $conn->close();
         .status-withdrawn {
             background: #eceff1;
             color: #546e7a;
+        }
+
+        .status-closed {
+            background: #eceff1;
+            color: #37474f;
+            border: 1px solid #cfd8dc;
         }
         
         .applicant-actions {
@@ -1056,6 +1065,11 @@ $conn->close();
                                                 ($applicant['municipality'] ?? '') . ', ' . 
                                                 ($applicant['province'] ?? ''));
                                             $address = trim($address, ', ');
+                                            $appCardSt = workconnect_company_application_card_status($applicant);
+                                            $applicantModal = array_merge($applicant, [
+                                                'display_status' => $appCardSt['label'],
+                                                'display_status_class' => $appCardSt['css'],
+                                            ]);
                                         ?>
                                         <div class="applicant-card">
                                             <div class="applicant-header">
@@ -1104,12 +1118,12 @@ $conn->close();
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <span class="application-status-badge status-<?php echo strtolower($applicant['application_status'] ?? 'applied'); ?>">
-                                                    <?php echo htmlspecialchars($applicant['application_status'] ?? 'Applied'); ?>
+                                                <span class="application-status-badge status-<?php echo htmlspecialchars($appCardSt['css']); ?>">
+                                                    <?php echo htmlspecialchars($appCardSt['label']); ?>
                                                 </span>
                                             </div>
                                             <div class="applicant-actions">
-                                                <button class="btn btn-view" onclick="viewApplicantDetails(<?php echo htmlspecialchars(json_encode($applicant)); ?>)">
+                                                <button class="btn btn-view" onclick="viewApplicantDetails(<?php echo htmlspecialchars(json_encode($applicantModal)); ?>)">
                                                     <i class="fas fa-eye"></i> View Details
                                                 </button>
                                                 <?php if ($applicant['resume_file']): ?>
@@ -1117,7 +1131,7 @@ $conn->close();
                                                     <i class="fas fa-file-alt"></i> View Resume
                                                 </button>
                                                 <?php endif; ?>
-                                                <?php if (!in_array(strtolower(trim($applicant['application_status'] ?? '')), ['accepted', 'rejected', 'withdrawn'], true)): ?>
+                                                <?php if (!in_array($appCardSt['css'], ['accepted', 'rejected', 'withdrawn', 'closed'], true)): ?>
                                                 <button class="btn btn-accept" onclick="acceptApplicant(<?php echo $applicant['application_id']; ?>, <?php echo $applicant['jobseeker_id']; ?>, <?php echo $job_id; ?>, '<?php echo htmlspecialchars($job['title']); ?>')">
                                                     <i class="fas fa-check"></i> Accept
                                                 </button>
@@ -1366,8 +1380,8 @@ $conn->close();
                     <div class="detail-row">
                         <div class="detail-label">Application Status:</div>
                         <div class="detail-value">
-                            <span class="application-status-badge status-${(applicant.application_status || 'applied').toLowerCase()}">
-                                ${applicant.application_status || 'Applied'}
+                            <span class="application-status-badge status-${(applicant.display_status_class || (applicant.application_status || 'applied').toLowerCase())}">
+                                ${applicant.display_status || applicant.application_status || 'Applied'}
                             </span>
                         </div>
                     </div>

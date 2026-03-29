@@ -27,10 +27,12 @@ $emptyPayload = [
         'rejected_count' => 0,
         'pending_count' => 0,
         'withdrawn_count' => 0,
+        'closed_count' => 0,
         'success_rate' => 0,
         'rejection_rate' => 0,
         'pending_rate' => 0,
         'withdrawn_rate' => 0,
+        'closed_rate' => 0,
         'top_rejection_reasons' => [],
         'monthly_trends' => [],
     ],
@@ -66,6 +68,7 @@ try {
     $rejectedCount = 0;
     $pendingCount = 0;
     $withdrawnCount = 0;
+    $closedCount = 0;
     $rejectionReasons = [];
     $monthlyData = [];
 
@@ -91,6 +94,8 @@ try {
             }
         } elseif ($statusLower === 'withdrawn') {
             $withdrawnCount++;
+        } elseif ($statusLower === 'closed') {
+            $closedCount++;
         } else {
             // Applied, Viewed, Interview, etc. — still awaiting employer decision
             $pendingCount++;
@@ -107,6 +112,7 @@ try {
                         'rejected' => 0,
                         'pending' => 0,
                         'withdrawn' => 0,
+                        'closed' => 0,
                     ];
                 }
                 $monthlyData[$monthKey]['total']++;
@@ -116,6 +122,8 @@ try {
                     $monthlyData[$monthKey]['rejected']++;
                 } elseif ($statusLower === 'withdrawn') {
                     $monthlyData[$monthKey]['withdrawn']++;
+                } elseif ($statusLower === 'closed') {
+                    $monthlyData[$monthKey]['closed']++;
                 } else {
                     $monthlyData[$monthKey]['pending']++;
                 }
@@ -128,6 +136,7 @@ try {
     $rejectionRate = $totalApplications > 0 ? round(($rejectedCount / $totalApplications) * 100, 1) : 0;
     $pendingRate = $totalApplications > 0 ? round(($pendingCount / $totalApplications) * 100, 1) : 0;
     $withdrawnRate = $totalApplications > 0 ? round(($withdrawnCount / $totalApplications) * 100, 1) : 0;
+    $closedRate = $totalApplications > 0 ? round(($closedCount / $totalApplications) * 100, 1) : 0;
 
     arsort($rejectionReasons);
     $topRejectionReasons = array_slice($rejectionReasons, 0, 3, true);
@@ -142,6 +151,7 @@ try {
             'rejected' => $data['rejected'],
             'pending' => $data['pending'],
             'withdrawn' => $data['withdrawn'] ?? 0,
+            'closed' => $data['closed'] ?? 0,
         ];
     }
 
@@ -153,10 +163,12 @@ try {
             'rejected_count' => $rejectedCount,
             'pending_count' => $pendingCount,
             'withdrawn_count' => $withdrawnCount,
+            'closed_count' => $closedCount,
             'success_rate' => $successRate,
             'rejection_rate' => $rejectionRate,
             'pending_rate' => $pendingRate,
             'withdrawn_rate' => $withdrawnRate,
+            'closed_rate' => $closedRate,
             'top_rejection_reasons' => $topRejectionReasons,
             'monthly_trends' => array_slice($monthlyTrends, -6),
         ],
