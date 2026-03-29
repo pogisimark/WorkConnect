@@ -1435,11 +1435,15 @@ if ($conn) {
                             <div style="font-size: 2rem; font-weight: 700; color: #ff9800;" id="pendingApplications">0</div>
                             <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Pending review</div>
                         </div>
+                        <div style="text-align: center; padding: 16px; background: rgba(123,31,162,0.12); border-radius: 8px;">
+                            <div style="font-size: 2rem; font-weight: 700; color: #7b1fa2;" id="referredApplications">0</div>
+                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Referred</div>
+                        </div>
                         <div style="text-align: center; padding: 16px; background: rgba(76,175,80,0.1); border-radius: 8px;">
                             <div style="font-size: 2rem; font-weight: 700; color: #4caf50;" id="acceptedApplications">0</div>
                             <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Accepted</div>
                         </div>
-                        <div style="text-align: center; padding: 16px; background: rgba(244,67,54,0.1); border-radius: 8px; grid-column: 1 / -1;">
+                        <div style="text-align: center; padding: 16px; background: rgba(244,67,54,0.1); border-radius: 8px;">
                             <div style="font-size: 2rem; font-weight: 700; color: #f44336;" id="rejectedApplications">0</div>
                             <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Rejected</div>
                         </div>
@@ -2066,6 +2070,7 @@ if ($conn) {
         employeeAccounts: [],
         employeeCountsOk: false,
         pendingApplications: 0,
+        referredApplications: 0,
         acceptedApplications: 0,
         rejectedApplications: 0,
         totalSkills: 0,
@@ -2208,12 +2213,17 @@ if ($conn) {
                 analyticsData.totalEmployeeAccounts = jobseekers.length;
                 analyticsData.accountsPendingNsrp = 0;
             }
-            analyticsData.pendingApplications = jobseekers.filter(j => !j.application_status || j.application_status === 'Pending' || j.application_status === '').length;
-            analyticsData.acceptedApplications = jobseekers.filter(j => j.application_status === 'Accepted').length;
-            analyticsData.rejectedApplications = jobseekers.filter(j => j.application_status === 'Rejected').length;
+            analyticsData.pendingApplications = jobseekers.filter(j => {
+                const s = (j.application_status || '').trim();
+                return !s || s === 'Pending';
+            }).length;
+            analyticsData.referredApplications = jobseekers.filter(j => (j.application_status || '').trim() === 'Referred').length;
+            analyticsData.acceptedApplications = jobseekers.filter(j => (j.application_status || '').trim() === 'Accepted').length;
+            analyticsData.rejectedApplications = jobseekers.filter(j => (j.application_status || '').trim() === 'Rejected').length;
             
             console.log('Status counts:', {
                 pending: analyticsData.pendingApplications,
+                referred: analyticsData.referredApplications,
                 accepted: analyticsData.acceptedApplications,
                 rejected: analyticsData.rejectedApplications
             });
@@ -2283,6 +2293,7 @@ if ($conn) {
             analyticsData.employeeAccounts = [];
             analyticsData.employeeCountsOk = false;
             analyticsData.pendingApplications = 0;
+            analyticsData.referredApplications = 0;
             analyticsData.acceptedApplications = 0;
             analyticsData.rejectedApplications = 0;
             analyticsData.thisMonthRegistrations = 0;
@@ -3053,7 +3064,8 @@ if ($conn) {
         push('', 'Email unverified (signed up, not verified)', analyticsData.employeeCountsOk ? analyticsData.emailUnverifiedUsers : '—');
         push('', 'Verified email + NSRP submitted (distinct users)', analyticsData.employeeCountsOk ? analyticsData.verifiedEmailWithNsrpUsers : '—');
         push('', 'NSRP records (rows in jobseeker list)', analyticsData.totalJobseekers);
-        push('', 'Pending review (referral)', analyticsData.pendingApplications);
+        push('', 'Pending review', analyticsData.pendingApplications);
+        push('', 'Referred', analyticsData.referredApplications);
         push('', 'Accepted', analyticsData.acceptedApplications);
         push('', 'Rejected', analyticsData.rejectedApplications);
         const totalDecided = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
@@ -3094,6 +3106,7 @@ if ($conn) {
 
         push('Application status', '', '', 'section');
         push('', 'Accepted', analyticsData.acceptedApplications);
+        push('', 'Referred', analyticsData.referredApplications);
         push('', 'Pending', analyticsData.pendingApplications);
         push('', 'Rejected', analyticsData.rejectedApplications);
         blank();
@@ -3370,6 +3383,8 @@ if ($conn) {
         }
         renderAnalyticsEmployeeAccountsTable();
         document.getElementById('pendingApplications').textContent = analyticsData.pendingApplications;
+        const refEl = document.getElementById('referredApplications');
+        if (refEl) refEl.textContent = analyticsData.referredApplications;
         document.getElementById('acceptedApplications').textContent = analyticsData.acceptedApplications;
         document.getElementById('rejectedApplications').textContent = analyticsData.rejectedApplications;
         document.getElementById('totalSkills').textContent = analyticsData.totalSkills;
@@ -3623,6 +3638,7 @@ if ($conn) {
          // Create status chart
          const statusData = [
              analyticsData.acceptedApplications || 0,
+             analyticsData.referredApplications || 0,
              analyticsData.pendingApplications || 0,
              analyticsData.rejectedApplications || 0
          ];
@@ -3636,11 +3652,12 @@ if ($conn) {
                  window.statusChart = new Chart(statusCtx.getContext('2d'), {
                      type: 'doughnut',
                      data: {
-                         labels: ['Accepted', 'Pending', 'Rejected'],
+                         labels: ['Accepted', 'Referred', 'Pending', 'Rejected'],
                          datasets: [{
                              data: statusData,
                              backgroundColor: [
                                  '#4caf50',
+                                 '#7b1fa2',
                                  '#ff9800',
                                  '#f44336'
                              ],

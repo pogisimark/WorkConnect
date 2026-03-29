@@ -1508,13 +1508,13 @@ if ($conn) {
         </div>
 
         <!-- Bulk Accept Modal -->
-        <div id="bulkAcceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
-            <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:20px;box-shadow:0 12px 40px rgba(25,118,210,0.25);padding:32px 28px 24px 28px;max-width:600px;width:100%;margin:0 auto;position:relative;border:1px solid rgba(35,58,139,0.1);">
+        <div id="bulkAcceptModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;inset:0;width:100%;height:100%;min-height:100vh;min-height:100dvh;max-height:100dvh;box-sizing:border-box;padding:16px;background:rgba(30,40,60,0.25);justify-content:center;align-items:center;backdrop-filter:blur(4px);">
+            <div style="background:linear-gradient(135deg, #ffffff, #f8fafc);border-radius:20px;box-shadow:0 12px 40px rgba(25,118,210,0.25);padding:22px 20px 18px 20px;max-width:520px;width:min(100%,520px);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow-y:auto;margin:0 auto;position:relative;border:1px solid rgba(35,58,139,0.1);">
                 <!-- Close button -->
                 <button id="bulkAcceptCloseBtn" style="position:absolute;top:16px;right:16px;background:#f5f5f5;color:#666;border:none;border-radius:50%;width:32px;height:32px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease;box-shadow:0 2px 6px rgba(0,0,0,0.1);">×</button>
                 
                 <!-- Header -->
-                <div style="text-align:center;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid #e3f2fd;">
+                <div style="text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #e3f2fd;">
                     <div style="background:linear-gradient(135deg, #4caf50, #45a049);color:white;padding:12px 20px;border-radius:12px;display:inline-block;margin-bottom:16px;box-shadow:0 4px 12px rgba(76,175,80,0.3);">
                         <h3 style="margin:0;font-size:1.2rem;font-weight:700;letter-spacing:0.3px;">Send & Accept All Jobseekers</h3>
                     </div>
@@ -1522,9 +1522,9 @@ if ($conn) {
                 </div>
                 
                 <!-- Selected jobseekers list -->
-                <div style="margin-bottom:24px;">
+                <div style="margin-bottom:16px;">
                     <label style="display:block;margin-bottom:10px;font-weight:600;color:#333;font-size:0.95rem;">Selected Jobseekers:</label>
-                    <div id="selectedJobseekersList" style="max-height:200px;overflow-y:auto;border:2px solid #e3f2fd;border-radius:8px;padding:12px;background:#f8f9fa;">
+                    <div id="selectedJobseekersList" style="max-height:150px;overflow-y:auto;border:2px solid #e3f2fd;border-radius:8px;padding:10px;background:#f8f9fa;">
                         <p style="color:#666;margin:0;font-style:italic;">No jobseekers selected</p>
                     </div>
                 </div>
@@ -1550,7 +1550,7 @@ if ($conn) {
                 </div>
                 
                 <!-- Action buttons -->
-                <div style="display:flex;gap:12px;justify-content:center;">
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
                     <button id="confirmBulkAcceptBtn" style="background:linear-gradient(135deg, #4caf50, #45a049);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-weight:600;font-size:1rem;cursor:pointer;transition:all 0.3s ease;box-shadow:0 4px 12px rgba(76,175,80,0.3);position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;">
                         <span class="btn-text">Send & Accept All</span>
                         <div class="spinner" id="bulkAcceptSpinner" style="display: none;align-items:center;justify-content:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
