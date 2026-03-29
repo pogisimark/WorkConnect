@@ -372,14 +372,17 @@ function formatDate($d) {
         var selectAllEl = document.getElementById('selectAllFollowUp');
         var deleteSelectedBtn = document.getElementById('deleteSelectedFollowUp');
         var checkboxes = document.querySelectorAll('.follow-up-checkbox');
-        function updateDeleteSelectedState() {
-            var visibleCheckboxes = [];
+        function getVisibleEligibleCheckboxes() {
+            var eligible = [];
             document.querySelectorAll('.follow-up-card').forEach(function(card) {
-                if (card.style.display !== 'none') {
-                    var cb = card.querySelector('.follow-up-checkbox');
-                    if (cb) visibleCheckboxes.push(cb);
-                }
+                if (card.style.display === 'none') return;
+                var cb = card.querySelector('.follow-up-checkbox');
+                if (cb && !cb.disabled) eligible.push(cb);
             });
+            return eligible;
+        }
+        function updateDeleteSelectedState() {
+            var visibleCheckboxes = getVisibleEligibleCheckboxes();
             var anyChecked = document.querySelectorAll('.follow-up-checkbox:checked').length > 0;
             if (deleteSelectedBtn) deleteSelectedBtn.disabled = !anyChecked;
             var allVisibleChecked = visibleCheckboxes.length > 0 && visibleCheckboxes.every(function(cb) { return cb.checked; });
