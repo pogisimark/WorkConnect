@@ -123,20 +123,38 @@ try {
         ];
     }
     
-    // Sort by percentage descending
-    uasort($acceptedSkillsWithPercentage, function($a, $b) {
-        return $b['percentage'] - $a['percentage'];
+    // Sort by % of accepted (desc), then count (desc) — stable “top 10” rank
+    uasort($acceptedSkillsWithPercentage, function ($a, $b) {
+        if ($a['percentage'] != $b['percentage']) {
+            return $b['percentage'] <=> $a['percentage'];
+        }
+        return $b['count'] <=> $a['count'];
     });
     
-    // Get top accepted skills
+    // Top 10 skills among accepted jobseekers (same % rule: count / totalAccepted)
     $topAcceptedSkills = array_slice($acceptedSkillsWithPercentage, 0, 10, true);
     
-    // Find missing skills (skills that accepted jobseekers have but user doesn't)
-    $missingSkills = [];
     $userSkillsLower = array_map('strtolower', $userSkills);
     
+    // How many of the current top-10 slots the user has (case-insensitive); each slot = 10% when 10 slots exist
+    $matchedSkills = 0;
+    foreach ($topAcceptedSkills as $skillName => $_data) {
+        if (in_array(strtolower($skillName), $userSkillsLower, true)) {
+            $matchedSkills++;
+        }
+    }
+    
+    $topCount = count($topAcceptedSkills);
+    // Denominator: up to 10 — e.g. 6/10 => 60% (10% per matched top skill); if only 5 skills in list, 5/5 => 100% when fully matched
+    $matchDenominator = $topCount > 0 ? min(10, $topCount) : 0;
+    $matchScore = $matchDenominator > 0
+        ? round(min(100, ($matchedSkills / $matchDenominator) * 100), 1)
+        : 0;
+    
+    // Missing skills in top-10 rank order (do not re-sort — so gaps #1–5 first, then #6–10)
+    $missingSkills = [];
     foreach ($topAcceptedSkills as $skill => $data) {
-        if (!in_array(strtolower($skill), $userSkillsLower)) {
+        if (!in_array(strtolower($skill), $userSkillsLower, true)) {
             $missingSkills[] = [
                 'skill' => $skill,
                 'percentage' => $data['percentage'],
@@ -145,25 +163,8 @@ try {
         }
     }
     
-    // Sort missing skills by percentage
-    usort($missingSkills, function($a, $b) {
-        return $b['percentage'] - $a['percentage'];
-    });
-    
-    // Get top 3-5 missing skills as recommendations
+    // Top 5 missing by rank among the top 10; if user already has #1–5, next rows are #6–10; if none missing, empty (100% vs top 10)
     $recommendations = array_slice($missingSkills, 0, 5);
-    
-    // Calculate match score
-    $matchedSkills = 0;
-    foreach ($userSkills as $userSkill) {
-        if (isset($topAcceptedSkills[$userSkill])) {
-            $matchedSkills++;
-        }
-    }
-    
-    $matchScore = count($topAcceptedSkills) > 0 
-        ? round(($matchedSkills / min(count($topAcceptedSkills), 10)) * 100, 1) 
-        : 0;
     
     echo json_encode([
         'success' => true,

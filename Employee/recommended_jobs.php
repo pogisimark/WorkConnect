@@ -17,6 +17,15 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 $matching = new JobMatchingAlgorithm($conn);
 
+/** Show NSRP preference in UI; keep raw value in DB (hide placeholders like n/a). */
+function workconnect_nrsp_show_preference($value): bool {
+    if ($value === null) {
+        return false;
+    }
+    $t = strtolower(trim((string) $value));
+    return $t !== '' && $t !== 'n/a' && $t !== 'na';
+}
+
 // Get minimum score from query parameter or use default 50%
 $minScore = isset($_GET['min_score']) ? (int)$_GET['min_score'] : 50;
 
@@ -1039,7 +1048,7 @@ $conn->close();
                         <div class="nrsp-info-section">
                             <h4><i class="fas fa-briefcase"></i> Preferred Occupations</h4>
                             <div class="nrsp-info-items">
-                                <?php if (!empty($nrspData['occupation1'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['occupation1'] ?? null)): ?>
                                     <span class="nrsp-badge <?php echo strtolower(trim($nrspData['occupation1'])) === 'any' ? 'ai-badge' : ''; ?>">
                                         <?php echo htmlspecialchars($nrspData['occupation1']); ?>
                                         <?php if (strtolower(trim($nrspData['occupation1'])) === 'any'): ?>
@@ -1047,7 +1056,7 @@ $conn->close();
                                         <?php endif; ?>
                                     </span>
                                 <?php endif; ?>
-                                <?php if (!empty($nrspData['occupation2'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['occupation2'] ?? null)): ?>
                                     <span class="nrsp-badge <?php echo strtolower(trim($nrspData['occupation2'])) === 'any' ? 'ai-badge' : ''; ?>">
                                         <?php echo htmlspecialchars($nrspData['occupation2']); ?>
                                         <?php if (strtolower(trim($nrspData['occupation2'])) === 'any'): ?>
@@ -1055,7 +1064,7 @@ $conn->close();
                                         <?php endif; ?>
                                     </span>
                                 <?php endif; ?>
-                                <?php if (!empty($nrspData['occupation3'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['occupation3'] ?? null)): ?>
                                     <span class="nrsp-badge <?php echo strtolower(trim($nrspData['occupation3'])) === 'any' ? 'ai-badge' : ''; ?>">
                                         <?php echo htmlspecialchars($nrspData['occupation3']); ?>
                                         <?php if (strtolower(trim($nrspData['occupation3'])) === 'any'): ?>
@@ -1063,7 +1072,7 @@ $conn->close();
                                         <?php endif; ?>
                                     </span>
                                 <?php endif; ?>
-                                <?php if (empty($nrspData['occupation1']) && empty($nrspData['occupation2']) && empty($nrspData['occupation3'])): ?>
+                                <?php if (!workconnect_nrsp_show_preference($nrspData['occupation1'] ?? null) && !workconnect_nrsp_show_preference($nrspData['occupation2'] ?? null) && !workconnect_nrsp_show_preference($nrspData['occupation3'] ?? null)): ?>
                                     <span class="nrsp-badge empty">Not specified</span>
                                 <?php endif; ?>
                             </div>
@@ -1072,16 +1081,16 @@ $conn->close();
                         <div class="nrsp-info-section">
                             <h4><i class="fas fa-map-marker-alt"></i> Preferred Locations</h4>
                             <div class="nrsp-info-items">
-                                <?php if (!empty($nrspData['local1'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['local1'] ?? null)): ?>
                                     <span class="nrsp-badge"><?php echo htmlspecialchars($nrspData['local1']); ?></span>
                                 <?php endif; ?>
-                                <?php if (!empty($nrspData['local2'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['local2'] ?? null)): ?>
                                     <span class="nrsp-badge"><?php echo htmlspecialchars($nrspData['local2']); ?></span>
                                 <?php endif; ?>
-                                <?php if (!empty($nrspData['local3'])): ?>
+                                <?php if (workconnect_nrsp_show_preference($nrspData['local3'] ?? null)): ?>
                                     <span class="nrsp-badge"><?php echo htmlspecialchars($nrspData['local3']); ?></span>
                                 <?php endif; ?>
-                                <?php if (empty($nrspData['local1']) && empty($nrspData['local2']) && empty($nrspData['local3'])): ?>
+                                <?php if (!workconnect_nrsp_show_preference($nrspData['local1'] ?? null) && !workconnect_nrsp_show_preference($nrspData['local2'] ?? null) && !workconnect_nrsp_show_preference($nrspData['local3'] ?? null)): ?>
                                     <span class="nrsp-badge empty">Not specified</span>
                                 <?php endif; ?>
                             </div>
@@ -1310,11 +1319,11 @@ $conn->close();
                                                     <div class="breakdown-details">
                                                         <strong>Your preference:</strong> 
                                                         <?php 
-                                                        $userOccupations = array_filter([
+                                                        $userOccupations = array_values(array_filter([
                                                             $nrspData['occupation1'] ?? '',
                                                             $nrspData['occupation2'] ?? '',
                                                             $nrspData['occupation3'] ?? ''
-                                                        ]);
+                                                        ], 'workconnect_nrsp_show_preference'));
                                                         $displayOccupations = array_map(function($occ) {
                                                             $occ = trim($occ);
                                                             if (strtolower($occ) === 'any') {
@@ -1340,11 +1349,11 @@ $conn->close();
                                                     <div class="breakdown-details">
                                                         <strong>Your preference:</strong> 
                                                         <?php 
-                                                        $userOccupations = array_filter([
+                                                        $userOccupations = array_values(array_filter([
                                                             $nrspData['occupation1'] ?? '',
                                                             $nrspData['occupation2'] ?? '',
                                                             $nrspData['occupation3'] ?? ''
-                                                        ]);
+                                                        ], 'workconnect_nrsp_show_preference'));
                                                         echo !empty($userOccupations) ? htmlspecialchars(implode(', ', $userOccupations)) : 'Not specified';
                                                         ?>
                                                         <br>
@@ -1430,7 +1439,7 @@ $conn->close();
                                                             return !empty($skill) && strtolower($skill) !== 'n/a';
                                                         });
                                                         $allSkills = array_unique(array_map('trim', $allSkills));
-                                                        echo !empty($allSkills) ? htmlspecialchars(implode(', ', array_slice($allSkills, 0, 5))) . (count($allSkills) > 5 ? '...' : '') : 'n/a';
+                                                        echo !empty($allSkills) ? htmlspecialchars(implode(', ', array_slice($allSkills, 0, 5))) . (count($allSkills) > 5 ? '...' : '') : 'Not specified';
                                                         ?>
                                                         <br>
                                                         <span style="color: #dc3545;">No skills match (0%)</span>
@@ -1444,27 +1453,38 @@ $conn->close();
                                                 </div>
                                                 <div class="breakdown-score"><?php echo round($breakdown['location_score']); ?>%</div>
                                                 <div class="breakdown-details">
-                                                    <?php if (!empty($breakdown['is_nearby_current'])): ?>
+                                                    <?php
+                                                    $locBasis = isset($breakdown['location_basis']) ? (string) $breakdown['location_basis'] : '';
+                                                    $locKm = (isset($breakdown['location_distance_km']) && $breakdown['location_distance_km'] !== null && is_numeric($breakdown['location_distance_km']))
+                                                        ? round((float) $breakdown['location_distance_km'], 1)
+                                                        : null;
+                                                    $nearestPref = isset($breakdown['nearest_preferred_label']) ? trim((string) $breakdown['nearest_preferred_label']) : '';
+                                                    ?>
+                                                    <?php if ($locBasis === 'current' || ($locBasis === '' && !empty($breakdown['is_nearby_current']))): ?>
                                                         <span style="color: #28a745; font-weight: 600;">
-                                                            <i class="fas fa-home"></i> Proximity to Current Address
+                                                            <i class="fas fa-home"></i> Based on your location (NSRP address)
                                                         </span>
-                                                        <br>This score is calculated based on the distance (<?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km) from your registered home address to the job location.
+                                                        <br>This uses the distance from your registered <strong>city/municipality and province</strong> on your NSRP form to the job location<?php echo $locKm !== null ? ' (approx. <strong>' . htmlspecialchars((string) $locKm) . ' km</strong>)' : ''; ?>.
+                                                    <?php elseif ($locBasis === 'preferred'): ?>
+                                                        <span style="color: #233a8b; font-weight: 600;">
+                                                            <i class="fas fa-map-marker-alt"></i> Based on your preferred work location
+                                                        </span>
+                                                        <br>This uses how close the job is to your <strong>preferred work location(s)</strong><?php echo $nearestPref !== '' ? ' (nearest match: ' . htmlspecialchars($nearestPref) . ')' : ''; ?><?php echo $locKm !== null ? ', approx. <strong>' . htmlspecialchars((string) $locKm) . ' km</strong> away' : ''; ?>.
+                                                    <?php elseif ($locBasis === 'any'): ?>
+                                                        <span style="color: #233a8b; font-weight: 600;">
+                                                            <i class="fas fa-globe"></i> Open location preference
+                                                        </span>
+                                                        <br>Your NSRP lists <strong>any</strong> work location, so distance is not used for this part of the match.
                                                     <?php elseif ($breakdown['location_score'] > 0): ?>
                                                         <span style="color: #233a8b; font-weight: 600;">
-                                                            <i class="fas fa-map-marker-alt"></i> Match with Preferred Location
+                                                            <i class="fas fa-map-marker-alt"></i> Location match
                                                         </span>
-                                                        <br>This score is based on how close the job is to one of your preferred work locations (Approx. <?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km).
+                                                        <br>Location scoring applied<?php echo $locKm !== null ? ' (approx. ' . htmlspecialchars((string) $locKm) . ' km)' : ''; ?>.
                                                     <?php else: ?>
                                                         <span style="color: #dc3545; font-weight: 600;">
                                                             <i class="fas fa-times-circle"></i> No Location Match
                                                         </span>
-                                                        <br>The job location is outside your preferred areas and current address range.
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if (!empty($breakdown['location_distance_km'])): ?>
-                                                        <div style="margin-top: 5px; font-weight: 500; color: #666;">
-                                                            Approx. distance: <?php echo htmlspecialchars(round($breakdown['location_distance_km'], 1)); ?> km
-                                                        </div>
+                                                        <br>The job location is outside your preferred areas and NSRP address range we could measure.
                                                     <?php endif; ?>
                                                 </div>
                                             </div>

@@ -2143,9 +2143,10 @@ $conn->close();
         margin-bottom: 30px;
     }
     
+    /* Desktop: exactly 5 cards per row (mobile overrides below 768px) */
     .most-accepted-skills-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 16px;
         margin-top: 20px;
     }
@@ -4719,6 +4720,12 @@ $conn->close();
 
         function renderSkillsGapAnalysis(data) {
             const container = document.getElementById('skillsGapContainer');
+            const userSkills = Array.isArray(data.user_skills) ? data.user_skills : [];
+            const userSkillsHtml = userSkills.length
+                ? `<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;padding:0 8px 4px;">${
+                    userSkills.map(s => `<span style="background:#e8f0fe;color:#1a3876;padding:5px 10px;border-radius:16px;font-size:0.78rem;font-weight:500;border:1px solid #c5d9f7;">${escapeHtml(String(s))}</span>`).join('')
+                  }</div>`
+                : `<p style="text-align:center;color:#999;font-size:0.82rem;margin:10px 0 0 0;">No skills listed on your latest NSRP form yet.</p>`;
             
             // Determine match score class
             let scoreClass = 'low';
@@ -4743,6 +4750,7 @@ $conn->close();
                     <p style="text-align: center; color: #666; margin: 0; font-size: 0.9rem;">
                         You have <strong>${data.user_skills_count}</strong> skills registered
                     </p>
+                    ${userSkillsHtml}
                 </div>
             `;
             
@@ -4761,12 +4769,30 @@ $conn->close();
                         </ul>
                     </div>
                 `;
-            } else {
+            } else if (data.top_accepted_skills.length > 0 && Number(data.match_score) >= 100) {
                 html += `
                     <div class="gap-analysis-card">
                         <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Great Job! 🎉</h3>
                         <p style="color: #666; font-size: 0.9rem; margin: 0;">
-                            You already have the most valued skills! Keep up the excellent work.
+                            You match every skill in the current top 10 among accepted jobseekers — nothing to recommend.
+                        </p>
+                    </div>
+                `;
+            } else if (data.top_accepted_skills.length === 0) {
+                html += `
+                    <div class="gap-analysis-card">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Recommended Skills to Add</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                            Recommendations appear once there are accepted jobseekers with skill data.
+                        </p>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="gap-analysis-card">
+                        <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Recommended Skills to Add</h3>
+                        <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                            See the top accepted skills overview for ideas to strengthen your profile.
                         </p>
                     </div>
                 `;
@@ -4778,7 +4804,7 @@ $conn->close();
                         <h3 style="margin: 0 0 16px 0; color: #233a8b; font-size: 1.1rem;">Top Accepted Skills Overview</h3>
                         <p style="color: #666; font-size: 0.9rem; margin-bottom: 16px;">Skills that ${data.total_accepted_jobseekers} accepted jobseekers have:</p>
                         <div style="max-height: 300px; overflow-y: auto;">
-                            ${data.top_accepted_skills.slice(0, 8).map(skill => `
+                            ${data.top_accepted_skills.slice(0, 10).map(skill => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
                                     <span style="color: #333;">${skill.skill}</span>
                                     <span style="color: #4CAF50; font-weight: 600; font-size: 0.9rem;">${skill.percentage}%</span>

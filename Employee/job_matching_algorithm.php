@@ -52,7 +52,11 @@ class JobMatchingAlgorithm {
                 'job_type_score' => 0,
                 'matched_skills' => [],
                 'matched_locations' => [],
-                'matched_occupations' => []
+                'matched_occupations' => [],
+                'location_distance_km' => null,
+                'is_nearby_current' => false,
+                'location_basis' => 'none',
+                'nearest_preferred_label' => null,
             ];
         }
         
@@ -73,7 +77,11 @@ class JobMatchingAlgorithm {
                 'job_type_score' => 0,
                 'matched_skills' => [],
                 'matched_locations' => [],
-                'matched_occupations' => []
+                'matched_occupations' => [],
+                'location_distance_km' => null,
+                'is_nearby_current' => false,
+                'location_basis' => 'none',
+                'nearest_preferred_label' => null,
             ];
         }
         
@@ -91,6 +99,9 @@ class JobMatchingAlgorithm {
         $matchedLocations = is_array($locationResult) ? ($locationResult['matched_locations'] ?? []) : [];
         $matchedOccupations = is_array($occupationResult) ? ($occupationResult['matched_occupations'] ?? []) : [];
         $locationDistanceKm = is_array($locationResult) ? ($locationResult['distance_km'] ?? null) : null;
+        $locationBasis = is_array($locationResult) ? ($locationResult['location_basis'] ?? null) : null;
+        $isNearbyCurrentAddr = is_array($locationResult) && !empty($locationResult['is_nearby_current']);
+        $nearestPreferredLabel = is_array($locationResult) ? ($locationResult['nearest_preferred_label'] ?? null) : null;
         
         // Skill match metadata (used by UI)
         $totalSkills = is_array($skillResult) ? (int)($skillResult['total_skills'] ?? 0) : 0;
@@ -125,6 +136,9 @@ class JobMatchingAlgorithm {
             'matched_locations' => $matchedLocations,
             'matched_occupations' => $matchedOccupations,
             'location_distance_km' => $locationDistanceKm,
+            'is_nearby_current' => $isNearbyCurrentAddr,
+            'location_basis' => $locationBasis,
+            'nearest_preferred_label' => $nearestPreferredLabel,
             'weights' => $weights
         ];
     }
@@ -762,7 +776,14 @@ class JobMatchingAlgorithm {
         $jobLocation = trim((string)($jobPosting['location'] ?? ''));
         
         if (empty($preferredLocations) && empty($userCurrentLocation)) {
-            return ['score' => 70, 'matched_locations' => [], 'is_nearby_current' => false];
+            return [
+                'score' => 70,
+                'matched_locations' => [],
+                'distance_km' => null,
+                'is_nearby_current' => false,
+                'location_basis' => 'none',
+                'nearest_preferred_label' => null,
+            ];
         }
 
         // Expand "City, Province" into multiple matchable variants

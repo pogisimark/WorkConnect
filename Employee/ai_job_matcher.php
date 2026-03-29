@@ -917,30 +917,29 @@ class AIJobMatcher {
 
     public static function matchLocationWithProximity($preferredLocations, $jobLocation, $userCurrentLocation = null) {
         $matchedLocations = [];
-        $maxScore = 0;
-        $bestDistanceKm = null;
-        $isNearbyCurrent = false;
+        $hasAny = false;
 
-        // 1. HIGHEST PRIORITY: Check proximity to User's Current Address (if provided)
-        if ($userCurrentLocation && !empty($userCurrentLocation)) {
-            $currentLocData = self::calculateDistanceBasedLocationScore($userCurrentLocation, $jobLocation);
-            if ($currentLocData['score'] >= 80) { // If job is nearby current address
-                $maxScore = $currentLocData['score'];
-                $bestDistanceKm = $currentLocData['distance_km'];
-                $isNearbyCurrent = true;
-                // Boost score slightly for current address proximity
-                $maxScore = min(100, $maxScore + 5); 
-            }
+        // Registered home (NSRP province + municipality)
+        $currentRaw = $userCurrentLocation ? trim((string) $userCurrentLocation) : '';
+        $currentData = ['score' => 0, 'distance_km' => null];
+        if ($currentRaw !== '') {
+            $currentData = self::calculateDistanceBasedLocationScore($currentRaw, $jobLocation);
         }
+        $currentScoreBoosted = $currentData['score'] > 0 ? min(100, $currentData['score'] + 5) : 0;
 
-        // 2. SECOND PRIORITY: Check Preferred Locations (even if far)
+        $bestPrefScore = 0;
+        $minPrefDistanceKm = null;
+        $prefLabelAtMinDistance = null;
+
         if (!empty($preferredLocations) && is_array($preferredLocations)) {
             foreach ($preferredLocations as $prefLoc) {
-                $prefLoc = trim($prefLoc);
-                if (empty($prefLoc) || strtolower($prefLoc) === 'n/a') continue;
+                $prefLoc = trim((string) $prefLoc);
+                if ($prefLoc === '' || strtolower($prefLoc) === 'n/a') {
+                    continue;
+                }
 
                 if (strtolower($prefLoc) === 'any') {
-                    $maxScore = max($maxScore, 80);
+                    $hasAny = true;
                     $matchedLocations[] = 'Any';
                     continue;
                 }
@@ -949,24 +948,61 @@ class AIJobMatcher {
                 $score = $distanceData['score'];
                 $distanceKm = $distanceData['distance_km'];
 
-                // If it's a preferred location, we give it a high score even if distance is far
-                // but if we already found a nearby current address, we keep the better score
-                if ($score > $maxScore) {
-                    $maxScore = $score;
-                    $bestDistanceKm = $distanceKm;
+                if ($score > $bestPrefScore) {
+                    $bestPrefScore = $score;
                 }
 
-                if ($score >= 40) { // Relaxed threshold for preferred locations
+                if ($distanceKm !== null && $distanceKm >= 0) {
+                    if ($minPrefDistanceKm === null || $distanceKm < $minPrefDistanceKm) {
+                        $minPrefDistanceKm = $distanceKm;
+                        $prefLabelAtMinDistance = $prefLoc;
+                    }
+                }
+
+                if ($score >= 40) {
                     $matchedLocations[] = $prefLoc;
                 }
             }
         }
 
+        $anyScore = $hasAny ? 80 : 0;
+        // Overall location factor (for weighting) — best of home, preferred work, or "any"
+        $finalScore = max($currentScoreBoosted, $bestPrefScore, $anyScore);
+
+        $dc = $currentData['distance_km'];
+        $basis = 'none';
+        $displayDistanceKm = null;
+        $isNearbyCurrent = false;
+
+        // UI basis: whichever anchor is nearer (km). Tie → home. If only one has coordinates, use that.
+        if ($dc !== null && $minPrefDistanceKm !== null) {
+            if ($dc <= $minPrefDistanceKm) {
+                $basis = 'current';
+                $displayDistanceKm = $dc;
+                $isNearbyCurrent = true;
+            } else {
+                $basis = 'preferred';
+                $displayDistanceKm = $minPrefDistanceKm;
+            }
+        } elseif ($dc !== null) {
+            $basis = 'current';
+            $displayDistanceKm = $dc;
+            $isNearbyCurrent = true;
+        } elseif ($minPrefDistanceKm !== null) {
+            $basis = 'preferred';
+            $displayDistanceKm = $minPrefDistanceKm;
+        } elseif ($hasAny && $finalScore > 0) {
+            $basis = 'any';
+            $displayDistanceKm = null;
+        }
+
         return [
-            'score' => $maxScore,
-            'matched_locations' => array_unique($matchedLocations),
-            'distance_km' => $bestDistanceKm,
-            'is_nearby_current' => $isNearbyCurrent
+            'score' => $finalScore,
+            'matched_locations' => array_values(array_unique($matchedLocations)),
+            'distance_km' => $displayDistanceKm,
+            'is_nearby_current' => $isNearbyCurrent,
+            'location_basis' => $basis,
+            'nearest_preferred_label' => $prefLabelAtMinDistance,
         ];
     }
 

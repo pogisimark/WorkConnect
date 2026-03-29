@@ -82,13 +82,15 @@ try {
         ];
     }
     
-    // Sort by count descending
-    usort($skillsArray, function($a, $b) {
+    // Same priority as skills gap: % of accepted (desc), then count (desc)
+    usort($skillsArray, function ($a, $b) {
+        if ($a['percentage'] != $b['percentage']) {
+            return $b['percentage'] <=> $a['percentage'];
+        }
         return $b['count'] - $a['count'];
     });
     
-    // Get top 6 skills
-    $topSkills = array_slice($skillsArray, 0, 6);
+    $topSkills = array_slice($skillsArray, 0, 10);
     
     echo json_encode([
         'success' => true,
