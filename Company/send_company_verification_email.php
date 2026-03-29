@@ -1,6 +1,8 @@
 <?php
+require_once __DIR__ . '/company_mailer.php';
+
 /**
- * Send WorkConnect company signup verification email.
+ * Send WorkConnect company signup verification email (legacy email-link flow; resend still uses this).
  * @return array{success:bool, message:string}
  */
 function sendCompanyVerificationEmail(string $toEmail, string $companyName, string $verifyLink): array {
@@ -29,43 +31,9 @@ function sendCompanyVerificationEmail(string $toEmail, string $companyName, stri
     </body>
     </html>";
 
-    $phpmailer_available = false;
-    if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-        require_once __DIR__ . '/../vendor/autoload.php';
-        if (file_exists(__DIR__ . '/../Employer/email_config.php')) {
-            require_once __DIR__ . '/../Employer/email_config.php';
-            $phpmailer_available = defined('SMTP_HOST') && defined('SMTP_USERNAME');
-        }
-    }
-
-    if ($phpmailer_available) {
-        try {
-            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host       = SMTP_HOST;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = SMTP_USERNAME;
-            $mail->Password   = SMTP_PASSWORD;
-            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = SMTP_PORT;
-            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
-            $mail->addAddress($toEmail);
-            $mail->isHTML(true);
-            $mail->CharSet = 'UTF-8';
-            $mail->Subject = $subject;
-            $mail->Body    = $message;
-            $mail->send();
-            return ['success' => true, 'message' => 'Verification email sent.'];
-        } catch (Throwable $e) {
-            return ['success' => false, 'message' => 'Could not send verification email. Please try again later or contact support.'];
-        }
-    }
-
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-type:text/html;charset=UTF-8\r\n";
-    $headers .= "From: WorkConnect <noreply@workconnect.local>\r\n";
-    if (@mail($toEmail, $subject, $message, $headers)) {
+    $r = workconnect_company_send_html($toEmail, $subject, $message);
+    if ($r['success']) {
         return ['success' => true, 'message' => 'Verification email sent.'];
     }
-    return ['success' => false, 'message' => 'Could not send verification email. Configure SMTP in Employer/email_config.php.'];
+    return ['success' => false, 'message' => 'Could not send verification email. Please try again later or contact support.'];
 }

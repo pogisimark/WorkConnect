@@ -3,13 +3,18 @@ header('Content-Type: application/json');
 require_once 'db.php';
 
 try {
-    // Only companies that verified their email (for admin referrals)
-    $col = $conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
-    $hasVerified = $col && $col->num_rows > 0;
-    if ($hasVerified) {
-        $query = "SELECT id, company_name, email FROM company_users WHERE COALESCE(email_verified, 0) = 1 ORDER BY company_name ASC";
+    // Companies approved for referrals: PESO-verified when column exists, else email-verified.
+    $pesoCol = $conn->query("SHOW COLUMNS FROM company_users LIKE 'peso_verified'");
+    if ($pesoCol && $pesoCol->num_rows > 0) {
+        $query = "SELECT id, company_name, email FROM company_users WHERE COALESCE(peso_verified, 0) = 1 ORDER BY company_name ASC";
     } else {
-        $query = "SELECT id, company_name, email FROM company_users ORDER BY company_name ASC";
+        $col = $conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
+        $hasVerified = $col && $col->num_rows > 0;
+        if ($hasVerified) {
+            $query = "SELECT id, company_name, email FROM company_users WHERE COALESCE(email_verified, 0) = 1 ORDER BY company_name ASC";
+        } else {
+            $query = "SELECT id, company_name, email FROM company_users ORDER BY company_name ASC";
+        }
     }
     $result = $conn->query($query);
     

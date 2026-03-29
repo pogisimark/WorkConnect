@@ -5,35 +5,77 @@ require_once 'db.php';
 require_once __DIR__ . '/follow_up_pending_badge.php';
 require_once __DIR__ . '/admin_company_follow_up_badge.php';
 require_once __DIR__ . '/jobseeker_pending_badge.php';
+require_once __DIR__ . '/../Company/company_peso_schema.php';
 
-$companies = [];
+$companies_approved = [];
+$companies_pending = [];
 $verified_company_count = 0;
+$pending_company_count = 0;
+
 if ($conn) {
-    $cols_check = $conn->query("SHOW COLUMNS FROM company_users");
+    ensureCompanyPesoSchema($conn);
+    $cols_check = $conn->query('SHOW COLUMNS FROM company_users');
     $has_created_at = false;
     $has_email_verified = false;
+    $has_peso_verified = false;
+    $has_contact = false;
+    $has_telephone = false;
+    $has_phone = false;
     if ($cols_check) {
         while ($col = $cols_check->fetch_assoc()) {
-            if ($col['Field'] === 'created_at') { $has_created_at = true; }
-            if ($col['Field'] === 'email_verified') { $has_email_verified = true; }
+            $f = $col['Field'];
+            if ($f === 'created_at') {
+                $has_created_at = true;
+            }
+            if ($f === 'email_verified') {
+                $has_email_verified = true;
+            }
+            if ($f === 'peso_verified') {
+                $has_peso_verified = true;
+            }
+            if ($f === 'contact_number') {
+                $has_contact = true;
+            }
+            if ($f === 'telephone_number') {
+                $has_telephone = true;
+            }
         }
     }
-    $select = "id, company_name, email";
-    if ($has_created_at) $select .= ", created_at";
-    if ($has_email_verified) $select .= ", email_verified";
-    $sql = "SELECT $select FROM company_users ORDER BY company_name ASC";
+    $select = 'id, company_name, email';
+    if ($has_created_at) {
+        $select .= ', created_at';
+    }
+    if ($has_email_verified) {
+        $select .= ', email_verified';
+    }
+    if ($has_peso_verified) {
+        $select .= ', peso_verified';
+    }
+    if ($has_contact) {
+        $select .= ', contact_number';
+    }
+    if ($has_telephone) {
+        $select .= ', telephone_number';
+    }
+    if ($has_phone) {
+        $select .= ', phone';
+    }
+    $order = $has_peso_verified
+        ? 'ORDER BY COALESCE(peso_verified, 0) DESC, company_name ASC'
+        : 'ORDER BY company_name ASC';
+    $sql = "SELECT $select FROM company_users $order";
     $result = $conn->query($sql);
     if ($result) {
         while ($row = $result->fetch_assoc()) {
-            if ($has_email_verified && isset($row['email_verified']) && (int)$row['email_verified'] === 1) {
-                $verified_company_count++;
+            if (company_row_peso_approved($row, $has_peso_verified)) {
+                $companies_approved[] = $row;
+            } else {
+                $companies_pending[] = $row;
             }
-            $companies[] = $row;
         }
     }
-    if (!$has_email_verified) {
-        $verified_company_count = count($companies);
-    }
+    $verified_company_count = count($companies_approved);
+    $pending_company_count = count($companies_pending);
     $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
     $acfu_unread_count = acfu_get_unread_response_count($conn);
     $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
@@ -45,8 +87,34 @@ if ($conn) {
 }
 
 function formatDate($d) {
-    if (empty($d) || $d === '0000-00-00 00:00:00') return '—';
+    if (empty($d) || $d === '0000-00-00 00:00:00') {
+        return '—';
+    }
     return date('M j, Y', strtotime($d));
+}
+
+/** @param array<string,mixed> $row */
+function company_row_peso_approved(array $row, bool $has_peso_column): bool {
+    if ($has_peso_column) {
+        return isset($row['peso_verified']) && (int) $row['peso_verified'] === 1;
+    }
+    if (array_key_exists('email_verified', $row)) {
+        return (int) $row['email_verified'] === 1;
+    }
+    return true;
+}
+
+function h($s) {
+    return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+}
+
+/** PESO contact_number or legacy profile phone (for display / search). */
+function company_list_contact_display(array $c): string {
+    $cn = trim((string) ($c['contact_number'] ?? ''));
+    if ($cn !== '') {
+        return $cn;
+    }
+    return trim((string) ($c['phone'] ?? ''));
 }
 ?>
 <!DOCTYPE html>
@@ -102,6 +170,13 @@ function formatDate($d) {
             .count-badge .num { font-size: 1.25rem; line-height: 1; }
             .count-badge .label { font-size: 0.72rem; }
             .companies-table-wrap { width: 100%; min-width: 0; }
+            .companies-table-wrap.companies-table-scroll {
+                max-height: min(70vh, 40rem);
+            }
+            .companies-table-wrap.companies-table-scroll .companies-table thead th {
+                position: static;
+                box-shadow: none;
+            }
             .companies-table { display: block; width: 100%; box-shadow: none; background: transparent; border-radius: 0; }
             .companies-table thead { display: none; }
             .companies-table tbody { display: block; width: 100%; }
@@ -145,7 +220,7 @@ function formatDate($d) {
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
         .page-header h2 { color: #233a8b; margin: 0; font-size: 1.8rem; }
         .page-header p { color: #666; margin: 8px 0 0 0; font-size: 1rem; }
-        .search-wrap { display: flex; align-items: center; gap: 12px; }
+        .search-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .search-wrap input { padding: 10px 16px; border: 2px solid #e3f2fd; border-radius: 8px; font-size: 1rem; min-width: 220px; }
         .search-wrap input:focus { outline: none; border-color: #1976d2; }
         .companies-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
@@ -158,8 +233,35 @@ function formatDate($d) {
         .count-badge .label { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
         .empty-state { text-align: center; padding: 48px 24px; color: #666; background: #f8f9fa; border-radius: 12px; }
         .empty-state i { font-size: 3rem; color: #90caf9; margin-bottom: 16px; }
+        .companies-section-title { color: #233a8b; font-size: 1.15rem; font-weight: 700; margin: 28px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #e3f2fd; }
+        .companies-section-title:first-of-type { margin-top: 0; }
+        .count-badge-pending { border-left-color: #e65100; background: linear-gradient(135deg, #fff3e0, #fff8f0); }
+        .count-badge-pending .num { color: #e65100; }
+        .btn-verify { background: #233a8b; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .btn-verify:hover { filter: brightness(1.08); }
+        .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+        /* ~10 data rows + header, then scroll (verified & pending lists) */
+        .companies-table-wrap.companies-table-scroll {
+            max-height: 34rem;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            background: #fff;
+        }
+        .companies-table-wrap.companies-table-scroll .companies-table {
+            box-shadow: none;
+            margin: 0;
+        }
+        .companies-table-wrap.companies-table-scroll .companies-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            box-shadow: 0 1px 0 rgba(35,58,139,0.12);
+        }
     </style>
     <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
@@ -195,56 +297,105 @@ function formatDate($d) {
             <div class="page-header">
                 <div>
                     <h2>Companies</h2>
-                    <p>Registered companies; count badge shows <strong>verified</strong> (email confirmed) accounts.</p>
+                    <p>PESO-verified companies are listed first. <strong>Pending</strong> registrations appear below until you verify them; companies cannot log in until verified.</p>
                 </div>
                 <div class="search-wrap">
-                    <input type="text" id="companySearch" placeholder="Search by name or email..." autocomplete="off">
+                    <input type="text" id="companySearch" placeholder="Search name, email, or phone..." autocomplete="off">
                     <div class="count-badge">
                         <div class="num" id="companyCount"><?php echo (int) $verified_company_count; ?></div>
-                        <div class="label">Verified</div>
+                        <div class="label">PESO verified</div>
+                    </div>
+                    <div class="count-badge count-badge-pending">
+                        <div class="num" id="pendingCountDisplay"><?php echo (int) $pending_company_count; ?></div>
+                        <div class="label">Pending</div>
                     </div>
                 </div>
             </div>
 
-            <?php if (empty($companies)): ?>
+            <?php if (empty($companies_approved) && empty($companies_pending)): ?>
                 <div class="empty-state">
                     <i class="fas fa-building"></i>
                     <p style="font-size: 1.1rem; margin: 0;">No companies registered yet.</p>
                 </div>
             <?php else: ?>
-                <div class="companies-table-wrap">
-                <table class="companies-table" id="companiesTable">
+                <?php if (!empty($companies_approved)): ?>
+                <h3 class="companies-section-title">PESO verified</h3>
+                <div class="companies-table-wrap companies-table-scroll">
+                <table class="companies-table" id="companiesTableApproved">
                     <thead>
                         <tr>
                             <th>No.</th>
                             <th>Company Name</th>
                             <th>Email</th>
+                            <th>Contact number</th>
+                            <th>Telephone number</th>
                             <th>Status</th>
                             <th>Date Registered</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($companies as $i => $c): ?>
-                        <tr class="company-row" data-name="<?php echo htmlspecialchars(strtolower($c['company_name'] ?? '')); ?>" data-email="<?php echo htmlspecialchars(strtolower($c['email'] ?? '')); ?>" data-verified="<?php echo (isset($c['email_verified']) && (int)$c['email_verified'] === 1) ? '1' : '0'; ?>">
+                        <?php foreach ($companies_approved as $i => $c):
+                            $dn = strtolower((string) ($c['company_name'] ?? ''));
+                            $de = strtolower((string) ($c['email'] ?? ''));
+                            $contactShown = company_list_contact_display($c);
+                            $dc = strtolower($contactShown);
+                            $dt = strtolower((string) ($c['telephone_number'] ?? ''));
+                            ?>
+                        <tr class="company-row company-row-approved" data-name="<?php echo h($dn); ?>" data-email="<?php echo h($de); ?>" data-contact="<?php echo h($dc); ?>" data-tel="<?php echo h($dt); ?>">
                             <td data-label="No."><?php echo $i + 1; ?></td>
-                            <td data-label="Company"><?php echo htmlspecialchars($c['company_name'] ?? '—'); ?></td>
-                            <td data-label="Email"><a href="mailto:<?php echo htmlspecialchars($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo htmlspecialchars($c['email'] ?? '—'); ?></a></td>
-                            <td data-label="Status"><?php
-                                $ev = isset($c['email_verified']) ? (int)$c['email_verified'] : null;
-                                if ($ev === 1) {
-                                    echo '<span style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Verified</span>';
-                                } elseif ($ev === 0) {
-                                    echo '<span style="background:#fff3e0;color:#e65100;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Pending</span>';
-                                } else {
-                                    echo '<span style="color:#888;">—</span>';
-                                }
-                            ?></td>
+                            <td data-label="Company"><?php echo h($c['company_name'] ?? '—'); ?></td>
+                            <td data-label="Email"><a href="mailto:<?php echo h($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo h($c['email'] ?? '—'); ?></a></td>
+                            <td data-label="Contact number"><?php echo h($contactShown !== '' ? $contactShown : '—'); ?></td>
+                            <td data-label="Telephone number"><?php echo h(trim((string) ($c['telephone_number'] ?? '')) !== '' ? $c['telephone_number'] : '—'); ?></td>
+                            <td data-label="Status"><span style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Verified</span></td>
                             <td data-label="Registered"><?php echo formatDate($c['created_at'] ?? null); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
                 </div>
+                <?php endif; ?>
+
+                <?php if (!empty($companies_pending)): ?>
+                <h3 class="companies-section-title">Pending PESO verification</h3>
+                <div class="companies-table-wrap companies-table-scroll">
+                <table class="companies-table" id="companiesTablePending">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Company Name</th>
+                            <th>Email</th>
+                            <th>Contact number</th>
+                            <th>Telephone number</th>
+                            <th>Status</th>
+                            <th>Date Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($companies_pending as $i => $c):
+                            $dn = strtolower((string) ($c['company_name'] ?? ''));
+                            $de = strtolower((string) ($c['email'] ?? ''));
+                            $contactShown = company_list_contact_display($c);
+                            $dc = strtolower($contactShown);
+                            $dt = strtolower((string) ($c['telephone_number'] ?? ''));
+                            $cid = (int) ($c['id'] ?? 0);
+                            ?>
+                        <tr class="company-row company-row-pending" data-name="<?php echo h($dn); ?>" data-email="<?php echo h($de); ?>" data-contact="<?php echo h($dc); ?>" data-tel="<?php echo h($dt); ?>" data-company-id="<?php echo $cid; ?>">
+                            <td data-label="No."><?php echo $i + 1; ?></td>
+                            <td data-label="Company"><?php echo h($c['company_name'] ?? '—'); ?></td>
+                            <td data-label="Email"><a href="mailto:<?php echo h($c['email'] ?? ''); ?>" style="color:#1976d2;text-decoration:none;"><?php echo h($c['email'] ?? '—'); ?></a></td>
+                            <td data-label="Contact number"><?php echo h($contactShown !== '' ? $contactShown : '—'); ?></td>
+                            <td data-label="Telephone number"><?php echo h(trim((string) ($c['telephone_number'] ?? '')) !== '' ? $c['telephone_number'] : '—'); ?></td>
+                            <td data-label="Status"><span style="background:#fff3e0;color:#e65100;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Pending</span></td>
+                            <td data-label="Registered"><?php echo formatDate($c['created_at'] ?? null); ?></td>
+                            <td data-label="Actions"><button type="button" class="btn-verify" data-company-id="<?php echo $cid; ?>" data-company-name="<?php echo h($c['company_name'] ?? ''); ?>">Verify</button></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -275,24 +426,74 @@ function formatDate($d) {
             window.location.href = 'logout.php';
         };
 
-        // Search filter
+        function applyCompanySearch() {
+            var searchInput = document.getElementById('companySearch');
+            var term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            var rows = document.querySelectorAll('.company-row');
+            var visApproved = 0;
+            var visPending = 0;
+            rows.forEach(function(row) {
+                var name = row.getAttribute('data-name') || '';
+                var email = row.getAttribute('data-email') || '';
+                var contact = row.getAttribute('data-contact') || '';
+                var tel = row.getAttribute('data-tel') || '';
+                var match = !term || name.indexOf(term) >= 0 || email.indexOf(term) >= 0 || contact.indexOf(term) >= 0 || tel.indexOf(term) >= 0;
+                row.style.display = match ? '' : 'none';
+                if (match) {
+                    if (row.classList.contains('company-row-approved')) visApproved++;
+                    if (row.classList.contains('company-row-pending')) visPending++;
+                }
+            });
+            var countEl = document.getElementById('companyCount');
+            if (countEl) countEl.textContent = visApproved;
+            var pendEl = document.getElementById('pendingCountDisplay');
+            if (pendEl) pendEl.textContent = visPending;
+        }
+
         var searchInput = document.getElementById('companySearch');
         if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                var term = this.value.toLowerCase().trim();
-                var rows = document.querySelectorAll('.company-row');
-                var visible = 0;
-                rows.forEach(function(row) {
-                    var name = row.getAttribute('data-name') || '';
-                    var email = row.getAttribute('data-email') || '';
-                    var match = !term || name.indexOf(term) >= 0 || email.indexOf(term) >= 0;
-                    row.style.display = match ? '' : 'none';
-                    if (match && row.getAttribute('data-verified') === '1') visible++;
-                });
-                var countEl = document.getElementById('companyCount');
-                if (countEl) countEl.textContent = visible;
-            });
+            searchInput.addEventListener('input', applyCompanySearch);
         }
+
+        document.querySelectorAll('.btn-verify').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = parseInt(btn.getAttribute('data-company-id'), 10);
+                var cname = btn.getAttribute('data-company-name') || 'this company';
+                if (!id) return;
+                Swal.fire({
+                    title: 'Verify company?',
+                    text: 'Approve "' + cname + '" so they can log in. A confirmation email will be sent to their address.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Verify',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#233a8b'
+                }).then(function(res) {
+                    if (!res.isConfirmed) return;
+                    btn.disabled = true;
+                    Swal.fire({ title: 'Verifying…', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+                    fetch('verify_company_account.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ company_id: id }),
+                        credentials: 'same-origin'
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            Swal.fire({ title: 'Done', text: data.message || 'Verified.', icon: 'success', confirmButtonColor: '#233a8b' }).then(function() { location.reload(); });
+                        } else {
+                            btn.disabled = false;
+                            Swal.fire({ title: 'Error', text: data.message || 'Could not verify.', icon: 'error', confirmButtonColor: '#233a8b' });
+                        }
+                    })
+                    .catch(function() {
+                        btn.disabled = false;
+                        Swal.fire({ title: 'Error', text: 'Network error.', icon: 'error', confirmButtonColor: '#233a8b' });
+                    });
+                });
+            });
+        });
 
         // Hamburger menu (mobile)
         var hamburger = document.getElementById('hamburgerMenu');

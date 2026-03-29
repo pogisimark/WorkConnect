@@ -523,7 +523,7 @@
     </div>
 
     <div id="inAppBrowserBanner" class="inapp-browser-banner" role="region" aria-label="Browser tip" hidden>
-        You’re in an in-app browser (for example Messenger, Facebook, or Instagram). For full features, open this page in <strong>Chrome</strong> using the menu (<strong>⋮</strong> or <strong>Share</strong>) and choose “Open in browser” or similar.
+        You’re in an in-app browser (for example Messenger, Facebook, or Instagram). For full features, open this page in <strong>Chrome</strong> using the menu (<strong>⋮</strong> or <strong>Share</strong>) and choose “Open in Chrome” or similar.
         <button type="button" class="inapp-browser-banner__close" id="inAppBrowserBannerClose" aria-label="Dismiss this message">&times;</button>
     </div>
 

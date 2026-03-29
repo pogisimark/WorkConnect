@@ -18,7 +18,7 @@ if ($conn) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkConnect BTEC Monthly Report</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -2651,9 +2651,7 @@ if ($conn) {
         document.body.classList.remove('print-mode');
     }
     
-    function exportReport() {
-        // Enhanced Excel export with proper formatting
-        const table = document.querySelector('.btec-table');
+    async function exportReport() {
         const year = document.getElementById('year').value || 'Unknown';
         const month1 = document.getElementById('month1').value;
         const month2 = document.getElementById('month2').value;
@@ -2680,8 +2678,12 @@ if ($conn) {
         // Prepare data for export
         const exportData = prepareExportData();
         
-        // Create Excel file with proper formatting
-        createFormattedExcel(exportData, filename, year, selectedMonths, barangay, cityMunicipality);
+        try {
+            await createFormattedExcel(exportData, filename, year, selectedMonths, barangay, cityMunicipality);
+        } catch (err) {
+            console.error(err);
+            alert('Export failed. Please refresh the page and try again.');
+        }
     }
     
     function prepareExportData() {
@@ -2694,33 +2696,27 @@ if ($conn) {
             const rowData = [];
             
             cells.forEach((cell, cellIndex) => {
+                const inputEl = cell.querySelector('input:not([type="hidden"])');
                 const select = cell.querySelector('select');
                 let cellValue = '';
-                
-                if (select) {
+
+                if (inputEl) {
+                    cellValue = inputEl.value || '';
+                } else if (select) {
                     cellValue = select.value || '';
                 } else {
                     cellValue = cell.textContent.trim();
                 }
-                
-                // Clean up cell value and handle special cases
+
                 cellValue = cellValue.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-                
-                // Handle empty cells and special characters
                 if (cellValue === '' || cellValue === 'undefined' || cellValue === 'null') {
                     cellValue = '';
                 }
-                
-                // Special handling for skills display - format it properly
+
                 if (cellValue.includes('Registered Skills:') && cellValue !== 'Registered Skills: No data found') {
                     cellValue = formatSkillsForExcel(cellValue);
                 }
-                
-                // Escape commas and quotes for proper CSV handling
-                if (cellValue.includes(',') || cellValue.includes('"')) {
-                    cellValue = '"' + cellValue.replace(/"/g, '""') + '"';
-                }
-                
+
                 rowData.push(cellValue);
             });
             
@@ -2775,204 +2771,307 @@ if ($conn) {
         
         return `Registered Skills: ${skills.join(', ')}`;
     }
-    
-    function createFormattedExcel(data, filename, year, months, barangay, cityMunicipality) {
-        // Create a new workbook
-        const wb = XLSX.utils.book_new();
-        
-        // Prepare worksheet data with proper formatting
+
+    function btecParseSkillsFromDom() {
+        const el = document.getElementById('skills-list');
+        const raw = el ? el.textContent.trim() : '';
+        if (!raw || raw === 'No data found') return [];
+        const out = [];
+        const re = /([^,]+?)\s*\((\d+)\)/g;
+        let m;
+        while ((m = re.exec(raw)) !== null) {
+            out.push({ name: m[1].trim(), count: parseInt(m[2], 10) || 0 });
+        }
+        return out;
+    }
+
+    function btecIsSectionBannerText(s) {
+        if (!s || typeof s !== 'string') return false;
+        const t = s.trim();
+        return /^(A\.|B\.)\s/.test(t) ||
+            t.includes('Posting of Job Vacancies') ||
+            t.includes('Skills Training Assisted') ||
+            t.includes('Livelihood Program') ||
+            t.includes('Career Guidance Seminar') ||
+            t.includes('Employment Coaching') ||
+            t.includes('Age:') ||
+            t.includes('Marital Status:') ||
+            t.includes('Educational Attainment:') ||
+            t.includes('Employment Status:') ||
+            t.includes('Length of Service') ||
+            t.includes('Job Seekers:') ||
+            t.includes('No. of Skills Registered');
+    }
+
+    function btecThinBorder() {
+        const c = { argb: 'FFCCCCCC' };
+        return {
+            top: { style: 'thin', color: c },
+            left: { style: 'thin', color: c },
+            bottom: { style: 'thin', color: c },
+            right: { style: 'thin', color: c }
+        };
+    }
+
+    async function createFormattedExcel(data, filename, year, months, barangay, cityMunicipality) {
+        if (typeof ExcelJS === 'undefined') {
+            alert('Excel library failed to load. Check your connection and refresh the page.');
+            return;
+        }
+
+        const monthCount = months.length > 0 ? months.length : 1;
+        const maxColCount = Math.max(8, 1 + monthCount * 2 + 1);
+
         const wsData = [];
-        
-        // Add report header
         wsData.push(['BTEC MONTHLY REPORT']);
-        wsData.push([]); // Empty row
+        wsData.push([]);
         wsData.push(['City/Municipality:', cityMunicipality]);
         wsData.push(['Barangay:', barangay]);
         wsData.push(['Year:', year]);
-        wsData.push(['Months:', months.join(', ')]);
-        wsData.push(['Generated on:', new Date().toLocaleDateString()]);
-        wsData.push([]); // Empty row
-        
-        // Create proper table structure matching the web interface
-        
-        // Add table headers with proper structure
+        wsData.push(['Months:', months.length ? months.join(', ') : '(none selected)']);
+        wsData.push(['Generated on:', new Date().toLocaleString()]);
+        wsData.push([]);
+
         const headerRow1 = ['ACTIVITIES'];
-        const headerRow2 = ['']; // Empty for activities column
-        
-        // Add month headers with proper structure
+        const headerRow2 = [''];
         months.forEach(month => {
             headerRow1.push(`Month: ${month}`);
-            headerRow1.push(''); // Empty cell for the second column of each month
+            headerRow1.push('');
             headerRow2.push('Total');
             headerRow2.push('Female');
         });
-        
-        // If no months selected, add default structure
         if (months.length === 0) {
             headerRow1.push('Month: [Select Month]');
             headerRow1.push('');
             headerRow2.push('Total');
             headerRow2.push('Female');
         }
-        
-        // Add programs/projects header
         headerRow1.push('PROGRAMS/PROJECTS');
-        headerRow2.push(''); // Empty for programs column
-        
+        headerRow2.push('');
+
         wsData.push(headerRow1);
         wsData.push(headerRow2);
-        
-        // Add table data with proper structure
+
         data.forEach((row, rowIndex) => {
-            if (row.length > 0) {
-                // Skip the original header rows from the web table
-                if (rowIndex > 1) { // Skip the first two header rows from web table
-                    wsData.push(row);
-                }
+            if (row.length > 0 && rowIndex > 1) {
+                wsData.push(row);
             }
         });
-        
-        // Create worksheet
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        
-        // Set column widths for better display and prevent cutoff
-        const colWidths = [
-            { wch: 40 }, // Activities column - wider for long text
-        ];
-        
-        // Add widths for each month (2 columns per month)
-        const monthCount = months.length > 0 ? months.length : 1; // Default to 1 if no months
-        for (let i = 0; i < monthCount; i++) {
-            colWidths.push({ wch: 15 }); // Total column
-            colWidths.push({ wch: 15 }); // Female column
+
+        const skills = btecParseSkillsFromDom();
+
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'WorkConnect';
+        wb.created = new Date();
+        const ws = wb.addWorksheet('BTEC Report', {
+            properties: { defaultRowHeight: 18 },
+            /* Freeze top rows only (no horizontal split — xSplit was making “half the sheet” scroll separately) */
+            views: [{
+                state: 'frozen',
+                xSplit: 0,
+                ySplit: 10,
+                topLeftCell: 'A11',
+                activeCell: 'A11'
+            }]
+        });
+
+        const border = btecThinBorder();
+        const padRow = (arr) => {
+            const copy = arr.slice();
+            while (copy.length < maxColCount) copy.push('');
+            return copy;
+        };
+
+        wsData.forEach((rowArr, rIdx) => {
+            const excelRow = ws.getRow(rIdx + 1);
+            const padded = padRow(rowArr);
+            padded.forEach((val, cIdx) => {
+                const cell = excelRow.getCell(cIdx + 1);
+                let v = val;
+                if (v === undefined || v === null) v = '';
+                const str = String(v).trim();
+                if (str !== '' && /^-?\d+$/.test(str)) {
+                    cell.value = parseInt(str, 10);
+                } else {
+                    cell.value = v;
+                }
+                cell.border = border;
+                cell.alignment = { vertical: 'middle', wrapText: true };
+            });
+        });
+
+        ws.mergeCells(1, 1, 1, maxColCount);
+        const titleCell = ws.getCell(1, 1);
+        titleCell.value = 'BTEC MONTHLY REPORT';
+        titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF233A8B' } };
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        titleCell.border = border;
+
+        for (let r = 3; r <= 7; r++) {
+            ws.getRow(r).getCell(1).font = { bold: true, color: { argb: 'FF233A8B' } };
         }
-        
-        // Add width for programs/projects column
-        colWidths.push({ wch: 50 }); // Programs/Projects column
-        
-        ws['!cols'] = colWidths;
-        
-        // Set row heights for better readability
-        const rowHeights = [];
-        for (let i = 0; i < wsData.length; i++) {
-            if (i === 0) {
-                rowHeights.push({ hpt: 30 }); // Header row
-            } else if (i >= 7) { // Table data rows
-                rowHeights.push({ hpt: 20 }); // Slightly taller for better readability
-            } else {
-                rowHeights.push({ hpt: 18 }); // Standard height
+
+        const activitiesRowIdx = wsData.findIndex(row => row[0] === 'ACTIVITIES');
+        const headerR1 = activitiesRowIdx >= 0 ? activitiesRowIdx + 1 : 9;
+        const headerR2 = headerR1 + 1;
+
+        for (let c = 1; c <= maxColCount; c++) {
+            for (const rr of [headerR1, headerR2]) {
+                const hc = ws.getRow(rr).getCell(c);
+                hc.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+                hc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF233A8B' } };
+                hc.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                hc.border = border;
             }
         }
-        ws['!rows'] = rowHeights;
-        
-        // Apply formatting to cells
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        
-        // Style the header row (row 0)
-        for (let col = range.s.c; col <= range.e.c; col++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-            if (!ws[cellAddress]) ws[cellAddress] = { v: '' };
-            ws[cellAddress].s = {
-                font: { bold: true, size: 16, color: { rgb: "FFFFFF" } },
-                fill: { fgColor: { rgb: "233A8B" } },
-                alignment: { horizontal: "center", vertical: "center" },
-                border: {
-                    top: { style: "thin", color: { rgb: "000000" } },
-                    bottom: { style: "thin", color: { rgb: "000000" } },
-                    left: { style: "thin", color: { rgb: "000000" } },
-                    right: { style: "thin", color: { rgb: "000000" } }
+
+        const lastDataRow = wsData.length;
+        for (let r = headerR2 + 1; r <= lastDataRow; r++) {
+            const row = ws.getRow(r);
+            const aVal = row.getCell(1).value;
+            const aStr = aVal != null ? String(aVal) : '';
+            const isSection = btecIsSectionBannerText(aStr);
+            const isNumericCol = (c) => c > 1 && c <= 1 + monthCount * 2;
+            const isRegisteredSkillsRow = aStr.includes('Registered Skills:');
+            const isSkillsExamplesRow = aStr.includes('Examples:') && (
+                aStr.includes('Welding') || aStr.includes('Sewing') || aStr.includes('Carpentry')
+            );
+
+            if (isSection) {
+                try {
+                    ws.mergeCells(r, 1, r, maxColCount);
+                } catch (e) { /* ignore merge errors */ }
+                const sc = row.getCell(1);
+                sc.font = { bold: true, size: 11, color: { argb: 'FF1a3876' } };
+                sc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
+                sc.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+                continue;
+            }
+
+            if (isRegisteredSkillsRow || isSkillsExamplesRow) {
+                try {
+                    ws.mergeCells(r, 1, r, maxColCount);
+                } catch (e) { /* ignore */ }
+                const sc = row.getCell(1);
+                sc.font = { size: isRegisteredSkillsRow ? 10 : 9, color: { argb: 'FF333333' } };
+                sc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F9FF' } };
+                sc.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+                sc.border = border;
+                const estCharsPerLine = Math.max(55, Math.floor(44 * 0.85));
+                const lines = Math.max(2, Math.ceil(aStr.length / estCharsPerLine));
+                const extra = isRegisteredSkillsRow ? 28 : 18;
+                row.height = Math.min(360, Math.max(56, lines * 15 + extra));
+                if (isRegisteredSkillsRow && skills.length > 0) {
+                    sc.value = aStr + '\n\n→ Full list: worksheet «Registered Skills» (' + skills.length + ' skills).';
                 }
-            };
-        }
-        
-        // Find table start row (after header info)
-        const tableStartRow = wsData.length - data.length + 1; // After our custom headers
-        
-        // Style table headers and data
-        for (let row = tableStartRow; row <= range.e.r; row++) {
-            for (let col = range.s.c; col <= range.e.c; col++) {
-                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                if (!ws[cellAddress]) continue;
-                
-                const cell = ws[cellAddress];
-                const cellValue = cell.v || '';
-                
-                // Determine cell styling based on content
-                let cellStyle = {
-                    alignment: { horizontal: "left", vertical: "center", wrapText: true },
-                    border: {
-                        top: { style: "thin", color: { rgb: "000000" } },
-                        bottom: { style: "thin", color: { rgb: "000000" } },
-                        left: { style: "thin", color: { rgb: "000000" } },
-                        right: { style: "thin", color: { rgb: "000000" } }
+                for (let c = 2; c <= maxColCount; c++) {
+                    row.getCell(c).border = border;
+                }
+                continue;
+            }
+
+            const zebra = (r - headerR2) % 2 === 0;
+            for (let c = 1; c <= maxColCount; c++) {
+                const cell = row.getCell(c);
+                if (c === 1) {
+                    cell.font = { size: 10 };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: zebra ? 'FFF8F9FA' : 'FFFFFFFF' } };
+                    cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+                } else if (c === maxColCount) {
+                    cell.font = { size: 9, color: { argb: 'FF6C757D' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+                    cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+                } else if (isNumericCol(c)) {
+                    const v = cell.value;
+                    const isNum = typeof v === 'number' || (v != null && String(v).trim() !== '' && !isNaN(Number(v)));
+                    cell.font = { bold: true, size: 11, color: { argb: 'FF233A8B' } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    if (isNum) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F4FD' } };
+                    } else {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: zebra ? 'FFF8F9FA' : 'FFFFFFFF' } };
                     }
-                };
-                
-                // Style section headers (A. SUMMARY, B. SRS/PEIS)
-                if (cellValue.includes('A. SUMMARY') || cellValue.includes('B. SRS/PEIS')) {
-                    cellStyle.font = { bold: true, size: 12, color: { rgb: "233A8B" } };
-                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
-                    cellStyle.alignment.horizontal = "left";
+                } else {
+                    cell.font = { size: 10 };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 }
-                // Style subsection headers
-                else if (cellValue.includes('Posting of Job Vacancies') || 
-                         cellValue.includes('Skills Training Assisted') ||
-                         cellValue.includes('Livelihood Program Beneficiaries') ||
-                         cellValue.includes('Career Guidance Seminar') ||
-                         cellValue.includes('Employment Coaching') ||
-                         cellValue.includes('Age:') ||
-                         cellValue.includes('Marital Status:') ||
-                         cellValue.includes('Educational Attainment:') ||
-                         cellValue.includes('Employment Status:') ||
-                         cellValue.includes('Length of Service') ||
-                         cellValue.includes('Job Seekers:') ||
-                         cellValue.includes('No. of Skills Registered')) {
-                    cellStyle.font = { bold: true, size: 11, color: { rgb: "495057" } };
-                    cellStyle.fill = { fgColor: { rgb: "E9ECEF" } };
-                    cellStyle.alignment.horizontal = "left";
-                }
-                // Style table headers (Month headers, Total, Female)
-                else if (row === tableStartRow || row === tableStartRow + 1) {
-                    cellStyle.font = { bold: true, size: 10, color: { rgb: "FFFFFF" } };
-                    cellStyle.fill = { fgColor: { rgb: "233A8B" } };
-                    cellStyle.alignment.horizontal = "center";
-                }
-                // Style activity names
-                else if (col === 0 && cellValue && !cellValue.includes('A.') && !cellValue.includes('B.')) {
-                    cellStyle.font = { bold: false, size: 10 };
-                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
-                    cellStyle.alignment.horizontal = "left";
-                }
-                // Style data cells (numeric values) - check if it's a data column (not activities or programs)
-                else if (col > 0 && col < (1 + monthCount * 2) && cellValue && !isNaN(cellValue) && cellValue !== '') {
-                    cellStyle.font = { bold: true, size: 11, color: { rgb: "233A8B" } };
-                    cellStyle.alignment.horizontal = "center";
-                    cellStyle.fill = { fgColor: { rgb: "F0F8FF" } }; // Light blue background for data
-                }
-                // Style programs/projects column (last column)
-                else if (col === (1 + monthCount * 2)) {
-                    cellStyle.font = { size: 9, color: { rgb: "6C757D" } };
-                    cellStyle.fill = { fgColor: { rgb: "F8F9FA" } };
-                    cellStyle.alignment.horizontal = "left";
-                }
-                // Default styling
-                else {
-                    cellStyle.font = { size: 10 };
-                    cellStyle.alignment.horizontal = "left";
-                }
-                
-                cell.s = cellStyle;
+                cell.border = border;
             }
         }
-        
-        // Add freeze panes to keep headers visible
-        ws['!freeze'] = { xSplit: 0, ySplit: tableStartRow + 2 };
-        
-        // Add the worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'BTEC Report');
-        
-        // Generate and download the file
-        XLSX.writeFile(wb, filename);
+
+        ws.columns = [];
+        ws.getColumn(1).width = 44;
+        for (let i = 0; i < monthCount; i++) {
+            ws.getColumn(2 + i * 2).width = 12;
+            ws.getColumn(3 + i * 2).width = 12;
+        }
+        ws.getColumn(maxColCount).width = 48;
+
+        const wsSkills = wb.addWorksheet('Registered Skills', {
+            properties: { defaultRowHeight: 18 },
+            views: [{
+                state: 'frozen',
+                xSplit: 0,
+                ySplit: 2,
+                topLeftCell: 'A3',
+                activeCell: 'A3'
+            }]
+        });
+        wsSkills.mergeCells(1, 1, 1, 3);
+        const skTitle = wsSkills.getCell(1, 1);
+        skTitle.value = 'Registered Skills — ' + (barangay || '') + ' — ' + year;
+        skTitle.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        skTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF233A8B' } };
+        skTitle.alignment = { horizontal: 'center', vertical: 'middle' };
+        skTitle.border = border;
+
+        wsSkills.getRow(2).values = ['Skill', 'Count', 'Notes'];
+        [1, 2, 3].forEach(c => {
+            const cell = wsSkills.getRow(2).getCell(c);
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1976D2' } };
+            cell.alignment = { horizontal: c === 2 ? 'center' : 'left', vertical: 'middle' };
+            cell.border = border;
+        });
+
+        if (skills.length === 0) {
+            wsSkills.mergeCells(3, 1, 3, 3);
+            const emptyCell = wsSkills.getRow(3).getCell(1);
+            emptyCell.value = 'No skills in report for this selection.';
+            emptyCell.font = { italic: true, color: { argb: 'FF888888' } };
+            emptyCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+            emptyCell.border = border;
+        } else {
+            skills.forEach((s, i) => {
+                const row = wsSkills.getRow(3 + i);
+                row.getCell(1).value = s.name;
+                row.getCell(2).value = s.count;
+                row.getCell(3).value = '';
+                [1, 2, 3].forEach(c => {
+                    const cell = row.getCell(c);
+                    cell.border = border;
+                    cell.alignment = { vertical: 'middle', wrapText: true, horizontal: c === 2 ? 'center' : 'left' };
+                    if (i % 2 === 1) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                    }
+                });
+            });
+        }
+        wsSkills.getColumn(1).width = 40;
+        wsSkills.getColumn(2).width = 10;
+        wsSkills.getColumn(3).width = 24;
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     }
     </script>
 

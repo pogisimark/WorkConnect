@@ -163,6 +163,17 @@ $conn->close();
             return d.toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
         }
         function escapeHtml(t) { if (!t) return ''; var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        /** DB/JSON sometimes stores the two characters \ and n instead of a real newline — normalize then escape. */
+        function formatMultilineMessage(t) {
+            if (t == null || String(t).trim() === '') return '';
+            var s = String(t)
+                .replace(/\\r\\n/g, '\n')
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\n');
+            return escapeHtml(s);
+        }
+        var messageBoxStyle = 'background:#f5f5f5;padding:12px;border-radius:6px;margin-bottom:10px;font-size:0.9rem;white-space:pre-wrap;word-break:break-word;';
+        var responseBoxStyle = 'background:#e8f5e9;padding:12px;border-radius:6px;margin-bottom:8px;font-size:0.9rem;white-space:pre-wrap;word-break:break-word;';
 
         function loadCompanies() {
             fetch('get_companies.php').then(function(r) { return r.json(); }).then(function(data) {
@@ -237,9 +248,9 @@ $conn->close();
                 fullHtml += '<p style="font-size:0.85rem;color:#666;margin:0 0 10px 0;">To: <strong>' + escapeHtml(r.company_name) + '</strong> · ' + dateStr + ' (PH time) <span class="badge badge-' + r.status + '">' + (isPending ? 'Pending' : 'Answered') + '</span>';
                 if (!isPending && unreadReply) fullHtml += ' <span style="font-size:0.75rem;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-weight:600;">New reply</span>';
                 fullHtml += '</p>';
-                fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Your message:</p><div style="background:#f5f5f5;padding:12px;border-radius:6px;margin-bottom:10px;font-size:0.9rem;">' + (r.message && r.message.trim() ? escapeHtml(r.message) : '<em style="color:#999;">No message</em>') + '</div>';
+                fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Your message:</p><div style="' + messageBoxStyle + '">' + (r.message && r.message.trim() ? formatMultilineMessage(r.message) : '<em style="color:#999;">No message</em>') + '</div>';
                 if (!isPending && r.company_response) {
-                    fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Company response:</p><div style="background:#e8f5e9;padding:12px;border-radius:6px;margin-bottom:8px;font-size:0.9rem;">' + escapeHtml(r.company_response) + '</div>';
+                    fullHtml += '<p style="color:#666;margin-bottom:6px;font-size:0.9rem;">Company response:</p><div style="' + responseBoxStyle + '">' + formatMultilineMessage(r.company_response) + '</div>';
                     if (r.responded_at) fullHtml += '<p style="font-size:0.8rem;color:#666;margin:0;">Responded: ' + formatPhTime(r.responded_at) + ' (PH time)</p>';
                 } else if (isPending) fullHtml += '<p style="color:#856404;font-size:0.9rem;margin:0;">Awaiting company response.</p>';
                 fullHtml += '<div class="card-actions-ac"><div class="left"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" class="ac-checkbox" value="' + r.id + '"> Select</label></div>';

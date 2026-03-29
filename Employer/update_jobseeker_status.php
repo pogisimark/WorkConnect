@@ -185,11 +185,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         $verified_ids = [];
-        $evColChk = $conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
-        $hasEmailVerifiedCol = $evColChk && $evColChk->num_rows > 0;
-        $vSql = $hasEmailVerifiedCol
-            ? "SELECT id FROM company_users WHERE id = ? AND COALESCE(email_verified, 0) = 1"
-            : "SELECT id FROM company_users WHERE id = ?";
+        $pesoColChk = $conn->query("SHOW COLUMNS FROM company_users LIKE 'peso_verified'");
+        if ($pesoColChk && $pesoColChk->num_rows > 0) {
+            $vSql = "SELECT id FROM company_users WHERE id = ? AND COALESCE(peso_verified, 0) = 1";
+        } else {
+            $evColChk = $conn->query("SHOW COLUMNS FROM company_users LIKE 'email_verified'");
+            $hasEmailVerifiedCol = $evColChk && $evColChk->num_rows > 0;
+            $vSql = $hasEmailVerifiedCol
+                ? "SELECT id FROM company_users WHERE id = ? AND COALESCE(email_verified, 0) = 1"
+                : "SELECT id FROM company_users WHERE id = ?";
+        }
         $vstmt = $conn->prepare($vSql);
         foreach ($company_ids as $cid) {
             $vstmt->bind_param("i", $cid);
@@ -203,7 +208,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (count($verified_ids) !== count($company_ids)) {
             ob_clean();
-            echo json_encode(['success' => false, 'message' => 'One or more companies are invalid or have not verified their email.']);
+            echo json_encode(['success' => false, 'message' => 'One or more companies are invalid or are not approved by PESO for referrals.']);
             exit;
         }
         $company_ids = $verified_ids;

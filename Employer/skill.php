@@ -7,6 +7,36 @@ require_once __DIR__ . '/db.php';
 $follow_up_pending_count = fu_get_pending_follow_up_count($conn);
 $acfu_unread_count = acfu_get_unread_response_count($conn);
 $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
+
+$skill_registry_counts = [];
+if ($conn) {
+    $cntRes = @$conn->query("SELECT barangay, COUNT(*) AS c FROM skill_registry GROUP BY barangay");
+    if ($cntRes) {
+        while ($cr = $cntRes->fetch_assoc()) {
+            $key = trim((string) ($cr['barangay'] ?? ''));
+            if ($key !== '') {
+                $skill_registry_counts[$key] = (int) $cr['c'];
+            }
+        }
+    }
+}
+
+$skill_registry_barangays = [
+    ['Bangkal', 'bangkal logo.png'],
+    ['Baraka', 'baraka logo.png'],
+    ['Bigte', 'bigte logo.png'],
+    ['Bitungol', 'bitungol logo.png'],
+    ['Friendship Village Resources (FVR)', 'fvr logo.png'],
+    ['Matictic', 'matictic logo.png'],
+    ['Minuyan', 'minuyan logo.png'],
+    ['Partida', 'partida logo.png'],
+    ['Pinagtulayan', 'pinagtulayan logo.png'],
+    ['Poblacion', 'poblacion logo.png'],
+    ['San Lorenzo', 'san lorenzo logo.png'],
+    ['San Mateo', 'san mateo logo.png'],
+    ['Tigbe', 'tigbe logo.png'],
+];
+
 if ($conn) {
     $conn->close();
 }
@@ -798,27 +828,98 @@ if ($conn) {
     overflow-y: auto;
     box-sizing: border-box;
 }
+    .skill-registry-barangay-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 16px;
+        margin-top: 8px;
+        margin-bottom: 4px;
+        padding: 0 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .skill-registry-barangay-toolbar label {
+        font-weight: 600;
+        color: #233a8b;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    #barangaySearch {
+        flex: 1;
+        min-width: 200px;
+        max-width: min(100%, 480px);
+        padding: 10px 14px;
+        border: 2px solid #e3f2fd;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+    #barangaySearch:focus {
+        outline: none;
+        border-color: #90caf9;
+    }
+    #barangaySearchHint {
+        font-size: 0.85rem;
+        color: #666;
+        min-height: 1.2em;
+    }
     .barangay-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 24px;
-        margin-top: 24px;
-        padding: 0 16px;
+        gap: 18px;
+        margin-top: 16px;
+        padding: 0 8px;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+    }
+    /* 13 barangays: 5 + 5 + 3; full content width on desktop so cards expand horizontally */
+    @media (min-width: 900px) {
+        .skill-registry-barangay-toolbar {
+            padding: 0;
+        }
+        .barangay-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            width: 100%;
+            max-width: none;
+            margin-left: 0;
+            margin-right: 0;
+            padding: 0;
+            gap: 20px 22px;
+        }
+    }
+    @media (min-width: 1200px) {
+        .barangay-grid {
+            gap: 22px 28px;
+        }
+        .barangay-card {
+            min-height: 176px;
+            padding: 22px 16px 18px 16px;
+        }
+        .barangay-card img {
+            width: 80px;
+            height: 80px;
+        }
+        .barangay-name {
+            font-size: 1.05rem;
+        }
+        .barangay-registry-count {
+            font-size: 0.78rem;
+        }
     }
     .barangay-card {
         background: #e3f2fd;
-        border-radius: 20px;
+        border-radius: 16px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 24px 16px 20px 16px;
+        padding: 18px 12px 14px 12px;
         box-shadow: 0 4px 20px rgba(35,58,139,0.08);
         border: 1px solid #bbdefb;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         position: relative;
         overflow: hidden;
-        min-height: 180px;
+        min-height: 158px;
     }
     .barangay-card::before {
         content: '';
@@ -855,27 +956,32 @@ if ($conn) {
         box-shadow: 0 6px 20px rgba(35,58,139,0.25);
     }
     .barangay-name {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 700;
         color: #233a8b;
         text-align: center;
         margin-top: 8px;
         line-height: 1.3;
-        padding: 0 8px;
+        padding: 0 6px;
     }
-    @media (max-width: 1400px) {
+    .barangay-registry-count {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #1565c0;
+        margin-top: 6px;
+        text-align: center;
+        line-height: 1.25;
+        opacity: 0.95;
+    }
+    @media (max-width: 899px) {
         .barangay-grid {
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            max-width: none;
         }
     }
-    @media (max-width: 1200px) {
+    @media (max-width: 600px) {
         .barangay-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-    }
-    @media (max-width: 900px) {
-        .barangay-grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
         @media (max-width: 768px) {
@@ -1531,64 +1637,29 @@ if ($conn) {
         </div>
         <div style="display: flex; gap: 12px; align-items: center;">
             <div style="background: linear-gradient(135deg, #e3f2fd, #f0f4ff); padding: 12px 20px; border-radius: 12px; border-left: 4px solid #1976d2;">
-                <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="barangayCount">13</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="barangayCount"><?php echo count($skill_registry_barangays); ?></div>
                 <div style="font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Barangays</div>
             </div>
         </div>
     </div>
+    <div class="skill-registry-barangay-toolbar">
+        <label for="barangaySearch">Find barangay</label>
+        <input type="search" id="barangaySearch" placeholder="Type to filter by name…" autocomplete="off" aria-label="Filter barangays by name">
+        <span id="barangaySearchHint"></span>
+    </div>
     <div class="barangay-grid">
-        <div class="barangay-card" data-barangay="Bangkal">
-            <img src="../assets/image/bangkal logo.png" alt="Bangkal">
-            <div class="barangay-name">Bangkal</div>
-        </div>
-        <div class="barangay-card" data-barangay="Baraka">
-            <img src="../assets/image/baraka logo.png" alt="Baraka">
-            <div class="barangay-name">Baraka</div>
-        </div>
-        <div class="barangay-card" data-barangay="Bigte">
-            <img src="../assets/image/bigte logo.png" alt="Bigte">
-            <div class="barangay-name">Bigte</div>
-        </div>
-        <div class="barangay-card" data-barangay="Bitungol">
-            <img src="../assets/image/bitungol logo.png" alt="Bitungol">
-            <div class="barangay-name">Bitungol</div>
-        </div>
-        <div class="barangay-card" data-barangay="Friendship Village Resources (FVR)">
-            <img src="../assets/image/fvr logo.png" alt="Friendship Village Resources (FVR)">
-            <div class="barangay-name">Friendship Village Resources (FVR)</div>
-        </div>
-        <div class="barangay-card" data-barangay="Matictic">
-            <img src="../assets/image/matictic logo.png" alt="Matictic">
-            <div class="barangay-name">Matictic</div>
-        </div>
-        <div class="barangay-card" data-barangay="Minuyan">
-            <img src="../assets/image/minuyan logo.png" alt="Minuyan">
-            <div class="barangay-name">Minuyan</div>
-        </div>
-        <div class="barangay-card" data-barangay="Partida">
-            <img src="../assets/image/partida logo.png" alt="Partida">
-            <div class="barangay-name">Partida</div>
-        </div>
-        <div class="barangay-card" data-barangay="Pinagtulayan">
-            <img src="../assets/image/pinagtulayan logo.png" alt="Pinagtulayan">
-            <div class="barangay-name">Pinagtulayan</div>
-        </div>
-        <div class="barangay-card" data-barangay="Poblacion">
-            <img src="../assets/image/poblacion logo.png" alt="Poblacion">
-            <div class="barangay-name">Poblacion</div>
-        </div>
-        <div class="barangay-card" data-barangay="San Lorenzo">
-            <img src="../assets/image/san lorenzo logo.png" alt="San Lorenzo">
-            <div class="barangay-name">San Lorenzo</div>
-        </div>
-        <div class="barangay-card" data-barangay="San Mateo">
-            <img src="../assets/image/san mateo logo.png" alt="San Mateo">
-            <div class="barangay-name">San Mateo</div>
-        </div>
-        <div class="barangay-card" data-barangay="Tigbe">
-            <img src="../assets/image/tigbe logo.png" alt="Tigbe">
-            <div class="barangay-name">Tigbe</div>
-        </div>
+        <?php foreach ($skill_registry_barangays as $br): ?>
+            <?php
+            $bName = $br[0];
+            $bFile = $br[1];
+            $regCount = $skill_registry_counts[$bName] ?? 0;
+            ?>
+            <div class="barangay-card" data-barangay="<?php echo htmlspecialchars($bName, ENT_QUOTES, 'UTF-8'); ?>">
+                <img src="../assets/image/<?php echo htmlspecialchars($bFile, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($bName, ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="barangay-name"><?php echo htmlspecialchars($bName); ?></div>
+                <div class="barangay-registry-count"><?php echo $regCount; ?> registry <?php echo $regCount === 1 ? 'entry' : 'entries'; ?></div>
+            </div>
+        <?php endforeach; ?>
     </div>
     <!-- Modal for barangay form -->
     <div class="modal" id="barangayModal">
@@ -2283,6 +2354,26 @@ if (table) {
 const modal = document.getElementById('barangayModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const barangayTitle = document.getElementById('barangayModalTitle');
+(function initBarangaySearch() {
+    const search = document.getElementById('barangaySearch');
+    if (!search) return;
+    function applyBarangayFilter() {
+        const q = (search.value || '').trim().toLowerCase();
+        let n = 0;
+        document.querySelectorAll('.barangay-card').forEach(function (card) {
+            const name = (card.getAttribute('data-barangay') || '').toLowerCase();
+            const show = !q || name.indexOf(q) !== -1;
+            card.style.display = show ? '' : 'none';
+            if (show) n++;
+        });
+        const hint = document.getElementById('barangaySearchHint');
+        if (hint) {
+            hint.textContent = q ? (n + ' match' + (n === 1 ? '' : 'es')) : '';
+        }
+    }
+    search.addEventListener('input', applyBarangayFilter);
+    search.addEventListener('search', applyBarangayFilter);
+})();
 const cards = document.querySelectorAll('.barangay-card');
 let barangayTable = document.querySelector('.barangay-table-form');
 let editMode = false;

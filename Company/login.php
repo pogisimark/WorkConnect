@@ -11,8 +11,10 @@ header('Expires: 0');
 
 require_once 'db.php';
 require_once 'company_verification_schema.php';
+require_once 'company_peso_schema.php';
 
 ensureCompanyVerificationSchema($conn);
+ensureCompanyPesoSchema($conn);
 
 // If already authenticated, skip login page.
 if (isset($_SESSION['logged_in']) && isset($_SESSION['company_id']) && isset($_SESSION['email']) && isset($_SESSION['company_name'])) {
@@ -31,16 +33,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($email) || empty($password)) {
         $error_message = "Email and password are required.";
     } else {
-        // Check company credentials
-        $stmt = $conn->prepare("SELECT id, company_name, email, password, email_verified FROM company_users WHERE email = ?");
-        $stmt->bind_param("s", $email);
+        $hasPeso = companyHasPesoColumn($conn);
+        $sql = $hasPeso
+            ? 'SELECT id, company_name, email, password, email_verified, COALESCE(peso_verified, 0) AS peso_verified FROM company_users WHERE email = ?'
+            : 'SELECT id, company_name, email, password, email_verified FROM company_users WHERE email = ?';
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('s', $email);
         $stmt->execute();
         $result = $stmt->get_result();
         
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
             if (password_verify($password, $user['password'])) {
-                if (isset($user['email_verified']) && (int)$user['email_verified'] !== 1) {
+                if ($hasPeso && (int) ($user['peso_verified'] ?? 0) !== 1) {
+                    $error_message = 'Your account is pending PESO verification. You will receive an email when your company is approved and you can log in.';
+                } elseif (!$hasPeso && isset($user['email_verified']) && (int) $user['email_verified'] !== 1) {
                     $show_verify_swal = true;
                     $verify_swal_email = $email;
                 } else {
@@ -92,7 +99,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php
         $show_url_success = ($_SERVER['REQUEST_METHOD'] !== 'POST' && !empty($_GET['success']));
         ?>
-        <?php if ($show_url_success && $_GET['success'] === 'verify_sent'): ?>
+        <?php if ($show_url_success && $_GET['success'] === 'pending_peso'): ?>
+            <div class="success-message">Registration received! Check your email — you must wait for <strong>PESO to verify</strong> your company before you can log in.</div>
+        <?php elseif ($show_url_success && $_GET['success'] === 'verify_sent'): ?>
             <div class="success-message">Account created! Check your email and click the verification link before logging in.</div>
         <?php elseif ($show_url_success && $_GET['success'] === 'account_created'): ?>
             <div class="success-message">Account created successfully! You can now login with your credentials.</div>

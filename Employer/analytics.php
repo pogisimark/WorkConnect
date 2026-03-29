@@ -167,6 +167,46 @@ if ($conn) {
             height: 280px;
             min-height: 0;
         }
+
+        /* Barangay leaderboard: flex so few cards stretch full width; many wrap (up to ~13) */
+        .analytics-barangay-leaderboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        .analytics-barangay-leaderboard .analytics-barangay-lb-card {
+            flex: 1 1 160px;
+            min-width: 0;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+        @media (min-width: 768px) {
+            .analytics-barangay-leaderboard .analytics-barangay-lb-card {
+                flex: 1 1 200px;
+            }
+        }
+        /* Bar chart: full-width canvas like other analytics charts */
+        .analytics-barangay-chart-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            height: 300px;
+            box-sizing: border-box;
+        }
+        .analytics-barangay-chart-wrap canvas {
+            display: block;
+            max-width: 100% !important;
+        }
+        @media (min-width: 1200px) {
+            .analytics-barangay-chart-wrap {
+                height: 360px;
+            }
+        }
         
         .analytics-line-chart-wrap canvas,
         .analytics-doughnut-chart-wrap canvas {
@@ -391,21 +431,25 @@ if ($conn) {
                 overflow-x: clip;
             }
             
-            .main-content > div:first-child {
+            .analytics-dashboard-header > div:first-child {
+                display: flex;
                 flex-direction: column;
                 gap: 16px;
-                align-items: flex-start;
+                align-items: stretch;
             }
-            
-            .main-content > div:first-child > div:last-child {
+            .analytics-dashboard-header > div:first-child > div:last-child {
+                margin-left: 0;
+                justify-content: center;
                 align-self: stretch;
             }
-            
-            .main-content > div:first-child h2 {
+            .analytics-dashboard-actions {
+                justify-content: center;
+                width: 100%;
+            }
+            .analytics-dashboard-header h2 {
                 font-size: 1.5rem;
             }
-            
-            .main-content > div:first-child p {
+            .analytics-dashboard-header > div:first-child p {
                 font-size: 1rem;
             }
             
@@ -631,11 +675,10 @@ if ($conn) {
                 padding: 16px;
             }
             
-            .main-content > div:first-child h2 {
+            .analytics-dashboard-header h2 {
                 font-size: 1.3rem;
             }
-            
-            .main-content > div:first-child p {
+            .analytics-dashboard-header > div:first-child p {
                 font-size: 0.9rem;
             }
             
@@ -799,8 +842,493 @@ if ($conn) {
                 padding-right: 20px !important;
             }
         }
+
+        /* Top skills per barangay — responsive grid for all barangays (e.g. 13), up to 10 skills each */
+        .analytics-barangay-top-skills {
+            background: rgba(76, 175, 80, 0.06);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(76, 175, 80, 0.14);
+            margin-top: 24px;
+            box-shadow: 0 2px 12px rgba(27, 94, 32, 0.06);
+        }
+        .analytics-bts-title {
+            margin: 0 0 8px 0;
+            color: #2e7d32;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .analytics-bts-sub {
+            margin: 0 0 18px 0;
+            color: #555;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            max-width: 72ch;
+        }
+        .analytics-barangay-top-skills-grid {
+            display: grid;
+            gap: 14px;
+            min-width: 0;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+        }
+        /* Desktop/tablet: auto-fit stretches few cards across full width; adds columns as more barangays appear */
+        @media (min-width: 640px) {
+            .analytics-barangay-top-skills-grid {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            }
+        }
+        @media (min-width: 992px) {
+            .analytics-barangay-top-skills-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            }
+        }
+        .analytics-bts-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fff9 100%);
+            border-radius: 12px;
+            border: 1px solid #c8e6c9;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08);
+            min-width: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .analytics-bts-card-head {
+            background: linear-gradient(135deg, #43a047, #2e7d32);
+            color: #fff;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-align: center;
+            letter-spacing: 0.02em;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .analytics-bts-card-body {
+            padding: 10px 12px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .analytics-bts-empty {
+            margin: 0;
+            color: #888;
+            font-size: 0.82rem;
+            text-align: center;
+            padding: 8px 4px;
+        }
+        .analytics-bts-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            background: rgba(76, 175, 80, 0.06);
+            border: 1px solid rgba(76, 175, 80, 0.1);
+            min-width: 0;
+        }
+
+        /* Employee email verification + verified NSRP (below top skills per barangay) */
+        .analytics-email-verification-row {
+            margin-top: 24px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(76, 175, 80, 0.18);
+        }
+        .analytics-ev-title {
+            margin: 0 0 8px 0;
+            color: #2e7d32;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        .analytics-ev-sub {
+            margin-bottom: 16px !important;
+        }
+        .analytics-ev-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+        }
+        .analytics-ev-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f9fff9 100%);
+            border-radius: 12px;
+            border: 1px solid #c8e6c9;
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08);
+            padding: 16px 18px;
+            text-align: center;
+        }
+        .analytics-ev-card-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #2e7d32;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+        .analytics-ev-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1b5e20;
+            line-height: 1.15;
+        }
+        .analytics-ev-card-desc {
+            margin: 8px 0 0 0;
+            font-size: 0.8rem;
+            color: #555;
+            line-height: 1.4;
+        }
+        .analytics-ev-footnote {
+            margin: 14px 0 0 0;
+            font-size: 0.8rem;
+            color: #777;
+            line-height: 1.45;
+            max-width: 72ch;
+        }
+        .analytics-ev-table-wrap {
+            margin-top: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            background: #fff;
+            overflow: hidden;
+        }
+        .analytics-ev-table-scroll {
+            max-height: 420px;
+            overflow: auto;
+        }
+        .analytics-ev-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .analytics-ev-table caption {
+            caption-side: top;
+            text-align: left;
+            padding: 12px 14px 10px;
+            font-weight: 600;
+            color: #2e7d32;
+            background: rgba(76, 175, 80, 0.08);
+            border-bottom: 1px solid rgba(76, 175, 80, 0.15);
+        }
+        .analytics-ev-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #e8f5e9;
+            color: #1b5e20;
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #c8e6c9;
+            white-space: nowrap;
+        }
+        .analytics-ev-table tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+            vertical-align: top;
+        }
+        .analytics-ev-table tbody td .analytics-ev-email-text {
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+        .analytics-ev-table tbody tr:nth-child(even) {
+            background: rgba(76, 175, 80, 0.04);
+        }
+        .analytics-ev-table tbody tr:hover {
+            background: rgba(76, 175, 80, 0.1);
+        }
+        .analytics-ev-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .analytics-ev-badge-yes {
+            background: #c8e6c9;
+            color: #1b5e20;
+        }
+        .analytics-ev-badge-no {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .analytics-ev-badge-na {
+            background: #eceff1;
+            color: #546e7a;
+        }
+
+        /* All User Accounts — compact on small screens (card rows, less padding) */
+        @media (max-width: 640px) {
+            .analytics-email-verification-row {
+                margin-top: 16px;
+                padding-top: 14px;
+            }
+            .analytics-ev-title {
+                font-size: 0.95rem;
+            }
+            .analytics-ev-sub.analytics-ev-sub {
+                font-size: 0.8rem !important;
+                margin-bottom: 10px !important;
+                line-height: 1.35 !important;
+            }
+            .analytics-ev-grid {
+                gap: 8px;
+            }
+            .analytics-ev-card {
+                padding: 10px 12px;
+                border-radius: 10px;
+            }
+            .analytics-ev-card-label {
+                font-size: 0.65rem;
+                margin-bottom: 4px;
+                letter-spacing: 0.03em;
+            }
+            .analytics-ev-card-value {
+                font-size: 1.35rem;
+            }
+            .analytics-ev-card-desc {
+                font-size: 0.7rem;
+                margin-top: 4px;
+                line-height: 1.3;
+            }
+            .analytics-ev-footnote {
+                font-size: 0.74rem;
+                margin-top: 10px;
+            }
+            .analytics-ev-table-wrap {
+                margin-top: 12px;
+                border-radius: 10px;
+            }
+            .analytics-ev-table-scroll {
+                max-height: min(52vh, 380px);
+                overflow-x: hidden;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .analytics-ev-table {
+                font-size: 0.78rem;
+            }
+            .analytics-ev-table caption {
+                padding: 8px 10px 6px;
+                font-size: 0.88rem;
+            }
+            .analytics-ev-table thead {
+                display: none;
+            }
+            .analytics-ev-table tbody tr {
+                display: block;
+                margin-bottom: 8px;
+                padding: 8px 10px;
+                background: #fff;
+                border: 1px solid rgba(76, 175, 80, 0.2);
+                border-radius: 8px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            }
+            .analytics-ev-table tbody tr:nth-child(even) {
+                background: #fafefa;
+            }
+            .analytics-ev-table tbody td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                padding: 4px 0 !important;
+                border-bottom: none;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+                font-size: 0.76rem;
+                line-height: 1.3;
+                vertical-align: middle;
+            }
+            .analytics-ev-table tbody tr > td:first-child {
+                border-top: none;
+                padding-top: 0 !important;
+            }
+            .analytics-ev-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #2e7d32;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                flex-shrink: 0;
+                max-width: 42%;
+            }
+            .analytics-ev-table tbody td > span.analytics-ev-badge {
+                flex-shrink: 0;
+            }
+            .analytics-ev-table tbody td.analytics-ev-td-plain .analytics-ev-cell-val {
+                text-align: right;
+                flex: 1;
+                min-width: 0;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .analytics-ev-table tbody td.analytics-ev-td-email {
+                align-items: flex-start;
+            }
+            .analytics-ev-table tbody td.analytics-ev-td-email::before {
+                margin-top: 2px;
+            }
+            .analytics-ev-table tbody td.analytics-ev-td-email .analytics-ev-email-text {
+                text-align: right;
+                word-break: break-all;
+                overflow-wrap: anywhere;
+                line-height: 1.25;
+                font-size: 0.72rem;
+                color: #444;
+            }
+            .analytics-ev-badge {
+                padding: 1px 6px;
+                font-size: 0.62rem;
+            }
+            .analytics-ev-table tbody tr.analytics-ev-tr-fullmsg {
+                padding: 10px 12px;
+            }
+            .analytics-ev-table tbody tr.analytics-ev-tr-fullmsg td {
+                display: block;
+                border: none;
+                padding: 0 !important;
+                text-align: center;
+                font-size: 0.8rem;
+            }
+            .analytics-ev-table tbody tr.analytics-ev-tr-fullmsg td::before {
+                content: none;
+            }
+        }
+
+        .analytics-bts-row:nth-child(even) {
+            background: rgba(76, 175, 80, 0.03);
+        }
+        .analytics-bts-rank {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: #e8f5e9;
+            color: #1b5e20;
+            font-size: 0.7rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .analytics-bts-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.82rem;
+            color: #333;
+            font-weight: 500;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .analytics-bts-count {
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #1b5e20;
+            background: #fff;
+            border: 1px solid #a5d6a7;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        /* Print: only analytics dashboard (no top bar, sidebar, or export/print controls) */
+        @media print {
+            @page {
+                margin: 12mm;
+                size: auto;
+            }
+            html, body {
+                background: #fff !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+            .header,
+            .sidebar,
+            .hamburger-menu {
+                display: none !important;
+            }
+            .layout {
+                display: block !important;
+                padding-top: 0 !important;
+                min-height: 0 !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                background: #fff !important;
+                box-shadow: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            /* Avoid only registration/status chart areas; demographic cards handle their own breaks */
+            .analytics-line-chart-wrap,
+            .analytics-doughnut-chart-wrap {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            canvas {
+                max-width: 100% !important;
+            }
+        }
     </style>
     <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
+    <style id="analytics-print-overrides">
+        /* After Employer-sidebar-neat.css */
+        @media print {
+            body .main-content .analytics-barangay-print-section {
+                page-break-before: always !important;
+                break-before: page !important;
+                margin-top: 0 !important;
+            }
+            /* Demographics: no clipping (was max-height+overflow:hidden cutting charts).
+               Stack one chart per row; keep each card on a single page. */
+            body .main-content .analytics-demographic-block {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            body .main-content .analytics-demographic-grid {
+                display: block !important;
+            }
+            body .main-content .analytics-demographic-grid > .analytics-demo-chart-card {
+                display: block !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-bottom: 18px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body .main-content .analytics-demographic-chart-wrap {
+                overflow: visible !important;
+                max-height: none !important;
+                height: 300px !important;
+                min-height: 280px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body .main-content .analytics-barangay-chart-wrap {
+                height: 280px !important;
+                max-height: none !important;
+                overflow: visible !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body .main-content .analytics-bts-card {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body .main-content .analytics-barangay-top-skills-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+        }
+    </style>
     <script src="../assets/js/employer-page-loading.js?v=<?php echo time(); ?>" defer></script>
 </head>
 <body>
@@ -837,25 +1365,34 @@ if ($conn) {
             <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
-            <!-- Page Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #e3f2fd;">
-                <div>
-                    <h2 style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">📊 Analytics Dashboard</h2>
-                    <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Comprehensive insights and performance metrics</p>
+            <!-- Page Header: title left, stat cards right; blue line; actions below -->
+            <div class="analytics-dashboard-header" style="margin-bottom: 32px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; padding-bottom: 20px; border-bottom: 2px solid #e3f2fd;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h2 style="color:#233a8b; font-size:1.8rem; font-weight:700; margin:0;">📊 Analytics Dashboard</h2>
+                        <p style="color:#666; margin:8px 0 0 0; font-size:1.1rem;">Comprehensive insights and performance metrics</p>
+                    </div>
+                    <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch; margin-left: auto; justify-content: flex-end;">
+                        <div style="background: linear-gradient(135deg, #e3f2fd, #f0f4ff); padding: 12px 20px; border-radius: 12px; border-left: 4px solid #1976d2; min-width: 148px; box-sizing: border-box;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="totalUsers">0</div>
+                            <div style="font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px;">Total users</div>
+                            <div style="font-size: 0.68rem; color: #777; line-height: 1.35; margin-top: 4px;">All registered employee accounts</div>
+                            <div style="font-size: 0.68rem; color: #555; line-height: 1.35; margin-top: 8px; min-height: 2.2em;" id="headerAccountOnlyNote"></div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #e8f5e9, #f1f8e9); padding: 12px 20px; border-radius: 12px; border-left: 4px solid #43a047; min-width: 148px; box-sizing: border-box;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #2e7d32;" id="headerNsrpJobseekersCount">0</div>
+                            <div style="font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px;">Jobseekers</div>
+                            <div style="font-size: 0.68rem; color: #777; line-height: 1.35; margin-top: 4px;">Completed NSRP form (same as JOBSEEKERS list)</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="background: linear-gradient(135deg, #e3f2fd, #f0f4ff); padding: 12px 20px; border-radius: 12px; border-left: 4px solid #1976d2;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #1976d2;" id="totalUsers">0</div>
-                        <div style="font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Total Users</div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button onclick="exportToExcel()" style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                            📊 Export Excel
-                        </button>
-                        <button onclick="printReport()" style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                            🖨️ Print Report
-                        </button>
-                    </div>
+                <div class="no-print analytics-dashboard-actions" style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
+                    <button type="button" onclick="exportToExcel()" style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        📊 Export Excel
+                    </button>
+                    <button type="button" onclick="printReport()" style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                        🖨️ Print Report
+                    </button>
                 </div>
             </div>
 
@@ -885,20 +1422,24 @@ if ($conn) {
                             <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Registration trends and demographics</p>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
                         <div style="text-align: center; padding: 16px; background: rgba(76,175,80,0.1); border-radius: 8px;">
                             <div style="font-size: 2rem; font-weight: 700; color: #4caf50;" id="totalJobseekers">0</div>
-                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Total Registered</div>
+                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">NSRP submitted</div>
+                        </div>
+                        <div style="text-align: center; padding: 16px; background: rgba(144, 202, 249, 0.25); border-radius: 8px;">
+                            <div style="font-size: 2rem; font-weight: 700; color: #1565c0;" id="accountsPendingNsrp">0</div>
+                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Account only (no NSRP yet)</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: rgba(255,152,0,0.1); border-radius: 8px;">
                             <div style="font-size: 2rem; font-weight: 700; color: #ff9800;" id="pendingApplications">0</div>
-                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Pending</div>
+                            <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Pending review</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: rgba(76,175,80,0.1); border-radius: 8px;">
                             <div style="font-size: 2rem; font-weight: 700; color: #4caf50;" id="acceptedApplications">0</div>
                             <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Accepted</div>
                         </div>
-                        <div style="text-align: center; padding: 16px; background: rgba(244,67,54,0.1); border-radius: 8px;">
+                        <div style="text-align: center; padding: 16px; background: rgba(244,67,54,0.1); border-radius: 8px; grid-column: 1 / -1;">
                             <div style="font-size: 2rem; font-weight: 700; color: #f44336;" id="rejectedApplications">0</div>
                             <div style="font-size: 0.8rem; color: #666; text-transform: uppercase;">Rejected</div>
                         </div>
@@ -911,7 +1452,7 @@ if ($conn) {
                         <div style="background: linear-gradient(135deg, #1976d2, #1565c0); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">🛠️</div>
                         <div>
                             <h3 style="margin: 0; color: #233a8b; font-size: 1.2rem; font-weight: 700;">Skills Registry</h3>
-                            <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Skill distribution and trends</p>
+                            <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">PESO skill registry; total counts skill entries stored there</p>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -1015,8 +1556,8 @@ if ($conn) {
                 <div class="analytics-demographic-head" style="display: flex; align-items: center; margin-bottom: 20px;">
                     <div style="background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">👥</div>
                     <div>
-                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Demographic Analytics</h3>
-                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">Age, gender, education, and employment distribution</p>
+                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Demographic Analytics (Skill Registry)</h3>
+                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">From PESO skill registry records: age, gender, education, and employment</p>
                     </div>
                 </div>
                 <div class="analytics-demographic-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
@@ -1046,8 +1587,37 @@ if ($conn) {
                 </div>
             </div>
 
-            <!-- Barangay Comparison Section -->
-            <div style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+            <!-- NSRP jobseeker demographics (submitted NSRP forms) -->
+            <div class="analytics-demographic-block" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
+                <div class="analytics-demographic-head" style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #1976d2, #1565c0); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">📋</div>
+                    <div>
+                        <h3 style="margin: 0; color: #233a8b; font-size: 1.3rem; font-weight: 700;">Demographic Analytics (NSRP jobseekers)</h3>
+                        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.9rem;">From submitted National Skills Registration Program (NSRP) forms—all applicants; updates as new forms are submitted</p>
+                    </div>
+                </div>
+                <div class="analytics-demographic-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                    <div class="analytics-demo-chart-card" style="background: rgba(25,118,210,0.06); border-radius: 12px; padding: 20px; border: 1px solid rgba(25,118,210,0.12);">
+                        <h4 style="margin: 0 0 16px 0; color: #1565c0; font-size: 1.1rem; font-weight: 600;">Age Distribution</h4>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="nsrpAgeChart"></canvas></div>
+                    </div>
+                    <div class="analytics-demo-chart-card" style="background: rgba(25,118,210,0.06); border-radius: 12px; padding: 20px; border: 1px solid rgba(25,118,210,0.12);">
+                        <h4 style="margin: 0 0 16px 0; color: #1565c0; font-size: 1.1rem; font-weight: 600;">Gender Distribution</h4>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="nsrpGenderChart"></canvas></div>
+                    </div>
+                    <div class="analytics-demo-chart-card" style="background: rgba(25,118,210,0.06); border-radius: 12px; padding: 20px; border: 1px solid rgba(25,118,210,0.12);">
+                        <h4 style="margin: 0 0 16px 0; color: #1565c0; font-size: 1.1rem; font-weight: 600;">Education Level</h4>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="nsrpEducationChart"></canvas></div>
+                    </div>
+                    <div class="analytics-demo-chart-card" style="background: rgba(25,118,210,0.06); border-radius: 12px; padding: 20px; border: 1px solid rgba(25,118,210,0.12);">
+                        <h4 style="margin: 0 0 16px 0; color: #1565c0; font-size: 1.1rem; font-weight: 600;">Employment Status</h4>
+                        <div class="analytics-demographic-chart-wrap"><canvas id="nsrpEmploymentChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barangay Comparison Section (print: always starts on a new page) -->
+            <div class="analytics-barangay-print-section" style="background: linear-gradient(135deg, #ffffff, #f8fafc); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(25,118,210,0.08); border: 1px solid rgba(35,58,139,0.1); margin-bottom: 32px;">
                 <div style="display: flex; align-items: center; margin-bottom: 20px;">
                     <div style="background: linear-gradient(135deg, #4caf50, #45a049); color: white; padding: 12px; border-radius: 12px; margin-right: 16px; font-size: 1.5rem;">🏘️</div>
                     <div>
@@ -1059,7 +1629,7 @@ if ($conn) {
                 <!-- Barangay Leaderboard -->
                 <div style="background: rgba(76,175,80,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(76,175,80,0.1); margin-bottom: 24px;">
                     <h4 style="margin: 0 0 16px 0; color: #45a049; font-size: 1.1rem; font-weight: 600;">Registration Leaderboard</h4>
-                    <div id="barangayLeaderboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    <div id="barangayLeaderboard" class="analytics-barangay-leaderboard">
                         <!-- Leaderboard will be populated by JavaScript -->
                     </div>
                 </div>
@@ -1067,7 +1637,57 @@ if ($conn) {
                 <!-- Barangay Comparison Chart -->
                 <div style="background: rgba(76,175,80,0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(76,175,80,0.1);">
                     <h4 style="margin: 0 0 16px 0; color: #45a049; font-size: 1.1rem; font-weight: 600;">Registrations by Barangay</h4>
-                    <canvas id="barangayChart" width="400" height="300"></canvas>
+                    <div class="analytics-barangay-chart-wrap">
+                        <canvas id="barangayChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top skills per barangay (skill_registry.skills — same as Excel export) -->
+                <div class="analytics-barangay-top-skills">
+                    <h4 class="analytics-bts-title">Top skills per barangay</h4>
+                    <p class="analytics-bts-sub">Top 10 Skills Per barangay from skill registry</p>
+                    <div id="barangayTopSkillsGrid" class="analytics-barangay-top-skills-grid"></div>
+                </div>
+
+                <div class="analytics-email-verification-row">
+                    <h4 class="analytics-ev-title">Employee accounts — email verification &amp; NSRP</h4>
+                    <p class="analytics-bts-sub analytics-ev-sub">Counts for registered employee logins: verified email after signup, still pending verification, and verified users who submitted an NSRP (job seeker) form.</p>
+                    <div class="analytics-ev-grid">
+                        <div class="analytics-ev-card">
+                            <div class="analytics-ev-card-label">Verified (email)</div>
+                            <div class="analytics-ev-card-value" id="analyticsEmailVerifiedCount">—</div>
+                            <p class="analytics-ev-card-desc">Confirmed signup via email link</p>
+                        </div>
+                        <div class="analytics-ev-card">
+                            <div class="analytics-ev-card-label">Unverified</div>
+                            <div class="analytics-ev-card-value" id="analyticsEmailUnverifiedCount">—</div>
+                            <p class="analytics-ev-card-desc">Signed up, email not verified yet</p>
+                        </div>
+                        <div class="analytics-ev-card">
+                            <div class="analytics-ev-card-label">Verified job seekers</div>
+                            <div class="analytics-ev-card-value" id="analyticsVerifiedNsrpCount">—</div>
+                            <p class="analytics-ev-card-desc">Email verified and NSRP form submitted</p>
+                        </div>
+                    </div>
+                    <p class="analytics-ev-footnote" id="analyticsEmailVerificationNote" style="display: none;"></p>
+                    <div class="analytics-ev-table-wrap" id="analyticsEmployeeAccountsTableWrap">
+                        <div class="analytics-ev-table-scroll">
+                            <table class="analytics-ev-table" id="analyticsEmployeeAccountsTable">
+                                <caption>All User Accounts</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Email verified</th>
+                                        <th scope="col">NSRP submitted</th>
+                                        <th scope="col">Verified job seeker</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analyticsEmployeeAccountsTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="analytics-kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
@@ -1436,16 +2056,27 @@ if ($conn) {
     // Analytics Data and Charts
     let analyticsData = {
         totalJobseekers: 0,
+        totalEmployeeAccounts: 0,
+        nsrpSubmittedUsers: 0,
+        accountsPendingNsrp: 0,
+        emailVerifiedUsers: 0,
+        emailUnverifiedUsers: 0,
+        verifiedEmailWithNsrpUsers: 0,
+        hasEmailVerifiedColumn: false,
+        employeeAccounts: [],
+        employeeCountsOk: false,
         pendingApplications: 0,
         acceptedApplications: 0,
         rejectedApplications: 0,
         totalSkills: 0,
+        jobseekerSkillsTotal: 0,
         barangayCount: 13,
         thisMonthRegistrations: 0,
         lastMonthRegistrations: 0,
         monthlyTrends: [],
         skillsDistribution: [],
         demographicData: null,
+        nsrpDemographicData: null,
         barangayData: null
     };
     
@@ -1456,19 +2087,21 @@ if ($conn) {
          const trendsData = [];
          
          if (filterType === '12months') {
-             // Last 12 months
+             // Last 12 calendar months (use day 1 so Feb is not skipped when "today" is Mar 29–31)
+             const end = new Date();
+             const endYear = end.getFullYear();
+             const endMonth = end.getMonth();
              for (let i = 11; i >= 0; i--) {
-                 const date = new Date();
-                 date.setMonth(date.getMonth() - i);
+                 const date = new Date(endYear, endMonth - i, 1);
                  const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                 
+                 const y = date.getFullYear();
+                 const m = date.getMonth() + 1;
                  const count = jobseekers.filter(j => {
                      if (j.submission_month && j.submission_year) {
-                         return parseInt(j.submission_month) === (date.getMonth() + 1) && parseInt(j.submission_year) === date.getFullYear();
+                         return parseInt(j.submission_month) === m && parseInt(j.submission_year) === y;
                      }
                      return false;
                  }).length;
-                 
                  trendsData.push({ month: monthName, count: count });
              }
          } else if (filterType === 'yearly') {
@@ -1527,15 +2160,54 @@ if ($conn) {
      // Fetch analytics data
     async function fetchAnalyticsData() {
         try {
-            // Fetch jobseeker statistics from real data
-            const jobseekerResponse = await fetch('jobseekers.php');
+            const [jobseekerResponse, empCountsResponse] = await Promise.all([
+                fetch('jobseekers.php'),
+                fetch('analytics_employee_counts.php')
+            ]);
             const jobseekers = await jobseekerResponse.json();
-            
+
+            let empJson = { success: false };
+            try {
+                if (empCountsResponse.ok) {
+                    empJson = await empCountsResponse.json();
+                }
+            } catch (e) {
+                console.error('Error parsing employee counts:', e);
+            }
+            if (empJson.success) {
+                analyticsData.employeeCountsOk = true;
+                analyticsData.totalEmployeeAccounts = parseInt(empJson.total_employee_accounts, 10) || 0;
+                analyticsData.nsrpSubmittedUsers = parseInt(empJson.nsrp_submitted_users, 10) || 0;
+                analyticsData.accountsPendingNsrp = parseInt(empJson.accounts_pending_nsrp, 10) || 0;
+                analyticsData.emailVerifiedUsers = parseInt(empJson.email_verified_users, 10) || 0;
+                analyticsData.emailUnverifiedUsers = parseInt(empJson.email_unverified_users, 10) || 0;
+                analyticsData.verifiedEmailWithNsrpUsers = parseInt(empJson.verified_email_with_nsrp_users, 10) || 0;
+                analyticsData.hasEmailVerifiedColumn = !!empJson.has_email_verified_column;
+                analyticsData.employeeAccounts = Array.isArray(empJson.employee_accounts) ? empJson.employee_accounts : [];
+            } else {
+                analyticsData.employeeCountsOk = false;
+                analyticsData.totalEmployeeAccounts = 0;
+                analyticsData.nsrpSubmittedUsers = 0;
+                analyticsData.accountsPendingNsrp = 0;
+                analyticsData.emailVerifiedUsers = 0;
+                analyticsData.emailUnverifiedUsers = 0;
+                analyticsData.verifiedEmailWithNsrpUsers = 0;
+                analyticsData.hasEmailVerifiedColumn = false;
+                analyticsData.employeeAccounts = [];
+            }
+
             console.log('Fetched jobseekers:', jobseekers.length);
-            console.log('Sample jobseeker data:', jobseekers.slice(0, 3)); // Show first 3 records
-            
-            // Real jobseeker data
+
             analyticsData.totalJobseekers = jobseekers.length;
+            if (analyticsData.employeeCountsOk) {
+                if (analyticsData.nsrpSubmittedUsers !== jobseekers.length) {
+                    console.warn('NSRP count mismatch: API distinct users', analyticsData.nsrpSubmittedUsers, 'vs jobseeker rows', jobseekers.length);
+                }
+            } else {
+                analyticsData.nsrpSubmittedUsers = jobseekers.length;
+                analyticsData.totalEmployeeAccounts = jobseekers.length;
+                analyticsData.accountsPendingNsrp = 0;
+            }
             analyticsData.pendingApplications = jobseekers.filter(j => !j.application_status || j.application_status === 'Pending' || j.application_status === '').length;
             analyticsData.acceptedApplications = jobseekers.filter(j => j.application_status === 'Accepted').length;
             analyticsData.rejectedApplications = jobseekers.filter(j => j.application_status === 'Rejected').length;
@@ -1576,6 +2248,7 @@ if ($conn) {
             await Promise.all([
                 fetchSkillsData(),
                 fetchDemographicData(),
+                fetchNsrpDemographicData(),
                 fetchBarangayData()
             ]);
             
@@ -1599,8 +2272,16 @@ if ($conn) {
             
         } catch (error) {
             console.error('Error fetching analytics data:', error);
-            // If fetch fails, show zeros instead of sample data
             analyticsData.totalJobseekers = 0;
+            analyticsData.totalEmployeeAccounts = 0;
+            analyticsData.nsrpSubmittedUsers = 0;
+            analyticsData.accountsPendingNsrp = 0;
+            analyticsData.emailVerifiedUsers = 0;
+            analyticsData.emailUnverifiedUsers = 0;
+            analyticsData.verifiedEmailWithNsrpUsers = 0;
+            analyticsData.hasEmailVerifiedColumn = false;
+            analyticsData.employeeAccounts = [];
+            analyticsData.employeeCountsOk = false;
             analyticsData.pendingApplications = 0;
             analyticsData.acceptedApplications = 0;
             analyticsData.rejectedApplications = 0;
@@ -1616,6 +2297,7 @@ if ($conn) {
             ];
             analyticsData.skillsDistribution = [];
             analyticsData.totalSkills = 0;
+            analyticsData.jobseekerSkillsTotal = 0;
             
             updateAnalyticsUI();
             if (!chartsCreated) {
@@ -1657,18 +2339,19 @@ if ($conn) {
             .filter(skill => skill.length > 1); // Filter out single characters
     }
 
-    // Fetch real skills data from skill registry
     async function fetchSkillsData() {
         try {
-            // Fetch skills data from skill registry
-            const skillsResponse = await fetch('skill.php');
-            const skillsText = await skillsResponse.text();
-            
-            // Parse skills data from the skill registry
-            // This is a simplified approach - you might need to create a dedicated API endpoint
-            const skillsData = [];
-            
-            // Count skills from jobseeker data
+            let registrySkillTotal = 0;
+            try {
+                const regRes = await fetch('skill_registry_stats.php');
+                const regJson = await regRes.json();
+                if (regJson.success) {
+                    registrySkillTotal = parseInt(regJson.total_skill_mentions, 10) || 0;
+                }
+            } catch (e) {
+                console.error('Error fetching skill registry stats:', e);
+            }
+
             const skillCounts = {};
             const jobseekerResponse = await fetch('jobseekers.php');
             const jobseekers = await jobseekerResponse.json();
@@ -1709,13 +2392,15 @@ if ($conn) {
                 .map(([skill, count]) => ({ skill, count }))
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 6); // Top 6 skills
-            
-            analyticsData.totalSkills = Object.values(skillCounts).reduce((sum, count) => sum + count, 0);
+
+            analyticsData.jobseekerSkillsTotal = Object.values(skillCounts).reduce((sum, count) => sum + count, 0);
+            analyticsData.totalSkills = registrySkillTotal;
             
         } catch (error) {
             console.error('Error fetching skills data:', error);
             analyticsData.skillsDistribution = [];
             analyticsData.totalSkills = 0;
+            analyticsData.jobseekerSkillsTotal = 0;
         }
     }
 
@@ -1733,6 +2418,19 @@ if ($conn) {
         }
     }
 
+    async function fetchNsrpDemographicData() {
+        try {
+            const response = await fetch('nsrp_jobseeker_demographics.php');
+            const result = await response.json();
+            if (result.success) {
+                analyticsData.nsrpDemographicData = result.data;
+                createNsrpDemographicCharts();
+            }
+        } catch (error) {
+            console.error('Error fetching NSRP demographic data:', error);
+        }
+    }
+
     // Fetch barangay data
     async function fetchBarangayData() {
         try {
@@ -1742,58 +2440,69 @@ if ($conn) {
                 analyticsData.barangayData = result.data;
                 createBarangayCharts();
                 updateBarangayLeaderboard();
+                updateBarangayTopSkills();
             }
         } catch (error) {
             console.error('Error fetching barangay data:', error);
         }
     }
 
-    // Generate insights
-    function generateInsights() {
+    /** Insight items for dashboard and Excel export (same logic). */
+    function buildAnalyticsInsightItems() {
         const insights = [];
-        
-        // Registration trend insight
         if (analyticsData.lastMonthRegistrations > 0) {
             const change = ((analyticsData.thisMonthRegistrations - analyticsData.lastMonthRegistrations) / analyticsData.lastMonthRegistrations) * 100;
             const changeText = change > 0 ? `up ${Math.round(change)}%` : `down ${Math.round(Math.abs(change))}%`;
             insights.push({
                 icon: change > 0 ? '📈' : '📉',
                 text: `Registrations ${changeText} compared to last month`,
-                color: change > 0 ? '#4caf50' : '#f44336'
+                color: change > 0 ? '#4caf50' : '#f44336',
+                category: 'Registration trend'
             });
         }
-        
-        // Top skill insight
         if (analyticsData.skillsDistribution.length > 0) {
             const topSkill = analyticsData.skillsDistribution[0];
             insights.push({
                 icon: '🛠️',
                 text: `${topSkill.skill} is the most in-demand skill with ${topSkill.count} registrations`,
-                color: '#1976d2'
+                color: '#1976d2',
+                category: 'NSRP jobseeker skills'
             });
         }
-        
-        // Most active barangay insight
         if (analyticsData.barangayData && analyticsData.barangayData.overall_stats.most_active) {
             const mostActive = analyticsData.barangayData.overall_stats.most_active;
             insights.push({
                 icon: '🏆',
                 text: `${mostActive.barangay} leads with ${mostActive.total_registrations} registrations`,
-                color: '#ff9800'
+                color: '#ff9800',
+                category: 'Skill registry by barangay'
             });
         }
-        
-        // Success rate insight
+        if (analyticsData.employeeCountsOk && analyticsData.accountsPendingNsrp > 0) {
+            insights.push({
+                icon: '👤',
+                text: `${analyticsData.accountsPendingNsrp} registered account(s) have not submitted the NSRP form yet`,
+                color: '#1565c0',
+                category: 'Employee accounts'
+            });
+        }
         const totalProcessed = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
         if (totalProcessed > 0) {
             const successRate = Math.round((analyticsData.acceptedApplications / totalProcessed) * 100);
             insights.push({
                 icon: '🎯',
                 text: `${successRate}% success rate in job referrals`,
-                color: '#4caf50'
+                color: '#4caf50',
+                category: 'Referral outcomes'
             });
         }
-        
+        return insights;
+    }
+
+    // Generate insights
+    function generateInsights() {
+        const insights = buildAnalyticsInsightItems();
+
         // Update insights container
         const container = document.getElementById('insightsContainer');
         container.innerHTML = '';
@@ -1941,104 +2650,725 @@ if ($conn) {
         }
     }
 
-    // Create barangay charts
-    function createBarangayCharts() {
-        if (!analyticsData.barangayData) return;
-        
-        const barangays = analyticsData.barangayData.barangays.slice(0, 10); // Top 10
-        
-        const barangayCtx = document.getElementById('barangayChart');
-        if (barangayCtx) {
-            new Chart(barangayCtx.getContext('2d'), {
-                type: 'bar',
+    function createNsrpDemographicCharts() {
+        if (!analyticsData.nsrpDemographicData) return;
+
+        const data = analyticsData.nsrpDemographicData;
+        const narrow = window.innerWidth <= 768;
+        const demoLegend = {
+            position: 'bottom',
+            labels: {
+                padding: narrow ? 4 : 15,
+                usePointStyle: true,
+                boxWidth: narrow ? 6 : 12,
+                font: { size: narrow ? 8 : 12 }
+            }
+        };
+        const barAxisMobile = narrow ? {
+            x: { grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
+            y: { beginAtZero: true, grid: { display: false }, ticks: { font: { size: 8 } } }
+        } : {
+            y: { beginAtZero: true, grid: { display: false } },
+            x: { grid: { display: false } }
+        };
+
+        const ageCtx = document.getElementById('nsrpAgeChart');
+        if (ageCtx) {
+            new Chart(ageCtx.getContext('2d'), {
+                type: 'doughnut',
                 data: {
-                    labels: barangays.map(b => b.barangay),
+                    labels: ['15-25', '26-35', '36-45', '46+'],
                     datasets: [{
-                        label: 'Registrations',
-                        data: barangays.map(b => b.total_registrations),
-                        backgroundColor: 'rgba(76,175,80,0.8)',
-                        borderColor: '#4caf50',
-                        borderWidth: 1
+                        data: [data.age_15_25, data.age_26_35, data.age_36_45, data.age_46_plus],
+                        backgroundColor: ['#ff9800', '#4caf50', '#2196f3', '#9c27b0'],
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: { beginAtZero: true },
-                        x: { ticks: { maxRotation: 45 } }
-                    }
+                    plugins: { legend: demoLegend }
+                }
+            });
+        }
+
+        const genderCtx = document.getElementById('nsrpGenderChart');
+        if (genderCtx) {
+            new Chart(genderCtx.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        data: [data.male, data.female],
+                        backgroundColor: ['#2196f3', '#e91e63'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: demoLegend }
+                }
+            });
+        }
+
+        const educationCtx = document.getElementById('nsrpEducationChart');
+        if (educationCtx) {
+            new Chart(educationCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Elementary', 'High School', 'College', 'Vocational'],
+                    datasets: [{
+                        data: [data.elementary, data.high_school, data.college, data.vocational],
+                        backgroundColor: ['#ff5722', '#ff9800', '#4caf50', '#2196f3'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: barAxisMobile
+                }
+            });
+        }
+
+        const employmentCtx = document.getElementById('nsrpEmploymentChart');
+        if (employmentCtx) {
+            new Chart(employmentCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Unemployed', 'Wage Employed', 'Self-Employed'],
+                    datasets: [{
+                        data: [data.unemployed, data.wage_employed, data.self_employed],
+                        backgroundColor: ['#f44336', '#4caf50', '#ff9800'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: demoLegend }
                 }
             });
         }
     }
 
-    // Update barangay leaderboard
+    // Create barangay charts (all barangays with registry data — municipality has up to 13)
+    function createBarangayCharts() {
+        if (!analyticsData.barangayData) return;
+
+        const barangays = analyticsData.barangayData.barangays || [];
+        const barangayCtx = document.getElementById('barangayChart');
+        if (!barangayCtx) return;
+
+        if (typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') {
+            const existing = Chart.getChart(barangayCtx);
+            if (existing) {
+                existing.destroy();
+            }
+        }
+
+        const n = barangays.length;
+        const maxBarThickness = n > 10 ? 32 : n > 6 ? 40 : undefined;
+
+        new Chart(barangayCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: barangays.map(function (b) { return b.barangay; }),
+                datasets: [{
+                    label: 'Registrations',
+                    data: barangays.map(function (b) { return b.total_registrations; }),
+                    backgroundColor: 'rgba(76,175,80,0.8)',
+                    borderColor: '#4caf50',
+                    borderWidth: 1,
+                    maxBarThickness: maxBarThickness,
+                    categoryPercentage: n <= 4 ? 0.75 : n <= 8 ? 0.85 : 0.9,
+                    barPercentage: n <= 4 ? 0.85 : 0.9
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 4, right: 8, bottom: 4, left: 4 }
+                },
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: n > 8 ? 55 : 45,
+                            minRotation: n > 8 ? 35 : 0,
+                            autoSkip: false,
+                            font: { size: n > 10 ? 10 : 12 }
+                        },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update barangay leaderboard (all barangays returned by API, ordered by registrations)
     function updateBarangayLeaderboard() {
         if (!analyticsData.barangayData) return;
-        
+
         const container = document.getElementById('barangayLeaderboard');
-        const barangays = analyticsData.barangayData.barangays.slice(0, 6); // Top 6
-        
+        if (!container) return;
+        const barangays = analyticsData.barangayData.barangays || [];
+
         container.innerHTML = '';
-        
-        barangays.forEach((barangay, index) => {
+
+        barangays.forEach(function (barangay, index) {
             const element = document.createElement('div');
-            element.style.cssText = `
-                background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
-                border-radius: 8px;
-                padding: 12px;
-                text-align: center;
-                border: 1px solid #c8e6c9;
-            `;
-            
+            element.className = 'analytics-barangay-lb-card';
+            element.style.cssText =
+                'background: linear-gradient(135deg, #e8f5e8, #f1f8e9); border-radius: 8px; padding: 12px; ' +
+                'text-align: center; border: 1px solid #c8e6c9;';
+
             const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-            
-            element.innerHTML = `
-                <div style="font-size: 1.2rem; margin-bottom: 4px;">${rankIcon}</div>
-                <div style="font-weight: 600; color: #2e7d32; font-size: 0.9rem;">${barangay.barangay}</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #4caf50;">${barangay.total_registrations}</div>
-                <div style="font-size: 0.7rem; color: #666;">registrations</div>
-            `;
-            
+
+            const iconEl = document.createElement('div');
+            iconEl.style.cssText = 'font-size: 1.2rem; margin-bottom: 4px;';
+            iconEl.textContent = rankIcon;
+
+            const nameEl = document.createElement('div');
+            nameEl.style.cssText = 'font-weight: 600; color: #2e7d32; font-size: 0.9rem;';
+            nameEl.textContent = barangay.barangay || '—';
+
+            const countEl = document.createElement('div');
+            countEl.style.cssText = 'font-size: 1.1rem; font-weight: 700; color: #4caf50;';
+            countEl.textContent = String(barangay.total_registrations != null ? barangay.total_registrations : '');
+
+            const subEl = document.createElement('div');
+            subEl.style.cssText = 'font-size: 0.7rem; color: #666;';
+            subEl.textContent = 'registrations';
+
+            element.appendChild(iconEl);
+            element.appendChild(nameEl);
+            element.appendChild(countEl);
+            element.appendChild(subEl);
+
             container.appendChild(element);
         });
     }
 
-    // Export functions
+    function updateBarangayTopSkills() {
+        const grid = document.getElementById('barangayTopSkillsGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (!analyticsData.barangayData || !analyticsData.barangayData.barangays) {
+            const p = document.createElement('p');
+            p.className = 'analytics-bts-empty';
+            p.style.textAlign = 'left';
+            p.textContent = 'No barangay data loaded.';
+            grid.appendChild(p);
+            return;
+        }
+        const barangays = analyticsData.barangayData.barangays;
+        barangays.forEach(function (b) {
+            const card = document.createElement('div');
+            card.className = 'analytics-bts-card';
+
+            const head = document.createElement('div');
+            head.className = 'analytics-bts-card-head';
+            head.textContent = b.barangay || '—';
+            card.appendChild(head);
+
+            const body = document.createElement('div');
+            body.className = 'analytics-bts-card-body';
+
+            const ts = b.top_skills;
+            const entries = ts && typeof ts === 'object' ? Object.entries(ts) : [];
+            if (entries.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'analytics-bts-empty';
+                empty.textContent = 'No skills listed in the registry for this barangay.';
+                body.appendChild(empty);
+            } else {
+                entries.forEach(function (pair, idx) {
+                    const row = document.createElement('div');
+                    row.className = 'analytics-bts-row';
+                    const rank = document.createElement('span');
+                    rank.className = 'analytics-bts-rank';
+                    rank.textContent = String(idx + 1);
+                    const name = document.createElement('span');
+                    name.className = 'analytics-bts-name';
+                    name.textContent = pair[0];
+                    const count = document.createElement('span');
+                    count.className = 'analytics-bts-count';
+                    count.textContent = String(pair[1]);
+                    row.appendChild(rank);
+                    row.appendChild(name);
+                    row.appendChild(count);
+                    body.appendChild(row);
+                });
+            }
+            card.appendChild(body);
+            grid.appendChild(card);
+        });
+    }
+
+    function xmlEscape(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function demoVal(count, pct) {
+        if (count == null && (pct == null || pct === '')) return '';
+        const c = count != null ? String(count) : '';
+        if (pct != null && pct !== '') {
+            const p = typeof pct === 'number' ? pct : parseFloat(String(pct), 10);
+            const ps = !isNaN(p) ? (Math.round(p * 10) / 10) + '%' : String(pct);
+            return c ? (c + ' (' + ps + ')') : ps;
+        }
+        return c;
+    }
+
+    function appendDemographicRows(push, prefix, d) {
+        if (!d) return;
+        push(prefix, 'Total records', d.total);
+        push(prefix, 'Male', demoVal(d.male, d.male_percentage));
+        push(prefix, 'Female', demoVal(d.female, d.female_percentage));
+        push(prefix, 'Age 15–25', demoVal(d.age_15_25, d.age_15_25_percentage));
+        push(prefix, 'Age 26–35', demoVal(d.age_26_35, d.age_26_35_percentage));
+        push(prefix, 'Age 36–45', demoVal(d.age_36_45, d.age_36_45_percentage));
+        push(prefix, 'Age 46+', demoVal(d.age_46_plus, d.age_46_plus_percentage));
+        push(prefix, 'Education — Elementary', demoVal(d.elementary, d.elementary_percentage));
+        push(prefix, 'Education — High school', demoVal(d.high_school, d.high_school_percentage));
+        push(prefix, 'Education — College', demoVal(d.college, d.college_percentage));
+        push(prefix, 'Education — Vocational', demoVal(d.vocational, d.vocational_percentage));
+        push(prefix, 'Employment — Unemployed', demoVal(d.unemployed, d.unemployed_percentage));
+        push(prefix, 'Employment — Wage employed', demoVal(d.wage_employed, d.wage_employed_percentage));
+        push(prefix, 'Employment — Self-employed', demoVal(d.self_employed, d.self_employed_percentage));
+        if (d.first_time_jobseekers != null) {
+            push(prefix, 'First-time jobseekers', d.first_time_jobseekers);
+        }
+        if (d.covid_displaced != null) {
+            push(prefix, 'COVID displaced workers', d.covid_displaced);
+        }
+    }
+
+    /** Excel 2003 XML — 3 columns; plain title rows; styled section bands + data grid only. */
+    function buildAnalyticsExcelXml(rows) {
+        function cell(styleId, val, preferNumber) {
+            const s = val == null ? '' : String(val);
+            const trimmed = s.trim();
+            const isPct = /%/.test(s);
+            const n = preferNumber && trimmed !== '' && !isPct && /^-?\d+(\.\d+)?$/.test(trimmed) ? parseFloat(trimmed) : null;
+            if (n !== null && !isNaN(n)) {
+                return '<Cell ss:StyleID="' + styleId + '"><Data ss:Type="Number">' + n + '</Data></Cell>';
+            }
+            return '<Cell ss:StyleID="' + styleId + '"><Data ss:Type="String">' + xmlEscape(s) + '</Data></Cell>';
+        }
+        const rowXml = rows.map(function (r) {
+            if (r.k === 'blank') {
+                return '<Row ss:AutoFitHeight="0" ss:Height="6"></Row>';
+            }
+            let sA, sB, sC;
+            if (r.k === 'plain') {
+                sA = sB = sC = 'sPlain';
+            } else if (r.k === 'section') {
+                sA = sB = sC = 'sSec';
+            } else if (r.k === 'head') {
+                sA = sB = sC = 'sHead';
+            } else if (r.k === 'dataEm') {
+                sA = sB = 'sData';
+                sC = 'sDataEm';
+            } else {
+                sA = sB = sC = 'sData';
+            }
+            return '<Row ss:AutoFitHeight="1">' +
+                cell(sA, r.a, false) +
+                cell(sB, r.b, false) +
+                cell(sC, r.c, true) +
+                '</Row>';
+        }).join('');
+        return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+            '<?mso-application progid="Excel.Sheet"?>\n' +
+            '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ' +
+            'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n' +
+            '<Styles>\n' +
+            '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Font ss:FontName="Calibri" ss:Size="11"/></Style>\n' +
+            '  <Style ss:ID="sPlain"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Font ss:FontName="Calibri" ss:Size="11"/></Style>\n' +
+            '  <Style ss:ID="sSec"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Font ss:Bold="1" ss:Size="11"/><Interior ss:Color="#E3F2FD" ss:Pattern="Solid"/>' +
+            '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BBDEFB"/></Borders></Style>\n' +
+            '  <Style ss:ID="sHead"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Font ss:Bold="1" ss:Size="11"/><Interior ss:Color="#BBDEFB" ss:Pattern="Solid"/>' +
+            '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>\n' +
+            '  <Style ss:ID="sData"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#ECEFF1"/></Borders></Style>\n' +
+            '  <Style ss:ID="sDataEm"><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>' +
+            '<Font ss:Bold="1"/><Interior ss:Color="#FAFAFA" ss:Pattern="Solid"/>' +
+            '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#ECEFF1"/></Borders></Style>\n' +
+            '</Styles>\n' +
+            '<Worksheet ss:Name="Analytics Report">\n' +
+            '<Table ss:DefaultRowHeight="16">\n' +
+            '  <Column ss:AutoFitWidth="0" ss:Width="240"/>\n' +
+            '  <Column ss:AutoFitWidth="0" ss:Width="360"/>\n' +
+            '  <Column ss:AutoFitWidth="0" ss:Width="160"/>\n' +
+            rowXml +
+            '</Table>\n</Worksheet>\n</Workbook>';
+    }
+
+    // Export — values only (no formulas / long source notes); header rows unstyled
     function exportToExcel() {
-        // Simple CSV export for now
-        const csvData = [
-            ['Metric', 'Value'],
-            ['Total Jobseekers', analyticsData.totalJobseekers],
-            ['Pending Applications', analyticsData.pendingApplications],
-            ['Accepted Applications', analyticsData.acceptedApplications],
-            ['Rejected Applications', analyticsData.rejectedApplications],
-            ['This Month Registrations', analyticsData.thisMonthRegistrations],
-            ['Last Month Registrations', analyticsData.lastMonthRegistrations]
-        ];
-        
-        const csvContent = csvData.map(row => row.join(',')).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const rows = [];
+        const push = function (section, item, value, kind) {
+            rows.push({
+                a: section == null ? '' : section,
+                b: item == null ? '' : item,
+                c: value == null ? '' : value,
+                k: kind || 'data'
+            });
+        };
+        const blank = function () {
+            rows.push({ a: '', b: '', c: '', k: 'blank' });
+        };
+
+        const now = new Date();
+        const dateStr = now.toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+
+        push('WorkConnect — Analytics Report', 'Generated', dateStr, 'plain');
+        blank();
+        push('Section', 'Item', 'Value', 'head');
+        blank();
+
+        push('Jobseeker analytics', '', '', 'section');
+        push('', 'Registered employee accounts (total)', analyticsData.totalEmployeeAccounts);
+        push('', 'NSRP form submitted (distinct users)', analyticsData.nsrpSubmittedUsers);
+        push('', 'Account only — NSRP not submitted yet', analyticsData.accountsPendingNsrp);
+        push('', 'Email verified (employee accounts)', analyticsData.employeeCountsOk ? analyticsData.emailVerifiedUsers : '—');
+        push('', 'Email unverified (signed up, not verified)', analyticsData.employeeCountsOk ? analyticsData.emailUnverifiedUsers : '—');
+        push('', 'Verified email + NSRP submitted (distinct users)', analyticsData.employeeCountsOk ? analyticsData.verifiedEmailWithNsrpUsers : '—');
+        push('', 'NSRP records (rows in jobseeker list)', analyticsData.totalJobseekers);
+        push('', 'Pending review (referral)', analyticsData.pendingApplications);
+        push('', 'Accepted', analyticsData.acceptedApplications);
+        push('', 'Rejected', analyticsData.rejectedApplications);
+        const totalDecided = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
+        const successPct = totalDecided > 0 ? Math.round((analyticsData.acceptedApplications / totalDecided) * 100) : null;
+        push('', 'Success referral rate', totalDecided > 0 ? successPct + '%' : 'N/A');
+        blank();
+
+        push('Skills registry (KPI)', '', '', 'section');
+        push('', 'Total skill entries (PESO registry)', analyticsData.totalSkills);
+        push('', 'Barangays (dashboard figure)', analyticsData.barangayCount);
+        blank();
+
+        push('NSRP applicants — skills', '', '', 'section');
+        push('', 'Total skill selections', analyticsData.jobseekerSkillsTotal);
+        if (analyticsData.skillsDistribution.length > 0) {
+            analyticsData.skillsDistribution.forEach((s) => {
+                const pct = analyticsData.jobseekerSkillsTotal > 0
+                    ? Math.round((s.count / analyticsData.jobseekerSkillsTotal) * 100)
+                    : 0;
+                push('', s.skill, demoVal(s.count, pct));
+            });
+        } else {
+            push('', 'Applicant skills', '—');
+        }
+        blank();
+
+        push('Monthly trends (NSRP)', '', '', 'section');
+        const mom = analyticsData.lastMonthRegistrations > 0
+            ? Math.round(((analyticsData.thisMonthRegistrations - analyticsData.lastMonthRegistrations) / analyticsData.lastMonthRegistrations) * 100)
+            : 0;
+        push('', 'New registrations this month', analyticsData.thisMonthRegistrations);
+        push('', 'Last month registrations', analyticsData.lastMonthRegistrations);
+        push('', 'Month-over-month change', analyticsData.lastMonthRegistrations > 0 ? ((mom >= 0 ? '+' : '') + mom + '%') : 'N/A');
+        (analyticsData.monthlyTrends || []).forEach(function (m) {
+            push('', m.month, m.count);
+        });
+        blank();
+
+        push('Application status', '', '', 'section');
+        push('', 'Accepted', analyticsData.acceptedApplications);
+        push('', 'Pending', analyticsData.pendingApplications);
+        push('', 'Rejected', analyticsData.rejectedApplications);
+        blank();
+
+        push('Key insights', '', '', 'section');
+        const insightItems = buildAnalyticsInsightItems();
+        if (insightItems.length === 0) {
+            push('', '—', '—');
+        } else {
+            insightItems.forEach(function (ins) {
+                push('', ins.category || 'Insight', ins.text);
+            });
+        }
+        blank();
+
+        push('Demographics — skill registry', '', '', 'section');
+        if (analyticsData.demographicData) {
+            appendDemographicRows(push, '', analyticsData.demographicData);
+        } else {
+            push('', '—', '—');
+        }
+        blank();
+
+        push('Demographics — NSRP jobseekers', '', '', 'section');
+        if (analyticsData.nsrpDemographicData) {
+            appendDemographicRows(push, '', analyticsData.nsrpDemographicData);
+        } else {
+            push('', '—', '—');
+        }
+        blank();
+
+        push('Barangay comparison (skill registry)', '', '', 'section');
+        if (analyticsData.barangayData && analyticsData.barangayData.overall_stats) {
+            const os = analyticsData.barangayData.overall_stats;
+            push('', 'Number of barangays', os.total_barangays);
+            push('', 'Total registrations', os.total_registrations);
+            push('', 'Average per barangay', os.average_per_barangay);
+            if (os.most_active) {
+                push('', 'Most active — name', os.most_active.barangay);
+                push('', 'Most active — count', os.most_active.total_registrations);
+            }
+            if (os.least_active) {
+                push('', 'Least active — name', os.least_active.barangay);
+                push('', 'Least active — count', os.least_active.total_registrations);
+            }
+            blank();
+            (analyticsData.barangayData.barangays || []).forEach(function (b) {
+                let topStr = '';
+                if (b.top_skills && typeof b.top_skills === 'object') {
+                    topStr = Object.keys(b.top_skills).map(function (k) {
+                        return k + ': ' + b.top_skills[k];
+                    }).join('; ');
+                }
+                push('', b.barangay + ' — registrations', b.total_registrations, 'dataEm');
+                push('', b.barangay + ' — % of total', b.percentage_of_total != null ? b.percentage_of_total + '%' : '');
+                push('', b.barangay + ' — male / female', (b.male != null ? b.male : '') + ' / ' + (b.female != null ? b.female : ''));
+                if (topStr) {
+                    push('', b.barangay + ' — top skills (up to 10)', topStr);
+                }
+            });
+        } else {
+            push('', '—', '—');
+        }
+        blank();
+
+        push('Dashboard KPIs (bottom cards)', '', '', 'section');
+        push('', 'Success referral rate', totalDecided > 0 ? successPct + '%' : 'N/A');
+        const avgEl = document.getElementById('avgProcessingTime');
+        push('', 'Avg. processing days (shown on dashboard)', avgEl ? avgEl.textContent : '—');
+        push('', 'System uptime (shown on dashboard)', '99.9%');
+
+        const xmlContent = '\uFEFF' + buildAnalyticsExcelXml(rows);
+        const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'analytics_report.csv';
+        a.download = 'WorkConnect_Analytics_' + now.toISOString().slice(0, 10) + '.xls';
         a.click();
         window.URL.revokeObjectURL(url);
     }
 
+    function resizeAllChartsForPrint() {
+        try {
+            if (typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') {
+                document.querySelectorAll('canvas').forEach(function (cv) {
+                    var ch = Chart.getChart(cv);
+                    if (ch && typeof ch.resize === 'function') {
+                        ch.resize();
+                    }
+                    if (ch && typeof ch.update === 'function') {
+                        ch.update('none');
+                    }
+                });
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    window.addEventListener('beforeprint', function () {
+        window.dispatchEvent(new Event('resize'));
+        resizeAllChartsForPrint();
+    });
+
     function printReport() {
-        window.print();
+        window.dispatchEvent(new Event('resize'));
+        resizeAllChartsForPrint();
+        requestAnimationFrame(function () {
+            resizeAllChartsForPrint();
+            setTimeout(function () {
+                window.print();
+            }, 300);
+        });
+    }
+
+    function analyticsEvMakeBadge(text, type) {
+        const span = document.createElement('span');
+        span.className = 'analytics-ev-badge analytics-ev-badge-' + (type || 'na');
+        span.textContent = text;
+        return span;
+    }
+
+    function renderAnalyticsEmployeeAccountsTable() {
+        const tbody = document.getElementById('analyticsEmployeeAccountsTbody');
+        const wrap = document.getElementById('analyticsEmployeeAccountsTableWrap');
+        if (!tbody || !wrap) {
+            return;
+        }
+        tbody.textContent = '';
+        if (!analyticsData.employeeCountsOk) {
+            const tr = document.createElement('tr');
+            tr.className = 'analytics-ev-tr-fullmsg';
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.style.padding = '16px 12px';
+            td.style.color = '#666';
+            td.textContent = 'Account list could not be loaded. Refresh the page or check that you are signed in.';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+        const list = analyticsData.employeeAccounts || [];
+        if (list.length === 0) {
+            const tr = document.createElement('tr');
+            tr.className = 'analytics-ev-tr-fullmsg';
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.style.padding = '16px 12px';
+            td.style.color = '#666';
+            td.textContent = 'No user accounts registered yet.';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+        list.forEach(function (acc) {
+            const tr = document.createElement('tr');
+            const name = [acc.firstname, acc.lastname].filter(Boolean).join(' ').trim() || '—';
+            const evTracked = !!acc.email_verified_tracked;
+            const evOn = parseInt(acc.email_verified, 10) === 1;
+            const nsrp = parseInt(acc.nsrp_count, 10) || 0;
+            const verifiedJobSeeker = evTracked ? (evOn && nsrp > 0) : (nsrp > 0);
+
+            const tdId = document.createElement('td');
+            tdId.setAttribute('data-label', 'ID');
+            tdId.className = 'analytics-ev-td-plain';
+            const spanId = document.createElement('span');
+            spanId.className = 'analytics-ev-cell-val';
+            spanId.textContent = String(acc.id);
+            tdId.appendChild(spanId);
+            tr.appendChild(tdId);
+
+            const tdName = document.createElement('td');
+            tdName.setAttribute('data-label', 'Name');
+            tdName.className = 'analytics-ev-td-plain';
+            const spanName = document.createElement('span');
+            spanName.className = 'analytics-ev-cell-val';
+            spanName.textContent = name;
+            tdName.appendChild(spanName);
+            tr.appendChild(tdName);
+
+            const tdEmail = document.createElement('td');
+            tdEmail.setAttribute('data-label', 'Email');
+            tdEmail.className = 'analytics-ev-td-plain analytics-ev-td-email';
+            const spanEmail = document.createElement('span');
+            spanEmail.className = 'analytics-ev-email-text analytics-ev-cell-val';
+            const em = acc.email || '—';
+            spanEmail.textContent = em;
+            if (em && em !== '—') {
+                tdEmail.title = em;
+                spanEmail.title = em;
+            }
+            tdEmail.appendChild(spanEmail);
+            tr.appendChild(tdEmail);
+
+            const tdEv = document.createElement('td');
+            tdEv.setAttribute('data-label', 'Verified');
+            if (evTracked) {
+                tdEv.appendChild(analyticsEvMakeBadge(evOn ? 'Yes' : 'No', evOn ? 'yes' : 'no'));
+            } else {
+                tdEv.appendChild(analyticsEvMakeBadge('N/A', 'na'));
+            }
+            tr.appendChild(tdEv);
+
+            const tdNsrp = document.createElement('td');
+            tdNsrp.setAttribute('data-label', 'NSRP');
+            const hasNsrp = nsrp > 0;
+            tdNsrp.appendChild(analyticsEvMakeBadge(hasNsrp ? 'True' : 'False', hasNsrp ? 'yes' : 'no'));
+            tr.appendChild(tdNsrp);
+
+            const tdVjs = document.createElement('td');
+            tdVjs.setAttribute('data-label', 'Job seeker');
+            tdVjs.appendChild(analyticsEvMakeBadge(verifiedJobSeeker ? 'Yes' : 'No', verifiedJobSeeker ? 'yes' : 'no'));
+            tr.appendChild(tdVjs);
+
+            tbody.appendChild(tr);
+        });
     }
 
     // Update analytics UI
     function updateAnalyticsUI() {
-        document.getElementById('totalUsers').textContent = analyticsData.totalJobseekers;
-        document.getElementById('totalJobseekers').textContent = analyticsData.totalJobseekers;
+        const totalAcc = analyticsData.employeeCountsOk ? analyticsData.totalEmployeeAccounts : analyticsData.totalJobseekers;
+        const totalUsersEl = document.getElementById('totalUsers');
+        if (totalUsersEl) {
+            totalUsersEl.textContent = totalAcc;
+        }
+        const nsrpHeaderEl = document.getElementById('headerNsrpJobseekersCount');
+        if (nsrpHeaderEl) {
+            nsrpHeaderEl.textContent = analyticsData.employeeCountsOk
+                ? analyticsData.nsrpSubmittedUsers
+                : analyticsData.totalJobseekers;
+        }
+        const acctNoteEl = document.getElementById('headerAccountOnlyNote');
+        if (acctNoteEl) {
+            if (analyticsData.employeeCountsOk) {
+                const p = analyticsData.accountsPendingNsrp;
+                acctNoteEl.textContent = p > 0
+                    ? p + ' user(s) signed up but have not submitted the NSRP form yet.'
+                    : '';
+            } else {
+                acctNoteEl.textContent = 'Full account totals unavailable; total above matches NSRP records only.';
+            }
+        }
+        document.getElementById('totalJobseekers').textContent = analyticsData.employeeCountsOk
+            ? analyticsData.nsrpSubmittedUsers
+            : analyticsData.totalJobseekers;
+        const pendNsrpEl = document.getElementById('accountsPendingNsrp');
+        if (pendNsrpEl) {
+            pendNsrpEl.textContent = analyticsData.employeeCountsOk ? analyticsData.accountsPendingNsrp : '—';
+        }
+        const evEl = document.getElementById('analyticsEmailVerifiedCount');
+        const unEl = document.getElementById('analyticsEmailUnverifiedCount');
+        const vnEl = document.getElementById('analyticsVerifiedNsrpCount');
+        const evNote = document.getElementById('analyticsEmailVerificationNote');
+        if (evEl && unEl && vnEl) {
+            if (analyticsData.employeeCountsOk) {
+                evEl.textContent = analyticsData.emailVerifiedUsers;
+                unEl.textContent = analyticsData.emailUnverifiedUsers;
+                vnEl.textContent = analyticsData.verifiedEmailWithNsrpUsers;
+            } else {
+                evEl.textContent = '—';
+                unEl.textContent = '—';
+                vnEl.textContent = '—';
+            }
+        }
+        if (evNote) {
+            if (analyticsData.employeeCountsOk && !analyticsData.hasEmailVerifiedColumn) {
+                evNote.style.display = 'block';
+                evNote.textContent = 'Note: The database has no email_verified column on employee accounts; everyone is counted as verified and unverified is shown as 0. Verified job seekers still require a linked NSRP record.';
+            } else if (!analyticsData.employeeCountsOk) {
+                evNote.style.display = 'block';
+                evNote.textContent = 'Employee account totals could not be loaded; counts above are unavailable.';
+            } else {
+                evNote.style.display = 'none';
+                evNote.textContent = '';
+            }
+        }
+        renderAnalyticsEmployeeAccountsTable();
         document.getElementById('pendingApplications').textContent = analyticsData.pendingApplications;
         document.getElementById('acceptedApplications').textContent = analyticsData.acceptedApplications;
         document.getElementById('rejectedApplications').textContent = analyticsData.rejectedApplications;
@@ -2083,7 +3413,8 @@ if ($conn) {
         }
         
         analyticsData.skillsDistribution.forEach(skill => {
-            const percentage = analyticsData.totalSkills > 0 ? Math.round((skill.count / analyticsData.totalSkills) * 100) : 0;
+            const pctBase = analyticsData.jobseekerSkillsTotal;
+            const percentage = pctBase > 0 ? Math.round((skill.count / pctBase) * 100) : 0;
             const skillElement = document.createElement('div');
             skillElement.className = 'analytics-skill-tile';
             skillElement.style.cssText = `

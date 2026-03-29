@@ -19,7 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$conn) {
 
 $input = json_decode(file_get_contents('php://input'), true);
 $company_id = isset($input['company_id']) ? (int) $input['company_id'] : 0;
-$message = isset($input['message']) ? trim($conn->real_escape_string($input['message'] ?? '')) : '';
+// Prepared statement binds safely — do not real_escape_string (it can corrupt content and is redundant).
+$rawMsg = isset($input['message']) ? (string) ($input['message'] ?? '') : '';
+$message = trim($rawMsg);
 $message = $message === '' ? null : $message;
 
 if ($company_id <= 0) {

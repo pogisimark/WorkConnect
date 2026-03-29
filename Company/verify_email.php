@@ -2,8 +2,10 @@
 session_start();
 require_once 'db.php';
 require_once 'company_verification_schema.php';
+require_once 'company_peso_schema.php';
 
 ensureCompanyVerificationSchema($conn);
+ensureCompanyPesoSchema($conn);
 
 $token = isset($_GET['token']) ? trim($_GET['token']) : '';
 $message = '';
@@ -21,7 +23,10 @@ if ($token === '' || !preg_match('/^[a-f0-9]{64}$/i', $token)) {
         if ($expires && time() > $expires) {
             $message = 'This verification link has expired. Please request a new one from the company login page.';
         } else {
-            $clear = $conn->prepare("UPDATE company_users SET email_verified = 1, email_verify_token = NULL, email_verify_expires = NULL WHERE id = ?");
+            $hasPeso = companyHasPesoColumn($conn);
+            $clear = $hasPeso
+                ? $conn->prepare('UPDATE company_users SET email_verified = 1, peso_verified = 1, email_verify_token = NULL, email_verify_expires = NULL WHERE id = ?')
+                : $conn->prepare('UPDATE company_users SET email_verified = 1, email_verify_token = NULL, email_verify_expires = NULL WHERE id = ?');
             $clear->bind_param("i", $row['id']);
             if ($clear->execute()) {
                 $success = true;

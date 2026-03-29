@@ -4,6 +4,8 @@ date_default_timezone_set('Asia/Manila');
 
 require_once 'session_check.php';
 require_once 'db.php';
+require_once __DIR__ . '/company_peso_schema.php';
+require_once __DIR__ . '/company_contact_validate.php';
 
 // Get company information
 $company_id = $_SESSION['company_id'];
@@ -12,6 +14,8 @@ $email = $_SESSION['email'];
 
 $success_message = '';
 $error_message = '';
+
+ensureCompanyPesoSchema($conn);
 
 // Check which profile columns exist
 $columns_check = $conn->query("SHOW COLUMNS FROM company_users");
@@ -27,11 +31,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $description = trim($_POST['description'] ?? '');
     $website = trim($_POST['website'] ?? '');
     $address = trim($_POST['address'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    
+    $contact_number = workconnect_normalize_contact_digits($_POST['contact_number'] ?? '');
+    $telephone_number = workconnect_normalize_contact_digits($_POST['telephone_number'] ?? '');
+
+    if (!workconnect_contact_mobile_valid_or_empty($contact_number)) {
+        $error_message = 'Contact number must be 11 digits starting with 09 (format: 09XX-XXX-XXXX).';
+    } elseif (!workconnect_telephone_landline_valid_or_empty($telephone_number)) {
+        $error_message = 'Telephone / landline must be 8 digits starting with 8 (format: 8XXX-XXXX).';
+    }
+
     // Handle logo upload
     $logo_path = null;
-    if (isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
+    if ($error_message === '' && isset($_FILES['logo']) && $_FILES['logo']['error'] == UPLOAD_ERR_OK) {
         $upload_dir = '../assets/uploads/company_logos/';
         if (!file_exists($upload_dir)) {
             mkdir($upload_dir, 0755, true);
@@ -88,9 +99,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $update_values[] = $address;
             $update_types .= 's';
         }
+        if (in_array('contact_number', $existing_columns)) {
+            $update_fields[] = 'contact_number = ?';
+            $update_values[] = $contact_number;
+            $update_types .= 's';
+        }
+        if (in_array('telephone_number', $existing_columns)) {
+            $update_fields[] = 'telephone_number = ?';
+            $update_values[] = $telephone_number;
+            $update_types .= 's';
+        }
         if (in_array('phone', $existing_columns)) {
             $update_fields[] = 'phone = ?';
-            $update_values[] = $phone;
+            $update_values[] = $contact_number;
             $update_types .= 's';
         }
         if ($logo_path && in_array('logo', $existing_columns)) {
@@ -137,7 +158,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 
 // Fetch current company profile data
 $select_fields = ['id'];
-$profile_fields = ['logo', 'description', 'website', 'address', 'phone'];
+$profile_fields = ['logo', 'description', 'website', 'address', 'phone', 'contact_number', 'telephone_number'];
 foreach ($profile_fields as $field) {
     if (in_array($field, $existing_columns)) {
         $select_fields[] = $field;
@@ -156,7 +177,17 @@ $company_logo = (in_array('logo', $existing_columns) && isset($company_profile['
 $company_description = (in_array('description', $existing_columns) && isset($company_profile['description'])) ? $company_profile['description'] : '';
 $company_website = (in_array('website', $existing_columns) && isset($company_profile['website'])) ? $company_profile['website'] : '';
 $company_address = (in_array('address', $existing_columns) && isset($company_profile['address'])) ? $company_profile['address'] : '';
-$company_phone = (in_array('phone', $existing_columns) && isset($company_profile['phone'])) ? $company_profile['phone'] : '';
+$raw_contact = '';
+if (in_array('contact_number', $existing_columns) && isset($company_profile['contact_number'])) {
+    $raw_contact = trim((string) $company_profile['contact_number']);
+}
+if ($raw_contact === '' && in_array('phone', $existing_columns) && isset($company_profile['phone'])) {
+    $raw_contact = trim((string) $company_profile['phone']);
+}
+$company_contact_number = $raw_contact;
+$company_telephone_number = (in_array('telephone_number', $existing_columns) && isset($company_profile['telephone_number']))
+    ? trim((string) $company_profile['telephone_number'])
+    : '';
 
 require_once __DIR__ . '/view_applicants_badge_helper.php';
 $pending_applicants_sidebar_count = company_pending_applicants_count_for_sidebar($conn, $company_id);
@@ -254,6 +285,10 @@ $conn->close();
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 25px;
+        }
+
+        .form-row.form-row-triple {
+            grid-template-columns: 1fr 1fr 1fr;
         }
         
         .form-group {
@@ -598,7 +633,8 @@ $conn->close();
                 padding: 12px 0;
             }
             
-            .form-row {
+            .form-row,
+            .form-row.form-row-triple {
                 grid-template-columns: 1fr;
             }
             
@@ -726,15 +762,20 @@ $conn->close();
                             <textarea id="description" name="description" placeholder="Tell us about your company, mission, values, and what makes you unique..."><?php echo htmlspecialchars($company_description); ?></textarea>
                         </div>
 
-                        <div class="form-row">
+                        <div class="form-row form-row-triple">
                             <div class="form-group">
                                 <label for="website">Website</label>
                                 <input type="url" id="website" name="website" value="<?php echo htmlspecialchars($company_website); ?>" placeholder="https://www.example.com">
                             </div>
 
                             <div class="form-group">
-                                <label for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($company_phone); ?>" placeholder="+63 XXX XXX XXXX">
+                                <label for="contact_number">Contact number</label>
+                                <input type="text" id="contact_number" name="contact_number" maxlength="11" inputmode="numeric" pattern="0[0-9]{10}" title="11 digits starting with 0 (09XX-XXX-XXXX)" value="<?php echo htmlspecialchars($company_contact_number); ?>" placeholder="09XX-XXX-XXXX" autocomplete="tel">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="telephone_number">Telephone / landline <span style="color:#666;font-weight:400;">(optional)</span></label>
+                                <input type="text" id="telephone_number" name="telephone_number" maxlength="8" inputmode="numeric" pattern="8[0-9]{7}" title="8 digits starting with 8 (8XXX-XXXX)" value="<?php echo htmlspecialchars($company_telephone_number); ?>" placeholder="8XXX-XXXX" autocomplete="tel">
                             </div>
                         </div>
 
@@ -869,6 +910,41 @@ $conn->close();
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             autoHideAlerts();
+            function profileDigitsMax(id, maxLen) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', function() {
+                    var d = this.value.replace(/\D/g, '').slice(0, maxLen);
+                    if (this.value !== d) {
+                        this.value = d;
+                    }
+                });
+            }
+            profileDigitsMax('contact_number', 11);
+            profileDigitsMax('telephone_number', 8);
+            var pf = document.getElementById('profileForm');
+            if (pf) {
+                pf.addEventListener('submit', function(e) {
+                    var cEl = document.getElementById('contact_number');
+                    var tEl = document.getElementById('telephone_number');
+                    var v = cEl ? cEl.value.replace(/\D/g, '') : '';
+                    var t = tEl ? tEl.value.replace(/\D/g, '') : '';
+                    if (v !== '' && !/^09\d{9}$/.test(v)) {
+                        e.preventDefault();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Invalid contact number', text: 'Use 11 digits starting with 09 (format: 09XX-XXX-XXXX).', confirmButtonColor: '#1a3876' });
+                        }
+                        return false;
+                    }
+                    if (t !== '' && !/^8\d{7}$/.test(t)) {
+                        e.preventDefault();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Invalid telephone / landline', text: 'Use 8 digits starting with 8 (format: 8XXX-XXXX).', confirmButtonColor: '#1a3876' });
+                        }
+                        return false;
+                    }
+                });
+            }
         });
     </script>
 </body>

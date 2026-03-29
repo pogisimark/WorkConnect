@@ -104,6 +104,8 @@ function formatDate($d) {
         .btn-delete-selected { background: #d32f2f; color: #fff; padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
         .btn-delete-selected:hover { background: #b71c1c; }
         .btn-delete-selected:disabled { opacity: 0.6; cursor: not-allowed; }
+        .follow-up-checkbox:disabled { cursor: not-allowed; opacity: 0.55; }
+        .delete-hint { font-size: 0.8rem; color: #888; max-width: 200px; text-align: right; line-height: 1.35; }
         .status-filter-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
         .status-filter-wrap label { font-weight: 600; color: #233a8b; font-size: 0.9rem; }
         #statusFilterFu { padding: 8px 14px; border: 2px solid #e3f2fd; border-radius: 8px; background: #fff; color: #233a8b; font-weight: 600; font-size: 0.9rem; cursor: pointer; min-width: 140px; }
@@ -184,12 +186,16 @@ function formatDate($d) {
                                 <?php endif; ?>
                                 <div class="card-actions">
                                     <div class="left">
-                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem;"><input type="checkbox" class="follow-up-checkbox" value="<?php echo (int)$r['id']; ?>"> Select</label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: <?php echo $r['status'] === 'pending' ? 'not-allowed' : 'pointer'; ?>; font-size: 0.9rem;"><input type="checkbox" class="follow-up-checkbox" value="<?php echo (int)$r['id']; ?>"<?php echo $r['status'] === 'pending' ? ' disabled title="Respond to this request before it can be removed."' : ''; ?>> Select</label>
                                         <?php if ($r['status'] === 'pending'): ?>
                                             <button type="button" class="btn btn-primary" onclick="openRespondModal(<?php echo (int)$r['id']; ?>, '<?php echo htmlspecialchars(formatName($r), ENT_QUOTES); ?>')">Respond</button>
                                         <?php endif; ?>
                                     </div>
-                                    <button type="button" class="btn-delete" onclick="deleteOneFollowUp(<?php echo (int)$r['id']; ?>, '<?php echo htmlspecialchars(formatName($r), ENT_QUOTES); ?>')">Delete</button>
+                                    <?php if ($r['status'] === 'answered'): ?>
+                                        <button type="button" class="btn-delete" onclick="deleteOneFollowUp(<?php echo (int)$r['id']; ?>, '<?php echo htmlspecialchars(formatName($r), ENT_QUOTES); ?>')">Delete</button>
+                                    <?php else: ?>
+                                        <span class="delete-hint" title="Send a response first.">Respond first to remove</span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -386,7 +392,7 @@ function formatDate($d) {
                     var status = card.getAttribute('data-status');
                     var visible = value === 'all' || status === value;
                     var cb = card.querySelector('.follow-up-checkbox');
-                    if (cb) cb.checked = selectAllEl.checked && visible;
+                    if (cb && !cb.disabled) cb.checked = selectAllEl.checked && visible;
                 });
                 updateDeleteSelectedState();
             });
@@ -399,7 +405,7 @@ function formatDate($d) {
                 var ids = [];
                 document.querySelectorAll('.follow-up-checkbox:checked').forEach(function(cb) { ids.push(parseInt(cb.value, 10)); });
                 if (ids.length === 0) return;
-                Swal.fire({ title: 'Delete requests?', text: 'This will permanently delete ' + ids.length + ' request(s).', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' })
+                Swal.fire({ title: 'Delete requests?', text: 'Only answered follow-ups can be removed (' + ids.length + ' selected). Pending requests must be responded to first.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' })
                     .then(function(result) {
                         if (!result.isConfirmed) return;
                         deleteSelectedBtn.disabled = true;
@@ -414,7 +420,7 @@ function formatDate($d) {
             });
         }
         function deleteOneFollowUp(id, name) {
-            Swal.fire({ title: 'Delete this request?', text: 'Request from ' + name + ' will be permanently deleted.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' })
+            Swal.fire({ title: 'Delete this request?', text: 'Remove this answered follow-up from your list (' + name + ').', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#666', confirmButtonText: 'Delete' })
                 .then(function(result) {
                     if (!result.isConfirmed) return;
                     fetch('delete_follow_up.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })

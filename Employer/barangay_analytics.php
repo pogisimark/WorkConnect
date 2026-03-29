@@ -50,36 +50,54 @@ try {
             $totalRegistrations += $row['total_registrations'];
         }
         
+        // Count actual skill tokens from skill_registry.skills (comma-separated), per barangay — not NSRP checkbox patterns
+        $skillCountsByBarangay = [];
+        $skillsTextRes = $conn->query("SELECT barangay, skills FROM skill_registry WHERE skills IS NOT NULL AND TRIM(skills) <> ''");
+        if ($skillsTextRes) {
+            while ($srow = $skillsTextRes->fetch_assoc()) {
+                $bg = trim((string) $srow['barangay']);
+                if ($bg === '') {
+                    continue;
+                }
+                $parts = array_filter(array_map('trim', explode(',', (string) $srow['skills'])));
+                if (!isset($skillCountsByBarangay[$bg])) {
+                    $skillCountsByBarangay[$bg] = [];
+                }
+                foreach ($parts as $p) {
+                    if ($p === '') {
+                        continue;
+                    }
+                    $norm = mb_strtolower($p, 'UTF-8');
+                    if (!isset($skillCountsByBarangay[$bg][$norm])) {
+                        $skillCountsByBarangay[$bg][$norm] = ['label' => $p, 'count' => 0];
+                    }
+                    $skillCountsByBarangay[$bg][$norm]['count']++;
+                }
+            }
+        }
+
         // Calculate percentages and rankings
         foreach ($barangays as &$barangay) {
-            $barangay['percentage_of_total'] = $totalRegistrations > 0 ? 
+            $barangay['percentage_of_total'] = $totalRegistrations > 0 ?
                 round(($barangay['total_registrations'] / $totalRegistrations) * 100, 1) : 0;
-            
-            // Calculate top skills for this barangay
-            $skills = [
-                'Auto Mechanic' => $barangay['auto_mechanic'],
-                'Electrician' => $barangay['electrician'],
-                'Photography' => $barangay['photography'],
-                'Beautician' => $barangay['beautician'],
-                'Embroidery' => $barangay['embroidery'],
-                'Plumbing' => $barangay['plumbing'],
-                'Carpentry' => $barangay['carpentry'],
-                'Gardening' => $barangay['gardening'],
-                'Sewing' => $barangay['sewing'],
-                'Computer Literacy' => $barangay['computer'],
-                'Masonry' => $barangay['masonry'],
-                'Stenography' => $barangay['stenography'],
-                'Domestic Chores' => $barangay['domestic'],
-                'Painter/Artist' => $barangay['painter'],
-                'Tailoring' => $barangay['tailoring'],
-                'Driving' => $barangay['driver'],
-                'Painting Job' => $barangay['painting_job']
-            ];
-            
-            // Sort skills by count and get top 3
-            arsort($skills);
-            $barangay['top_skills'] = array_slice($skills, 0, 3, true);
+
+            $bg = trim((string) $barangay['barangay']);
+            $top = [];
+            if (isset($skillCountsByBarangay[$bg]) && count($skillCountsByBarangay[$bg]) > 0) {
+                $entries = $skillCountsByBarangay[$bg];
+                uasort($entries, function ($a, $b) {
+                    return $b['count'] <=> $a['count'];
+                });
+                $slice = array_slice($entries, 0, 10, true);
+                foreach ($slice as $entry) {
+                    if ($entry['count'] > 0) {
+                        $top[$entry['label']] = $entry['count'];
+                    }
+                }
+            }
+            $barangay['top_skills'] = $top;
         }
+        unset($barangay);
         
         // Get overall statistics
         $overallStats = [

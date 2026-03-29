@@ -2640,9 +2640,24 @@ if ($conn) {
             content += formatField('OFW', j.ofw);
             content += formatField('OFW Country', j.ofw_country);
             content += formatField('OFW Returnee', j.returnee);
-            content += formatField('Deployment Country', j.deployment_country);
-            content += formatField('Month of Return', j.return_month);
-            content += formatField('Year of Return', j.return_year);
+            // Return details only when they are an OFW returnee (avoid showing year 0 / empty deployment when returnee is no)
+            (function () {
+                function isOfwReturneeYes(val) {
+                    if (val === 1 || val === '1' || val === true) return true;
+                    const s = String(val == null ? '' : val).trim().toLowerCase();
+                    return s === 'yes' || s === 'y';
+                }
+                if (!isOfwReturneeYes(j.returnee)) {
+                    return;
+                }
+                content += formatField('Deployment Country', j.deployment_country);
+                content += formatField('Month of Return', j.return_month);
+                const ry = j.return_year;
+                const yrNum = parseInt(ry, 10);
+                if (ry != null && String(ry).trim() !== '' && String(ry).toLowerCase() !== 'n/a' && !isNaN(yrNum) && yrNum > 0) {
+                    content += formatField('Year of Return', String(ry));
+                }
+            })();
             content += formatField('Employed Abroad in Philippines', j.abroad);
             content += formatField('Job Beneficiary', j.beneficiary);
             content += formatField('Household ID', j.household_id);
