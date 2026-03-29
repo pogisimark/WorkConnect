@@ -44,6 +44,18 @@ function formatDate($d) {
     if (empty($d)) return '—';
     return date('M j, Y g:i A', strtotime($d));
 }
+
+/**
+ * Messages may contain literal \n (backslash + n) from templates/JSON instead of real newlines.
+ */
+function admin_follow_up_message_html($text) {
+    if ($text === null || $text === '') {
+        return '';
+    }
+    $text = str_replace(["\r\n", "\r"], "\n", (string) $text);
+    $text = str_replace(['\\r\\n', '\\n', '\\r'], "\n", $text);
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -123,6 +135,7 @@ function formatDate($d) {
             margin-top: 0 !important;
         }
         @media (max-width: 768px) { .main-content { margin-left: 0; padding: 15px; } }
+        .admin-follow-up-msg { white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
 <body>
@@ -195,11 +208,11 @@ function formatDate($d) {
                 <div class="card ar-card <?php echo $r['status'] === 'pending' ? 'pending' : 'answered'; ?>" data-id="<?php echo (int)$r['id']; ?>" data-status="<?php echo $r['status']; ?>">
                     <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0;">Requested: <?php echo formatDate($r['created_at']); ?> <span style="color:#888;">(PH time)</span> <span class="badge badge-<?php echo $r['status']; ?>"><?php echo $r['status'] === 'pending' ? 'Pending' : 'Answered'; ?></span></p>
                     <?php if (!empty($r['message'])): ?>
-                        <div style="background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 10px;"><?php echo nl2br(htmlspecialchars($r['message'])); ?></div>
+                        <div class="admin-follow-up-msg" style="background: #f5f5f5; padding: 12px; border-radius: 8px; margin-bottom: 10px;"><?php echo admin_follow_up_message_html($r['message']); ?></div>
                     <?php endif; ?>
                     <?php if ($r['status'] === 'answered' && !empty($r['company_response'])): ?>
                         <p style="font-weight: 600; margin-bottom: 6px;">Your response:</p>
-                        <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin-bottom: 8px;"><?php echo nl2br(htmlspecialchars($r['company_response'])); ?></div>
+                        <div class="admin-follow-up-msg" style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin-bottom: 8px;"><?php echo admin_follow_up_message_html($r['company_response']); ?></div>
                         <p style="font-size: 0.85rem; color: #666;">Responded: <?php echo formatDate($r['responded_at']); ?> (PH time)</p>
                     <?php endif; ?>
                     <div class="card-actions-ar">
