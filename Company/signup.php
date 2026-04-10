@@ -12,6 +12,32 @@ ensureCompanyPesoSchema($conn);
 $error_message = '';
 $success_message = '';
 
+function workconnect_upload_company_credential(array $file, string $prefix, array $allowedExt): array {
+    if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+        return ['ok' => false, 'message' => 'Upload failed. Please try again.'];
+    }
+    if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return ['ok' => false, 'message' => 'Invalid upload data.'];
+    }
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if ($ext === '' || !in_array($ext, $allowedExt, true)) {
+        return ['ok' => false, 'message' => 'Unsupported file type. Allowed: ' . implode(', ', $allowedExt)];
+    }
+    if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+        return ['ok' => false, 'message' => 'Each upload must be 5MB or below.'];
+    }
+    $dir = dirname(__DIR__) . '/uploads/company_credentials';
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        return ['ok' => false, 'message' => 'Could not prepare upload storage.'];
+    }
+    $name = $prefix . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+    $targetAbs = $dir . '/' . $name;
+    if (!move_uploaded_file($file['tmp_name'], $targetAbs)) {
+        return ['ok' => false, 'message' => 'Could not save uploaded file.'];
+    }
+    return ['ok' => true, 'path' => 'uploads/company_credentials/' . $name];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $company_name = trim($_POST['company_name'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -19,9 +45,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'] ?? '';
     $contact_digits = workconnect_normalize_contact_digits($_POST['contact_number'] ?? '');
     $telephone_digits = workconnect_normalize_contact_digits($_POST['telephone_number'] ?? '');
+    $privacy_consent = isset($_POST['privacy_consent']) && $_POST['privacy_consent'] === '1';
+    $uploadedPaths = [];
 
     if (empty($company_name) || empty($email) || empty($password) || empty($confirm_password)) {
         $error_message = 'All required fields must be filled.';
+    } elseif (!$privacy_consent) {
+        $error_message = 'You must agree to the Data Privacy and DPO compliance statement.';
+    } elseif (!isset($_FILES['business_permit']) || ($_FILES['business_permit']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        $error_message = 'Business permit upload is required.';
+    } elseif (!isset($_FILES['certificates']) || empty($_FILES['certificates']['name']) || !is_array($_FILES['certificates']['name'])) {
+        $error_message = 'Please upload at least one certificate.';
     } elseif ($contact_digits === '' && $telephone_digits === '') {
         $error_message = 'Please enter at least a contact number or a telephone number.';
     } elseif ($contact_digits !== '' && !workconnect_contact_mobile_valid($contact_digits)) {
@@ -47,12 +81,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         } else {
             $stmt->close();
+            $permitUpload = workconnect_upload_company_credential($_FILES['business_permit'], 'permit', ['pdf', 'jpg', 'jpeg', 'png']);
+            if (!$permitUpload['ok']) {
+                $error_message = $permitUpload['message'];
+            }
+            $certificatePaths = [];
+            if ($error_message === '') {
+                $certNames = $_FILES['certificates']['name'] ?? [];
+                $certTmp = $_FILES['certificates']['tmp_name'] ?? [];
+                $certErr = $_FILES['certificates']['error'] ?? [];
+                $certSize = $_FILES['certificates']['size'] ?? [];
+                $hasCert = false;
+                for ($i = 0; $i < count($certNames); $i++) {
+                    if (($certErr[$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                        continue;
+                    }
+                    $hasCert = true;
+                    $fileData = [
+                        'name' => $certNames[$i] ?? '',
+                        'tmp_name' => $certTmp[$i] ?? '',
+                        'error' => $certErr[$i] ?? UPLOAD_ERR_NO_FILE,
+                        'size' => $certSize[$i] ?? 0
+                    ];
+                    $certUpload = workconnect_upload_company_credential($fileData, 'cert', ['pdf', 'jpg', 'jpeg', 'png']);
+                    if (!$certUpload['ok']) {
+                        $error_message = 'Certificate upload error: ' . $certUpload['message'];
+                        break;
+                    }
+                    $certificatePaths[] = $certUpload['path'];
+                }
+                if (!$hasCert && $error_message === '') {
+                    $error_message = 'Please upload at least one certificate.';
+                }
+            }
+            if ($error_message !== '') {
+                if (!empty($permitUpload['ok']) && !empty($permitUpload['path'])) {
+                    @unlink(dirname(__DIR__) . '/' . $permitUpload['path']);
+                }
+                foreach ($certificatePaths as $p) {
+                    @unlink(dirname(__DIR__) . '/' . $p);
+                }
+            }
+            if ($error_message !== '') {
+                // stop before DB insert
+            } else {
+                $uploadedPaths[] = $permitUpload['path'];
+                foreach ($certificatePaths as $cp) {
+                    $uploadedPaths[] = $cp;
+                }
+            }
+
+            if ($error_message !== '') {
+                // no-op; handled by existing error banner
+            } else {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $cn = $contact_digits;
             $tn = $telephone_digits;
+            $business_permit_path = $permitUpload['path'];
+            $certificates_json = json_encode($certificatePaths);
+            $privacy_consent_val = 1;
 
-            $stmt = $conn->prepare('INSERT INTO company_users (company_name, email, password, contact_number, telephone_number, email_verified, email_verify_token, email_verify_expires, peso_verified) VALUES (?, ?, ?, ?, ?, 0, NULL, NULL, 0)');
-            $stmt->bind_param('sssss', $company_name, $email, $hashed_password, $cn, $tn);
+            $stmt = $conn->prepare('INSERT INTO company_users (company_name, email, password, contact_number, telephone_number, email_verified, email_verify_token, email_verify_expires, peso_verified, business_permit_path, certificates_json, privacy_consent, privacy_consent_at) VALUES (?, ?, ?, ?, ?, 0, NULL, NULL, 0, ?, ?, ?, NOW())');
+            $stmt->bind_param('sssssssi', $company_name, $email, $hashed_password, $cn, $tn, $business_permit_path, $certificates_json, $privacy_consent_val);
 
             if ($stmt->execute()) {
                 $adminCompaniesUrl = workconnect_peso_admin_companies_list_url();
@@ -65,6 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $del->bind_param('i', $newId);
                         $del->execute();
                         $del->close();
+                    }
+                    foreach ($uploadedPaths as $p) {
+                        @unlink(dirname(__DIR__) . '/' . $p);
                     }
                     $error_message = $sendCompany['message'] . ' Your account was not created.';
                 } else {
@@ -81,9 +174,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 }
             } else {
+                foreach ($uploadedPaths as $p) {
+                    @unlink(dirname(__DIR__) . '/' . $p);
+                }
                 $error_message = 'Error creating account. Please try again.';
             }
             $stmt->close();
+            }
         }
     }
 }
@@ -95,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Company Sign Up - WorkConnect</title>
-    <link rel="stylesheet" href="../assets/css/Employee-signup.css">
+    <link rel="stylesheet" href="../assets/css/Employee-signup.css?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../assets/css/Employee-signup.css')); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -116,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="success-message"><?php echo htmlspecialchars($success_message); ?></div>
         <?php endif; ?>
         
-        <form method="POST" action="">
+        <form method="POST" action="" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="company_name">Company Name</label>
                 <input type="text" id="company_name" name="company_name" maxlength="40" required 
@@ -161,8 +258,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="password-requirements" id="passwordMatchStatus" aria-live="polite"></div>
             </div>
+            <div class="form-group">
+                <label for="business_permit">Business Permit <span style="color:#c62828;">*</span></label>
+                <input type="file" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png" required>
+                <div class="password-requirements">Allowed: PDF/JPG/PNG, max 5MB</div>
+            </div>
+            <div class="form-group">
+                <label for="certificates">Certificates <span style="color:#c62828;">*</span></label>
+                <input type="file" id="certificates" name="certificates[]" accept=".pdf,.jpg,.jpeg,.png" multiple required>
+                <div class="password-requirements">Upload one or more supporting certificates, max 5MB each</div>
+            </div>
+            <div class="form-group consent-group">
+                <label class="consent-label">
+                    <span class="consent-text-box">
+                        <input type="checkbox" name="privacy_consent" value="1" <?php echo (isset($_POST['privacy_consent']) && $_POST['privacy_consent'] === '1') ? 'checked' : ''; ?> required>
+                        <span>I agree to the Terms and Compliance with Data Privacy Laws, and I confirm that our company has designated/authorized a Data Protection Officer (DPO) or privacy contact for data handling compliance.</span>
+                    </span>
+                </label>
+            </div>
             
-            <button type="submit" class="signup-btn" id="signupBtn">Create Account</button>
+            <button type="submit" class="signup-btn" id="signupBtn" disabled>Create Account</button>
         </form>
         
         <div class="login-link">
@@ -260,6 +375,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         document.querySelector('.signup-container form').addEventListener('submit', function(e) {
             var form = this;
+            var privacy = form.querySelector('input[name="privacy_consent"]');
+            if (!privacy || !privacy.checked) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Consent required', text: 'Please check the Data Privacy / DPO compliance agreement first.' });
+                }
+                return false;
+            }
             var c = (document.getElementById('contact_number').value || '').replace(/\D/g, '');
             var t = (document.getElementById('telephone_number').value || '').replace(/\D/g, '');
             if (!c && !t) {
@@ -306,12 +429,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (ev.persisted) {
                 if (typeof Swal !== 'undefined') Swal.close();
                 var btn = document.getElementById('signupBtn');
-                if (btn) btn.disabled = false;
+                var consent = document.querySelector('input[name="privacy_consent"]');
+                if (btn) btn.disabled = !(consent && consent.checked);
             }
         });
 
         // Auto-hide success/error banners after 2 seconds
         document.addEventListener('DOMContentLoaded', function() {
+            var consent = document.querySelector('input[name="privacy_consent"]');
+            var btn = document.getElementById('signupBtn');
+            function syncSignupBtnState() {
+                if (!btn) return;
+                btn.disabled = !(consent && consent.checked);
+            }
+            if (consent) {
+                consent.addEventListener('change', syncSignupBtnState);
+            }
+            syncSignupBtnState();
             document.querySelectorAll('.signup-container > .success-message, .signup-container > .error-message').forEach(function(el) {
                 if (!el.textContent.trim()) return;
                 setTimeout(function() {

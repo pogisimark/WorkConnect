@@ -1231,6 +1231,67 @@ if ($conn) {
             padding: 2px 8px;
             border-radius: 999px;
         }
+        .analytics-company-referrals-wrap {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(25,118,210,0.08);
+            border: 1px solid rgba(35,58,139,0.1);
+            margin-bottom: 32px;
+        }
+        .analytics-company-referrals-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .analytics-company-referrals-total {
+            background: rgba(25,118,210,0.08);
+            border: 1px solid rgba(25,118,210,0.18);
+            border-radius: 10px;
+            padding: 10px 14px;
+            min-width: 200px;
+        }
+        .analytics-company-referrals-total .label {
+            font-size: 0.78rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .analytics-company-referrals-total .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1565c0;
+            line-height: 1.2;
+        }
+        .analytics-company-referrals-scroll {
+            overflow-x: auto;
+        }
+        .analytics-company-referrals-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 560px;
+            table-layout: fixed;
+        }
+        .analytics-company-referrals-table th,
+        .analytics-company-referrals-table td {
+            border-bottom: 1px solid #e6ecf5;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #223;
+        }
+        .analytics-company-referrals-table th {
+            background: #f1f5fb;
+            color: #1d3f78;
+            font-weight: 700;
+        }
+        .analytics-company-referrals-table td:last-child,
+        .analytics-company-referrals-table th:last-child {
+            text-align: right;
+        }
 
         /* Print: only analytics dashboard (no top bar, sidebar, or export/print controls) */
         @media print {
@@ -1286,6 +1347,60 @@ if ($conn) {
                 page-break-before: always !important;
                 break-before: page !important;
                 margin-top: 0 !important;
+            }
+            body .main-content > :not(.analytics-print-table-report) {
+                display: none !important;
+            }
+            body .main-content .analytics-print-table-report {
+                display: block !important;
+            }
+            body .main-content .analytics-print-table-report * {
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+            body .main-content .analytics-print-title {
+                margin: 0 0 6px 0 !important;
+                color: #111 !important;
+                font-size: 20px !important;
+            }
+            body .main-content .analytics-print-meta {
+                margin: 0 0 14px 0 !important;
+                color: #444 !important;
+                font-size: 12px !important;
+            }
+            body .main-content .analytics-print-section {
+                margin: 0 0 14px 0 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            body .main-content .analytics-print-section h4 {
+                margin: 0 0 6px 0 !important;
+                color: #111 !important;
+                font-size: 14px !important;
+            }
+            body .main-content .analytics-print-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                font-size: 11px !important;
+                background: #fff !important;
+            }
+            body .main-content .analytics-print-table th,
+            body .main-content .analytics-print-table td {
+                border: 1px solid #444 !important;
+                padding: 5px 6px !important;
+                vertical-align: top !important;
+                color: #111 !important;
+                word-break: break-word !important;
+            }
+            body .main-content .analytics-print-table th {
+                background: #efefef !important;
+                font-weight: 700 !important;
+                text-align: left !important;
+            }
+            body .main-content .analytics-print-page-break {
+                page-break-before: always !important;
+                break-before: page !important;
             }
             /* Demographics: no clipping (was max-height+overflow:hidden cutting charts).
                Stack one chart per row; keep each card on a single page. */
@@ -1393,6 +1508,114 @@ if ($conn) {
                     <button type="button" onclick="printReport()" style="background: linear-gradient(135deg, #ff9800, #f57c00); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                         🖨️ Print Report
                     </button>
+                </div>
+            </div>
+
+            <div class="analytics-print-table-report" style="display:none;">
+                <h2 class="analytics-print-title">WorkConnect Analytics Report</h2>
+                <p class="analytics-print-meta" id="analyticsPrintGeneratedAt">Generated: --</p>
+
+                <div class="analytics-print-section">
+                    <h4>Summary Metrics</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Metric</th><th style="width:35%;">Value</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintSummaryBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Application Status</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Status</th><th style="width:35%;">Count</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintStatusBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Registration Trends</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Period</th><th style="width:35%;">Registrations</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintTrendsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Top Skills</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Skill</th><th style="width:35%;">Count</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintSkillsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section analytics-print-page-break">
+                    <h4>Barangay Registrations</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr>
+                                <th style="width:7%;">#</th>
+                                <th style="width:35%;">Barangay</th>
+                                <th style="width:18%;">Registrations</th>
+                                <th style="width:15%;">% of Total</th>
+                                <th style="width:25%;">Top Skills (up to 3)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsPrintBarangayBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Demographics (Skill Registry)</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Category</th><th style="width:35%;">Value</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintDemoBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Demographics (NSRP Jobseekers)</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:65%;">Category</th><th style="width:35%;">Value</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintNsrpDemoBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section analytics-print-page-break">
+                    <h4>Company Referrals</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr><th style="width:10%;">#</th><th style="width:60%;">Company</th><th style="width:30%;">Referrals</th></tr>
+                        </thead>
+                        <tbody id="analyticsPrintCompanyReferralsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-print-section">
+                    <h4>Employee Accounts</h4>
+                    <table class="analytics-print-table">
+                        <thead>
+                            <tr>
+                                <th style="width:8%;">ID</th>
+                                <th style="width:22%;">Name</th>
+                                <th style="width:28%;">Email</th>
+                                <th style="width:14%;">Email verified</th>
+                                <th style="width:14%;">NSRP submitted</th>
+                                <th style="width:14%;">Verified job seeker</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsPrintAccountsBody"></tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1692,6 +1915,33 @@ if ($conn) {
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="analytics-company-referrals-wrap">
+                <div class="analytics-company-referrals-header">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="background: linear-gradient(135deg, #1e88e5, #1565c0); color:#fff; padding:10px; border-radius:10px; font-size:1.2rem;">🏢</div>
+                        <div>
+                            <h3 style="margin:0; color:#233a8b; font-size:1.2rem; font-weight:700;">Company Referral Analytics</h3>
+                            <p style="margin:4px 0 0 0; color:#666; font-size:0.9rem;">Admin referrals per company account</p>
+                        </div>
+                    </div>
+                    <div class="analytics-company-referrals-total">
+                        <div class="label">Overall referrals</div>
+                        <div class="value" id="analyticsCompanyReferralsTotal">0</div>
+                    </div>
+                </div>
+                <div class="analytics-company-referrals-scroll">
+                    <table class="analytics-company-referrals-table">
+                        <thead>
+                            <tr>
+                                <th style="width:12%;">#</th>
+                                <th style="width:58%;">Company</th>
+                                <th style="width:30%;">Referrals</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsCompanyReferralsTbody"></tbody>
+                    </table>
                 </div>
             </div>
             <div class="analytics-kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
@@ -2082,7 +2332,9 @@ if ($conn) {
         skillsDistribution: [],
         demographicData: null,
         nsrpDemographicData: null,
-        barangayData: null
+        barangayData: null,
+        companyReferralStats: [],
+        companyReferralTotal: 0
     };
     
      let chartsCreated = false;
@@ -2259,7 +2511,8 @@ if ($conn) {
                 fetchSkillsData(),
                 fetchDemographicData(),
                 fetchNsrpDemographicData(),
-                fetchBarangayData()
+                fetchBarangayData(),
+                fetchCompanyReferralData()
             ]);
             
             console.log('Analytics data:', analyticsData);
@@ -2309,6 +2562,8 @@ if ($conn) {
             analyticsData.skillsDistribution = [];
             analyticsData.totalSkills = 0;
             analyticsData.jobseekerSkillsTotal = 0;
+            analyticsData.companyReferralStats = [];
+            analyticsData.companyReferralTotal = 0;
             
             updateAnalyticsUI();
             if (!chartsCreated) {
@@ -2455,6 +2710,24 @@ if ($conn) {
             }
         } catch (error) {
             console.error('Error fetching barangay data:', error);
+        }
+    }
+
+    async function fetchCompanyReferralData() {
+        try {
+            const response = await fetch('analytics_company_referrals.php');
+            const result = await response.json();
+            if (result && result.success) {
+                analyticsData.companyReferralStats = Array.isArray(result.companies) ? result.companies : [];
+                analyticsData.companyReferralTotal = parseInt(result.total_referrals, 10) || 0;
+            } else {
+                analyticsData.companyReferralStats = [];
+                analyticsData.companyReferralTotal = 0;
+            }
+        } catch (error) {
+            console.error('Error fetching company referral analytics:', error);
+            analyticsData.companyReferralStats = [];
+            analyticsData.companyReferralTotal = 0;
         }
     }
 
@@ -3323,6 +3596,135 @@ if ($conn) {
         });
     }
 
+    function analyticsPrintCell(v) {
+        return (v === null || v === undefined || v === '') ? '—' : String(v);
+    }
+
+    function analyticsPrintPct(v) {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? (Math.round(n * 10) / 10) + '%' : analyticsPrintCell(v);
+    }
+
+    function analyticsPrintDemoRows(data) {
+        if (!data) {
+            return [['No data available', '—']];
+        }
+        return [
+            ['Total records', analyticsPrintCell(data.total)],
+            ['Male', analyticsPrintCell(data.male) + ' (' + analyticsPrintPct(data.male_percentage) + ')'],
+            ['Female', analyticsPrintCell(data.female) + ' (' + analyticsPrintPct(data.female_percentage) + ')'],
+            ['Age 15-25', analyticsPrintCell(data.age_15_25) + ' (' + analyticsPrintPct(data.age_15_25_percentage) + ')'],
+            ['Age 26-35', analyticsPrintCell(data.age_26_35) + ' (' + analyticsPrintPct(data.age_26_35_percentage) + ')'],
+            ['Age 36-45', analyticsPrintCell(data.age_36_45) + ' (' + analyticsPrintPct(data.age_36_45_percentage) + ')'],
+            ['Age 46+', analyticsPrintCell(data.age_46_plus) + ' (' + analyticsPrintPct(data.age_46_plus_percentage) + ')'],
+            ['Education - Elementary', analyticsPrintCell(data.elementary) + ' (' + analyticsPrintPct(data.elementary_percentage) + ')'],
+            ['Education - High School', analyticsPrintCell(data.high_school) + ' (' + analyticsPrintPct(data.high_school_percentage) + ')'],
+            ['Education - College', analyticsPrintCell(data.college) + ' (' + analyticsPrintPct(data.college_percentage) + ')'],
+            ['Education - Vocational', analyticsPrintCell(data.vocational) + ' (' + analyticsPrintPct(data.vocational_percentage) + ')'],
+            ['Unemployed', analyticsPrintCell(data.unemployed) + ' (' + analyticsPrintPct(data.unemployed_percentage) + ')'],
+            ['Wage employed', analyticsPrintCell(data.wage_employed) + ' (' + analyticsPrintPct(data.wage_employed_percentage) + ')'],
+            ['Self-employed', analyticsPrintCell(data.self_employed) + ' (' + analyticsPrintPct(data.self_employed_percentage) + ')']
+        ];
+    }
+
+    function fillAnalyticsPrintTableBody(tbodyId, rows, colspan) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.textContent = '';
+        if (!rows || !rows.length) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = colspan;
+            td.textContent = 'No data available';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+        rows.forEach(function (cols) {
+            const tr = document.createElement('tr');
+            cols.forEach(function (val) {
+                const td = document.createElement('td');
+                td.textContent = analyticsPrintCell(val);
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderAnalyticsPrintReport() {
+        const generatedAt = document.getElementById('analyticsPrintGeneratedAt');
+        if (generatedAt) {
+            generatedAt.textContent = 'Generated: ' + new Date().toLocaleString();
+        }
+
+        const processed = analyticsData.acceptedApplications + analyticsData.rejectedApplications;
+        const successRate = processed > 0 ? Math.round((analyticsData.acceptedApplications / processed) * 100) + '%' : '0%';
+        const avgEl = document.getElementById('avgProcessingTime');
+        const summaryRows = [
+            ['Total users', analyticsData.employeeCountsOk ? analyticsData.totalEmployeeAccounts : analyticsData.totalJobseekers],
+            ['NSRP submitted', analyticsData.employeeCountsOk ? analyticsData.nsrpSubmittedUsers : analyticsData.totalJobseekers],
+            ['Account only (no NSRP yet)', analyticsData.employeeCountsOk ? analyticsData.accountsPendingNsrp : '—'],
+            ['Email verified users', analyticsData.employeeCountsOk ? analyticsData.emailVerifiedUsers : '—'],
+            ['Email unverified users', analyticsData.employeeCountsOk ? analyticsData.emailUnverifiedUsers : '—'],
+            ['Verified job seekers (email + NSRP)', analyticsData.employeeCountsOk ? analyticsData.verifiedEmailWithNsrpUsers : '—'],
+            ['Total skills', analyticsData.totalSkills],
+            ['Barangays', analyticsData.barangayCount],
+            ['This month registrations', analyticsData.thisMonthRegistrations],
+            ['Last month registrations', analyticsData.lastMonthRegistrations],
+            ['Success referral rate', successRate],
+            ['Avg. processing days', avgEl ? avgEl.textContent : '—']
+        ];
+        fillAnalyticsPrintTableBody('analyticsPrintSummaryBody', summaryRows, 2);
+
+        fillAnalyticsPrintTableBody('analyticsPrintStatusBody', [
+            ['Pending review', analyticsData.pendingApplications],
+            ['Referred', analyticsData.referredApplications],
+            ['Accepted', analyticsData.acceptedApplications],
+            ['Rejected', analyticsData.rejectedApplications]
+        ], 2);
+
+        const trendRows = (analyticsData.monthlyTrends || []).map(function (x) {
+            return [x.month, x.count];
+        });
+        fillAnalyticsPrintTableBody('analyticsPrintTrendsBody', trendRows, 2);
+
+        const skillRows = (analyticsData.skillsDistribution || []).slice(0, 20).map(function (s) {
+            return [s.skill, s.count];
+        });
+        fillAnalyticsPrintTableBody('analyticsPrintSkillsBody', skillRows, 2);
+
+        const barangayRows = ((analyticsData.barangayData && analyticsData.barangayData.barangays) || []).map(function (b, idx) {
+            const topSkills = (b.top_skills && typeof b.top_skills === 'object')
+                ? Object.entries(b.top_skills).slice(0, 3).map(function (entry) { return entry[0] + ' (' + entry[1] + ')'; }).join(', ')
+                : '—';
+            return [idx + 1, b.barangay || '—', b.total_registrations, analyticsPrintPct(b.percentage_of_total), topSkills];
+        });
+        fillAnalyticsPrintTableBody('analyticsPrintBarangayBody', barangayRows, 5);
+
+        fillAnalyticsPrintTableBody('analyticsPrintDemoBody', analyticsPrintDemoRows(analyticsData.demographicData), 2);
+        fillAnalyticsPrintTableBody('analyticsPrintNsrpDemoBody', analyticsPrintDemoRows(analyticsData.nsrpDemographicData), 2);
+        const companyReferralRows = (analyticsData.companyReferralStats || []).map(function (c, idx) {
+            return [idx + 1, c.company_name || '—', c.referral_count || 0];
+        });
+        fillAnalyticsPrintTableBody('analyticsPrintCompanyReferralsBody', companyReferralRows, 3);
+
+        const accountRows = (analyticsData.employeeAccounts || []).map(function (a) {
+            const evTracked = !!analyticsData.hasEmailVerifiedColumn;
+            const evOn = evTracked ? !!a.email_verified : true;
+            const nsrp = parseInt(a.nsrp_submitted || 0, 10) > 0;
+            const verifiedJobSeeker = evOn && nsrp;
+            return [
+                a.id,
+                a.full_name || 'N/A',
+                a.email || 'N/A',
+                evTracked ? (evOn ? 'Yes' : 'No') : 'N/A',
+                nsrp ? 'Yes' : 'No',
+                verifiedJobSeeker ? 'Yes' : 'No'
+            ];
+        });
+        fillAnalyticsPrintTableBody('analyticsPrintAccountsBody', accountRows, 6);
+    }
+
     // Update analytics UI
     function updateAnalyticsUI() {
         const totalAcc = analyticsData.employeeCountsOk ? analyticsData.totalEmployeeAccounts : analyticsData.totalJobseekers;
@@ -3406,6 +3808,39 @@ if ($conn) {
         
         // Mock average processing time
         document.getElementById('avgProcessingTime').textContent = Math.floor(Math.random() * 5) + 2;
+
+        const companyTotalEl = document.getElementById('analyticsCompanyReferralsTotal');
+        if (companyTotalEl) {
+            companyTotalEl.textContent = analyticsData.companyReferralTotal;
+        }
+        const companyTbody = document.getElementById('analyticsCompanyReferralsTbody');
+        if (companyTbody) {
+            companyTbody.textContent = '';
+            const list = analyticsData.companyReferralStats || [];
+            if (!list.length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 3;
+                td.textContent = 'No company referral data available.';
+                tr.appendChild(td);
+                companyTbody.appendChild(tr);
+            } else {
+                list.forEach(function (company, index) {
+                    const tr = document.createElement('tr');
+                    const tdRank = document.createElement('td');
+                    tdRank.textContent = String(index + 1);
+                    const tdName = document.createElement('td');
+                    tdName.textContent = company.company_name || '—';
+                    const tdCount = document.createElement('td');
+                    tdCount.textContent = String(company.referral_count || 0);
+                    tr.appendChild(tdRank);
+                    tr.appendChild(tdName);
+                    tr.appendChild(tdCount);
+                    companyTbody.appendChild(tr);
+                });
+            }
+        }
+        renderAnalyticsPrintReport();
         
         // Update skills list
         updateSkillsList();
@@ -3758,6 +4193,7 @@ if ($conn) {
              
              // Create only the registration chart
              createRegistrationChart();
+            renderAnalyticsPrintReport();
              
          } catch (error) {
              console.error('Error updating trends chart:', error);

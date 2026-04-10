@@ -292,6 +292,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <p>No resume file uploaded by the jobseeker.</p>
                     </div>";
         }
+
+        $validIdFile = $jobseeker['valid_id_file'] ?? '';
+        if (!empty($validIdFile)) {
+            $valid_id_url = $scheme . "://" . $_SERVER['HTTP_HOST'] . $basePath . "/../uploads/valid_ids/" . $validIdFile;
+            $message .= "
+                    <div class='resume-section'>
+                        <h3>🪪 Valid ID Document</h3>
+                        <p>Download the uploaded identity document for verification:</p>
+                        <a href='" . $valid_id_url . "' class='resume-link'>📥 Download Valid ID</a>
+                    </div>";
+        } else {
+            $message .= "
+                    <div class='resume-section'>
+                        <h3>🪪 Valid ID Document</h3>
+                        <p>No valid ID file uploaded by the jobseeker.</p>
+                    </div>";
+        }
         
         $message .= "
                 </div>

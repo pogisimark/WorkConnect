@@ -240,6 +240,8 @@ function company_list_contact_display(array $c): string {
         .btn-verify { background: #233a8b; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
         .btn-verify:hover { filter: brightness(1.08); }
         .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-details { background: #1565c0; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: 0.85rem; margin-right: 6px; }
+        .btn-details:hover { filter: brightness(1.08); }
         /* ~10 data rows + header, then scroll (verified & pending lists) */
         .companies-table-wrap.companies-table-scroll {
             max-height: 34rem;
@@ -389,7 +391,10 @@ function company_list_contact_display(array $c): string {
                             <td data-label="Telephone number"><?php echo h(trim((string) ($c['telephone_number'] ?? '')) !== '' ? $c['telephone_number'] : '—'); ?></td>
                             <td data-label="Status"><span style="background:#fff3e0;color:#e65100;padding:4px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">Pending</span></td>
                             <td data-label="Registered"><?php echo formatDate($c['created_at'] ?? null); ?></td>
-                            <td data-label="Actions"><button type="button" class="btn-verify" data-company-id="<?php echo $cid; ?>" data-company-name="<?php echo h($c['company_name'] ?? ''); ?>">Verify</button></td>
+                            <td data-label="Actions">
+                                <button type="button" class="btn-details" data-company-id="<?php echo $cid; ?>">View details</button>
+                                <button type="button" class="btn-verify" data-company-id="<?php echo $cid; ?>" data-company-name="<?php echo h($c['company_name'] ?? ''); ?>">Verify</button>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -409,6 +414,15 @@ function company_list_contact_display(array $c): string {
                 <button id="confirmLogoutBtn" style="background:#f44336;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;cursor:pointer;">Yes, Logout</button>
                 <button id="cancelLogoutBtn" style="background:#bdbdbd;color:#1a3876;border:none;border-radius:8px;padding:12px 24px;font-weight:600;cursor:pointer;">Cancel</button>
             </div>
+        </div>
+    </div>
+    <div id="companyDetailsModal" style="display:none;position:fixed;z-index:1100;left:0;top:0;inset:0;width:100%;height:100%;background:rgba(0,0,0,0.45);padding:20px;box-sizing:border-box;overflow:auto;">
+        <div style="max-width:720px;margin:20px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;color:#233a8b;">Company Credentials</h3>
+                <button type="button" id="closeCompanyDetailsModal" style="border:none;background:#eee;color:#233a8b;border-radius:6px;padding:6px 10px;cursor:pointer;">Close</button>
+            </div>
+            <div id="companyDetailsContent" style="font-size:0.95rem;color:#333;"></div>
         </div>
     </div>
 
@@ -492,6 +506,80 @@ function company_list_contact_display(array $c): string {
                         Swal.fire({ title: 'Error', text: 'Network error.', icon: 'error', confirmButtonColor: '#233a8b' });
                     });
                 });
+            });
+        });
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        function companyDocLink(path, label) {
+            if (!path) return '<span style="color:#999;">Not uploaded</span>';
+            var href = '../' + path;
+            return '<a href="' + esc(href) + '" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;">' + esc(label) + '</a>';
+        }
+        function openDetailsModal(contentHtml) {
+            var modal = document.getElementById('companyDetailsModal');
+            var content = document.getElementById('companyDetailsContent');
+            if (!modal || !content) return;
+            content.innerHTML = contentHtml;
+            modal.style.display = 'block';
+        }
+        function closeDetailsModal() {
+            var modal = document.getElementById('companyDetailsModal');
+            if (modal) modal.style.display = 'none';
+        }
+        var closeBtn = document.getElementById('closeCompanyDetailsModal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeDetailsModal);
+        }
+        var detailsModal = document.getElementById('companyDetailsModal');
+        if (detailsModal) {
+            detailsModal.addEventListener('click', function(e) {
+                if (e.target === detailsModal) closeDetailsModal();
+            });
+        }
+        document.querySelectorAll('.btn-details').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = parseInt(btn.getAttribute('data-company-id') || '0', 10);
+                if (!id) return;
+                openDetailsModal('<div style="padding:8px 0;color:#666;">Loading details...</div>');
+                fetch('get_company_details.php?company_id=' + encodeURIComponent(String(id)), { credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data || !data.success || !data.company) {
+                            openDetailsModal('<div style="color:#c62828;">Unable to load details.</div>');
+                            return;
+                        }
+                        var c = data.company;
+                        var certs = Array.isArray(c.certificates) ? c.certificates : [];
+                        var certHtml = certs.length
+                            ? '<ul style="margin:6px 0 0 18px;padding:0;">' + certs.map(function(p, i) {
+                                return '<li>' + companyDocLink(p, 'Certificate ' + (i + 1)) + '</li>';
+                            }).join('') + '</ul>'
+                            : '<span style="color:#999;">No certificates uploaded</span>';
+
+                        var html = '' +
+                            '<table style="width:100%;border-collapse:collapse;">' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;width:32%;">Company</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.company_name) + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.email) + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Contact number</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.contact_number || '—') + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Telephone</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.telephone_number || '—') + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Status</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.status || 'Pending') + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Business permit</td><td style="padding:8px;border-bottom:1px solid #eee;">' + companyDocLink(c.business_permit_path, 'View business permit') + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Certificates</td><td style="padding:8px;border-bottom:1px solid #eee;">' + certHtml + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Privacy / DPO consent</td><td style="padding:8px;border-bottom:1px solid #eee;">' + (c.privacy_consent ? 'Agreed' : 'Not agreed') + '</td></tr>' +
+                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Consent timestamp</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.privacy_consent_at || '—') + '</td></tr>' +
+                            '</table>';
+                        openDetailsModal(html);
+                    })
+                    .catch(function() {
+                        openDetailsModal('<div style="color:#c62828;">Network error while loading details.</div>');
+                    });
             });
         });
 

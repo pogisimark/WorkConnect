@@ -11,6 +11,10 @@ function ensureCompanyPesoSchema(mysqli $conn): void {
         'contact_number' => 'VARCHAR(40) NULL DEFAULT NULL',
         'telephone_number' => 'VARCHAR(40) NULL DEFAULT NULL',
         'peso_verified' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'business_permit_path' => 'VARCHAR(255) NULL DEFAULT NULL',
+        'certificates_json' => 'TEXT NULL',
+        'privacy_consent' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'privacy_consent_at' => 'DATETIME NULL DEFAULT NULL',
     ];
     foreach ($columns as $field => $def) {
         $r = @$conn->query("SHOW COLUMNS FROM company_users LIKE '" . $conn->real_escape_string($field) . "'");
