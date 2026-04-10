@@ -1299,6 +1299,7 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
             <a href="announcement.php"> ANNOUNCEMENTS</a>
+            <a href="audit_logs.php"> 🧾 AUDIT LOGS</a>
             <a href="#" class="logout"> Logout</a>
             
         </div>
@@ -2712,3 +2713,4 @@ $pending_jobseekers_count = js_get_pending_jobseekers_count($conn);
     </script>
 </body>
 </html>
+

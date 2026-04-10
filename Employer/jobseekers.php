@@ -13,7 +13,10 @@ if ($conn->connect_error) {
 }
 require_once __DIR__ . '/referrals_schema.php';
 require_once __DIR__ . '/referral_company_blocklist_helper.php';
+require_once __DIR__ . '/../jobseeker_expiry_helper.php';
 ensure_jobseeker_referrals_table($conn);
+workconnect_send_inactivity_warning_emails($conn, 25, 30);
+workconnect_expire_inactive_jobseekers($conn, 30);
 
 $sql = "SELECT *, 
     YEAR(CURDATE())-YEAR(dob) - (DATE_FORMAT(CURDATE(),'%m%d') < DATE_FORMAT(dob,'%m%d')) AS age,

@@ -10,6 +10,7 @@ if (!isset($_SESSION['username'])) {
 }
 
 require_once 'db.php';
+require_once __DIR__ . '/admin_audit_helper.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$conn) {
     http_response_code(400);
@@ -42,6 +43,14 @@ $check->close();
 $stmt = $conn->prepare("INSERT INTO admin_company_follow_up (company_id, message, status) VALUES (?, ?, 'pending')");
 $stmt->bind_param("is", $company_id, $message);
 if ($stmt->execute()) {
+    admin_audit_log(
+        $conn,
+        'FOLLOW_UP_REQUEST_CREATE',
+        'company',
+        $company_id,
+        'Admin created a follow-up request to company.',
+        ['message' => $message]
+    );
     $stmt->close();
     $conn->close();
     echo json_encode(['success' => true, 'message' => 'Your follow-up request has been sent to the company. They will be able to respond from their portal.']);

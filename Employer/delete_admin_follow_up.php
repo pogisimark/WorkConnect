@@ -10,6 +10,7 @@ if (!isset($_SESSION['username'])) {
 }
 
 require_once 'db.php';
+require_once __DIR__ . '/admin_audit_helper.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$conn) {
     http_response_code(400);
@@ -32,6 +33,14 @@ $stmt->bind_param($types, ...$ids);
 $stmt->execute();
 $hidden = $stmt->affected_rows;
 $stmt->close();
+admin_audit_log(
+    $conn,
+    'FOLLOW_UP_REQUEST_HIDE',
+    'admin_company_follow_up',
+    null,
+    'Admin hid follow-up request(s) from list.',
+    ['ids' => $ids, 'hidden_count' => $hidden]
+);
 
 $stmt2 = $conn->prepare("DELETE FROM admin_company_follow_up WHERE id IN ($placeholders) AND hidden_by_admin = 1 AND hidden_by_company = 1");
 $stmt2->bind_param($types, ...$ids);

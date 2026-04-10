@@ -584,6 +584,7 @@ if ($conn) {
             <a href="add.php" class="active"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
             <a href="announcement.php"> ANNOUNCEMENTS</a>
+            <a href="audit_logs.php"> 🧾 AUDIT LOGS</a>
             <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
@@ -1109,3 +1110,5 @@ if ($conn) {
     </div>
 </body>
 </html>
+
+

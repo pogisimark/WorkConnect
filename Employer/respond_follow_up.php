@@ -10,6 +10,7 @@ if (!isset($_SESSION['username'])) {
 }
 
 require_once 'db.php';
+require_once __DIR__ . '/admin_audit_helper.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$conn) {
     http_response_code(400);
@@ -36,6 +37,14 @@ if ($stmt->affected_rows === 0) {
     exit;
 }
 $stmt->close();
+admin_audit_log(
+    $conn,
+    'FOLLOW_UP_RESPONSE_SEND',
+    'follow_up_request',
+    $request_id,
+    'Admin responded to follow-up request.',
+    ['response' => $response_text]
+);
 
 // Get jobseeker user_id for notification
 $get = $conn->prepare("SELECT j.user_id FROM follow_up_requests f JOIN jobseeker j ON f.jobseeker_id = j.id WHERE f.id = ?");

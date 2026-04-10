@@ -261,6 +261,92 @@ function company_list_contact_display(array $c): string {
             z-index: 3;
             box-shadow: 0 1px 0 rgba(35,58,139,0.12);
         }
+        .company-details-modal {
+            display: none;
+            position: fixed;
+            z-index: 1100;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 25, 53, 0.45);
+            padding: 24px;
+            box-sizing: border-box;
+            overflow: auto;
+            backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+        }
+        .company-details-panel {
+            max-width: 760px;
+            width: 100%;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+            border: 1px solid #e3ebfb;
+            overflow: hidden;
+        }
+        .company-details-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e8eef9;
+            background: linear-gradient(135deg, #f4f8ff, #ffffff);
+        }
+        .company-details-head h3 { margin: 0; color: #233a8b; font-size: 1.08rem; }
+        .company-details-close {
+            border: none;
+            background: #e9eef9;
+            color: #233a8b;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .company-details-body { padding: 14px 18px 18px 18px; }
+        .company-details-grid {
+            display: grid;
+            grid-template-columns: 170px 1fr;
+            border: 1px solid #e7ecf7;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .company-details-grid .k, .company-details-grid .v {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eef2fa;
+            font-size: 0.92rem;
+        }
+        .company-details-grid .k {
+            background: #f8fbff;
+            font-weight: 700;
+            color: #284a88;
+        }
+        .company-details-grid .v { color: #26334f; }
+        .company-details-grid .k.last, .company-details-grid .v.last { border-bottom: none; }
+        .company-doc-link {
+            display: inline-block;
+            background: #eef5ff;
+            color: #1359be;
+            border: 1px solid #d7e6ff;
+            padding: 4px 10px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin: 2px 6px 2px 0;
+            font-weight: 600;
+        }
+        .company-doc-empty { color: #8a95ab; }
+        .company-consent-badge {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .company-consent-yes { background: #e8f5e9; color: #2e7d32; }
+        .company-consent-no { background: #fff3e0; color: #e65100; }
     </style>
     <link rel="stylesheet" href="../assets/css/Employer-sidebar-neat.css?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -293,6 +379,7 @@ function company_list_contact_display(array $c): string {
             <a href="add.php" id="addAccountLink" style="display: none;"> ADD ACCOUNT</a>
             <a href="analytics.php"> Analytics</a>
             <a href="announcement.php"> ANNOUNCEMENTS</a>
+            <a href="audit_logs.php"> 🧾 AUDIT LOGS</a>
             <a href="logout.php" class="logout"> Logout</a>
         </div>
         <div class="main-content">
@@ -416,13 +503,13 @@ function company_list_contact_display(array $c): string {
             </div>
         </div>
     </div>
-    <div id="companyDetailsModal" style="display:none;position:fixed;z-index:1100;left:0;top:0;inset:0;width:100%;height:100%;background:rgba(0,0,0,0.45);padding:20px;box-sizing:border-box;overflow:auto;">
-        <div style="max-width:720px;margin:20px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.2);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <h3 style="margin:0;color:#233a8b;">Company Credentials</h3>
-                <button type="button" id="closeCompanyDetailsModal" style="border:none;background:#eee;color:#233a8b;border-radius:6px;padding:6px 10px;cursor:pointer;">Close</button>
+    <div id="companyDetailsModal" class="company-details-modal">
+        <div class="company-details-panel">
+            <div class="company-details-head">
+                <h3>Company Credentials</h3>
+                <button type="button" id="closeCompanyDetailsModal" class="company-details-close">Close</button>
             </div>
-            <div id="companyDetailsContent" style="font-size:0.95rem;color:#333;"></div>
+            <div id="companyDetailsContent" class="company-details-body"></div>
         </div>
     </div>
 
@@ -518,16 +605,16 @@ function company_list_contact_display(array $c): string {
                 .replace(/'/g, '&#39;');
         }
         function companyDocLink(path, label) {
-            if (!path) return '<span style="color:#999;">Not uploaded</span>';
+            if (!path) return '<span class="company-doc-empty">Not uploaded</span>';
             var href = '../' + path;
-            return '<a href="' + esc(href) + '" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;">' + esc(label) + '</a>';
+            return '<a class="company-doc-link" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label) + '</a>';
         }
         function openDetailsModal(contentHtml) {
             var modal = document.getElementById('companyDetailsModal');
             var content = document.getElementById('companyDetailsContent');
             if (!modal || !content) return;
             content.innerHTML = contentHtml;
-            modal.style.display = 'block';
+            modal.style.display = 'flex';
         }
         function closeDetailsModal() {
             var modal = document.getElementById('companyDetailsModal');
@@ -547,7 +634,7 @@ function company_list_contact_display(array $c): string {
             btn.addEventListener('click', function() {
                 var id = parseInt(btn.getAttribute('data-company-id') || '0', 10);
                 if (!id) return;
-                openDetailsModal('<div style="padding:8px 0;color:#666;">Loading details...</div>');
+                openDetailsModal('<div style="padding:10px 0;color:#5b6780;">Loading details...</div>');
                 fetch('get_company_details.php?company_id=' + encodeURIComponent(String(id)), { credentials: 'same-origin' })
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
@@ -558,23 +645,24 @@ function company_list_contact_display(array $c): string {
                         var c = data.company;
                         var certs = Array.isArray(c.certificates) ? c.certificates : [];
                         var certHtml = certs.length
-                            ? '<ul style="margin:6px 0 0 18px;padding:0;">' + certs.map(function(p, i) {
-                                return '<li>' + companyDocLink(p, 'Certificate ' + (i + 1)) + '</li>';
-                            }).join('') + '</ul>'
-                            : '<span style="color:#999;">No certificates uploaded</span>';
+                            ? certs.map(function(p, i) { return companyDocLink(p, 'Certificate ' + (i + 1)); }).join('')
+                            : '<span class="company-doc-empty">No certificates uploaded</span>';
+                        var consentBadge = c.privacy_consent
+                            ? '<span class="company-consent-badge company-consent-yes">Agreed</span>'
+                            : '<span class="company-consent-badge company-consent-no">Not agreed</span>';
 
                         var html = '' +
-                            '<table style="width:100%;border-collapse:collapse;">' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;width:32%;">Company</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.company_name) + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Email</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.email) + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Contact number</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.contact_number || '—') + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Telephone</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.telephone_number || '—') + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Status</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.status || 'Pending') + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Business permit</td><td style="padding:8px;border-bottom:1px solid #eee;">' + companyDocLink(c.business_permit_path, 'View business permit') + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Certificates</td><td style="padding:8px;border-bottom:1px solid #eee;">' + certHtml + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Privacy / DPO consent</td><td style="padding:8px;border-bottom:1px solid #eee;">' + (c.privacy_consent ? 'Agreed' : 'Not agreed') + '</td></tr>' +
-                            '<tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;">Consent timestamp</td><td style="padding:8px;border-bottom:1px solid #eee;">' + esc(c.privacy_consent_at || '—') + '</td></tr>' +
-                            '</table>';
+                            '<div class="company-details-grid">' +
+                            '<div class="k">Company</div><div class="v">' + esc(c.company_name) + '</div>' +
+                            '<div class="k">Email</div><div class="v">' + esc(c.email) + '</div>' +
+                            '<div class="k">Contact number</div><div class="v">' + esc(c.contact_number || '—') + '</div>' +
+                            '<div class="k">Telephone</div><div class="v">' + esc(c.telephone_number || '—') + '</div>' +
+                            '<div class="k">Status</div><div class="v">' + esc(c.status || 'Pending') + '</div>' +
+                            '<div class="k">Business permit</div><div class="v">' + companyDocLink(c.business_permit_path, 'View business permit') + '</div>' +
+                            '<div class="k">Certificates</div><div class="v">' + certHtml + '</div>' +
+                            '<div class="k">Privacy / DPO consent</div><div class="v">' + consentBadge + '</div>' +
+                            '<div class="k last">Consent timestamp</div><div class="v last">' + esc(c.privacy_consent_at || '—') + '</div>' +
+                            '</div>';
                         openDetailsModal(html);
                     })
                     .catch(function() {
@@ -606,3 +694,5 @@ function company_list_contact_display(array $c): string {
     </script>
 </body>
 </html>
+
+

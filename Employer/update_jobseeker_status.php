@@ -27,6 +27,7 @@ require_once __DIR__ . '/referrals_schema.php';
 require_once __DIR__ . '/../jobseeker_placement_helper.php';
 require_once __DIR__ . '/job_applications_withdraw_helper.php';
 require_once __DIR__ . '/referral_company_blocklist_helper.php';
+require_once __DIR__ . '/admin_audit_helper.php';
 
 // Email sender setup (server-side guarantee for status updates)
 $phpmailer_available = false;
@@ -116,6 +117,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "UPDATE jobseeker SET application_status = 'Pending', placement_active = 0, placement_ended_at = NOW(), placement_end_reason = $reasonSql WHERE id = $jobseeker_id AND application_status = 'Accepted'";
         if ($conn->query($sql)) {
             close_accepted_applications_when_placement_ends($conn, $jobseeker_id);
+            admin_audit_log(
+                $conn,
+                'JOBSEEKER_END_PLACEMENT',
+                'jobseeker',
+                $jobseeker_id,
+                'Placement ended and returned to pending pool.',
+                ['reason' => $end_reason]
+            );
             $user_id = (int) ($row['user_id'] ?? 0);
             $jobseeker_email = trim($row['email'] ?? '');
             $jobseeker_name = trim(($row['firstname'] ?? '') . ' ' . ($row['surname'] ?? ''));
@@ -358,6 +367,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     if ($query_result === TRUE) {
         workconnect_sync_jobseeker_placement_flags($conn, $jobseeker_id, $status);
+        admin_audit_log(
+            $conn,
+            'JOBSEEKER_STATUS_UPDATE',
+            'jobseeker',
+            $jobseeker_id,
+            'Jobseeker status updated by admin.',
+            [
+                'status' => $status,
+                'rejection_reason' => $rejection_reason,
+                'referred_to_company_id' => $referred_to_company_id
+            ]
+        );
 
         $rows_affected = $conn->affected_rows;
         error_log("Update successful - Rows affected: $rows_affected");

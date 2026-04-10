@@ -557,6 +557,7 @@ $conn->close();
             <a href="add.php" id="addAccountLink" style="display: none;">➕ ADD ACCOUNT</a>
             <a href="analytics.php">📊 Analytics</a>
             <a href="announcement.php">📢 ANNOUNCEMENTS</a>
+            <a href="audit_logs.php"> 🧾 AUDIT LOGS</a>
             <a href="logout.php">🚪 Logout</a>
         </div>
 

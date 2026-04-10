@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS employee_users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_active_at DATETIME NULL
 );
 
 -- 2. admin_accounts table
@@ -213,6 +214,8 @@ CREATE TABLE IF NOT EXISTS jobseeker (
     submission_year INT,
     application_status ENUM('Pending', 'Accepted', 'Rejected') DEFAULT 'Pending',
     rejection_reason TEXT,
+    auto_expired TINYINT(1) DEFAULT 0,
+    auto_expired_at DATETIME NULL,
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
