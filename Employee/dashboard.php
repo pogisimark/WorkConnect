@@ -4,14 +4,12 @@ date_default_timezone_set('Asia/Manila');
 
 require_once 'session_check.php';
 require_once 'db.php';
-require_once __DIR__ . '/../jobseeker_expiry_helper.php';
 
 // Additional session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['email'])) {
     header("Location: login.php");
     exit();
 }
-workconnect_expire_inactive_jobseekers($conn, 30);
 
 // Generate unique session token for iframe security
 $session_token = hash('sha256', session_id() . $_SESSION['user_id'] . 'workconnect');

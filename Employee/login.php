@@ -2,10 +2,8 @@
 require_once 'session_init.php';
 require_once 'db.php';
 require_once 'employee_verification_schema.php';
-require_once __DIR__ . '/../jobseeker_expiry_helper.php';
 
 ensureEmployeeVerificationSchema($conn);
-workconnect_ensure_jobseeker_expiry_schema($conn);
 
 // If already authenticated, don't show login form again.
 if (isset($_SESSION['user_id']) && isset($_SESSION['email'])) {
@@ -41,7 +39,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $_SESSION['email'] = $email;
                     $_SESSION['firstname'] = $user['firstname'];
                     $_SESSION['lastname'] = $user['lastname'];
-                    workconnect_touch_employee_activity($conn, (int)$user['id']);
                     
                     header('Location: dashboard.php');
                     exit();

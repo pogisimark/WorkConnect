@@ -2439,17 +2439,6 @@ if ($conn) {
                 }
                 return `<div class="field-item"><strong>${label}:</strong> ${value}</div>`;
             }
-
-            function formatFileLinkField(label, relativePath, defaultLabel) {
-                if (!relativePath || relativePath === 'n/a') {
-                    return '';
-                }
-                const safePath = String(relativePath).replace(/[^a-zA-Z0-9._\-]/g, '');
-                if (!safePath) return '';
-                const href = '../uploads/valid_ids/' + encodeURIComponent(safePath);
-                const text = defaultLabel || safePath;
-                return `<div class="field-item"><strong>${label}:</strong> <a href="${href}" target="_blank" rel="noopener" style="color:#1976d2;text-decoration:none;">${text}</a></div>`;
-            }
             
             function formatBooleanField(label, value) {
                 if (!value || value === 0 || value === '0' || value === false) {
@@ -2606,7 +2595,6 @@ if ($conn) {
                     ${formatField('Contact Number', j.contact)}
                     ${formatField('Email', j.email)}
                     ${formatField('TIN', j.tin)}
-                    ${formatFileLinkField('Valid ID', j.valid_id_file, 'View uploaded valid ID')}
                     ${formatField('Height', j.height ? j.height + ' ft.' : '')}
                     ${formatDisability(j)}
                 </div>

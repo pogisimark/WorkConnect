@@ -103,18 +103,7 @@ $db   = "WorkConnect";
 // Create connection with timeout and retry logic
 $conn = new mysqli($host, $user, $pass, $db);
 require_once __DIR__ . '/../jobseeker_placement_helper.php';
-require_once __DIR__ . '/../jobseeker_expiry_helper.php';
 workconnect_ensure_jobseeker_placement_columns($conn);
-workconnect_ensure_jobseeker_expiry_schema($conn);
-if (isset($_SESSION['user_id'])) {
-    workconnect_touch_employee_activity($conn, (int)$_SESSION['user_id']);
-}
-if ($conn && !$conn->connect_error) {
-    $validIdCol = @$conn->query("SHOW COLUMNS FROM jobseeker LIKE 'valid_id_file'");
-    if ($validIdCol && $validIdCol->num_rows === 0) {
-        @$conn->query("ALTER TABLE jobseeker ADD COLUMN valid_id_file VARCHAR(255) NULL AFTER resume_file");
-    }
-}
 
 // Check if user has existing NRSP form and its status
 $userId = $_SESSION['user_id'];
@@ -128,11 +117,8 @@ $cooldownRemaining = null;
 $isPending = false;
 $isRejected = false;
 $autoLoadForm = false;
-$existingResumeFile = null;
-$existingValidIdFile = null;
-$existingEsignatureFile = null;
 
-$stmt = $conn->prepare("SELECT id, application_status, placement_active, submission_date, submission_month, submission_year, created_at, updated_at, resume_file, valid_id_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+$stmt = $conn->prepare("SELECT id, application_status, placement_active, submission_date, submission_month, submission_year, created_at, updated_at, resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -141,7 +127,6 @@ if ($result->num_rows > 0) {
     $nrspStatus = $existingNRSP['application_status'] ?? null;
     $statusLower = strtolower($nrspStatus ?? '');
     $existingResumeFile = $existingNRSP['resume_file'] ?? null;
-    $existingValidIdFile = $existingNRSP['valid_id_file'] ?? null;
     $existingEsignatureFile = $existingNRSP['esignature_file'] ?? null;
     
     // Format submission date
@@ -611,16 +596,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($_POST['existing_resume_file'])) {
         $existingResumeFile = $conn->real_escape_string($_POST['existing_resume_file']);
     }
-    if (!empty($_POST['existing_valid_id_file'])) {
-        $existingValidIdFile = $conn->real_escape_string($_POST['existing_valid_id_file']);
-    }
     if (!empty($_POST['existing_esignature_file'])) {
         $existingEsignatureFile = $conn->real_escape_string($_POST['existing_esignature_file']);
     }
     
     // If not in POST, check database
-    if (empty($existingResumeFile) || empty($existingValidIdFile) || empty($existingEsignatureFile)) {
-        $checkFilesStmt = $conn->prepare("SELECT resume_file, valid_id_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    if (empty($existingResumeFile) || empty($existingEsignatureFile)) {
+        $checkFilesStmt = $conn->prepare("SELECT resume_file, esignature_file FROM jobseeker WHERE user_id = ? ORDER BY id DESC LIMIT 1");
         $checkFilesStmt->bind_param("i", $userId);
         $checkFilesStmt->execute();
         $filesResult = $checkFilesStmt->get_result();
@@ -628,9 +610,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $filesRow = $filesResult->fetch_assoc();
             if (empty($existingResumeFile)) {
                 $existingResumeFile = $filesRow['resume_file'] ?? null;
-            }
-            if (empty($existingValidIdFile)) {
-                $existingValidIdFile = $filesRow['valid_id_file'] ?? null;
             }
             if (empty($existingEsignatureFile)) {
                 $existingEsignatureFile = $filesRow['esignature_file'] ?? null;
@@ -699,60 +678,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else if (empty($resume_filename) && empty($existingResumeFile)) {
         // Only require resume if no existing file and no new file uploaded
         sendJsonResponse(false, 'Resume file is required.');
-    }
-
-    // Handle valid ID upload
-    $valid_id_filename = !empty($existingValidIdFile) ? $existingValidIdFile : '';
-    if (isset($_FILES['valid_id_file']) && $_FILES['valid_id_file']['error'] == UPLOAD_ERR_OK) {
-        $allowed_ext = ['pdf', 'jpg', 'jpeg', 'png'];
-        $allowed_mime_types = ['application/pdf', 'image/jpeg', 'image/png'];
-        $max_size = 5 * 1024 * 1024; // 5MB
-
-        $file_info = pathinfo($_FILES['valid_id_file']['name']);
-        $ext = strtolower($file_info['extension'] ?? '');
-        $file_size = $_FILES['valid_id_file']['size'];
-        $tmpV = $_FILES['valid_id_file']['tmp_name'];
-
-        if (!in_array($ext, $allowed_ext, true)) {
-            sendJsonResponse(false, 'Invalid valid ID file type. Please upload PDF, JPG, or PNG files only.');
-        }
-
-        $detectedValidIdMime = null;
-        if (is_uploaded_file($tmpV) && function_exists('finfo_open')) {
-            $fi = finfo_open(FILEINFO_MIME_TYPE);
-            if ($fi) {
-                $detectedValidIdMime = finfo_file($fi, $tmpV);
-                finfo_close($fi);
-            }
-        }
-        $mime_type = $_FILES['valid_id_file']['type'] ?? '';
-        $mimeOkValidId = in_array($mime_type, $allowed_mime_types, true)
-            || ($detectedValidIdMime && in_array($detectedValidIdMime, $allowed_mime_types, true));
-        if (!$mimeOkValidId && in_array($ext, $allowed_ext, true)) {
-            if ($mime_type === 'application/octet-stream' || $detectedValidIdMime === 'application/octet-stream') {
-                $mimeOkValidId = true;
-            }
-        }
-        if (!$mimeOkValidId) {
-            sendJsonResponse(false, 'Valid ID file type could not be verified. Please upload PDF, JPG, or PNG.');
-        }
-
-        if ($file_size > $max_size) {
-            sendJsonResponse(false, 'Valid ID file size too large. Maximum size is 5MB.');
-        }
-
-        $valid_id_filename = uniqid('valid_id_') . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
-        $valid_id_dir = __DIR__ . '/../uploads/valid_ids/';
-        if (!is_dir($valid_id_dir)) { mkdir($valid_id_dir, 0777, true); }
-        $valid_id_filepath = $valid_id_dir . $valid_id_filename;
-
-        if (!move_uploaded_file($_FILES['valid_id_file']['tmp_name'], $valid_id_filepath)) {
-            sendJsonResponse(false, 'Failed to upload valid ID file. Please try again.');
-        }
-    } else if (isset($_FILES['valid_id_file']) && $_FILES['valid_id_file']['error'] !== UPLOAD_ERR_NO_FILE) {
-        sendJsonResponse(false, 'Valid ID file upload error. Please try again.');
-    } else if (empty($valid_id_filename) && empty($existingValidIdFile)) {
-        sendJsonResponse(false, 'Valid ID file is required.');
     }
 
     // Get submission date
@@ -1127,7 +1052,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Handle resume and esignature file updates (only if new files uploaded)
     $resumeUpdate = !empty($resume_filename) ? "resume_file = '$resume_filename', " : "";
-    $validIdUpdate = !empty($valid_id_filename) ? "valid_id_file = '$valid_id_filename', " : "";
     $esignatureUpdate = !empty($esignature_filename) ? "esignature_file = '$esignature_filename', " : "";
     
     // Status update: Keep "Pending" if saving, change to "Pending" if resubmitting
@@ -1154,7 +1078,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             company_name_2 = '$company_name_2', company_address_2 = '$company_address_2', position_2 = '$position_2', months_2 = '$months_2', status_2 = '$status_2',
             company_name_3 = '$company_name_3', company_address_3 = '$company_address_3', position_3 = '$position_3', months_3 = '$months_3', status_3 = '$status_3',
             skill_auto_mechanic = $skill_auto_mechanic, skill_electrician = $skill_electrician, skill_photography = $skill_photography, skill_beautician = $skill_beautician, skill_embroidery = $skill_embroidery, skill_plumbing = $skill_plumbing, skill_carpentry = $skill_carpentry, skill_gardening = $skill_gardening, skill_sewing = $skill_sewing, skill_computer = $skill_computer, skill_masonry = $skill_masonry, skill_stenography = $skill_stenography, skill_domestic = $skill_domestic, skill_painter = $skill_painter, skill_tailoring = $skill_tailoring, skill_driver = $skill_driver, skill_painting = $skill_painting, skill_others = '$skill_others',
-            {$resumeUpdate}{$validIdUpdate}{$esignatureUpdate}submission_date = '$submission_date', submission_month = $submission_month, submission_year = $submission_year, $statusUpdate, auto_expired = 0, auto_expired_at = NULL
+            {$resumeUpdate}{$esignatureUpdate}submission_date = '$submission_date', submission_month = $submission_month, submission_year = $submission_year, $statusUpdate
             WHERE id = $existingFormId";
     } else {
         // INSERT new form
@@ -1176,7 +1100,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             company_name_2, company_address_2, position_2, months_2, status_2,
             company_name_3, company_address_3, position_3, months_3, status_3,
             skill_auto_mechanic, skill_electrician, skill_photography, skill_beautician, skill_embroidery, skill_plumbing, skill_carpentry, skill_gardening, skill_sewing, skill_computer, skill_masonry, skill_stenography, skill_domestic, skill_painter, skill_tailoring, skill_driver, skill_painting, skill_others,
-            resume_file, valid_id_file, esignature_file, submission_date, submission_month, submission_year, application_status, auto_expired, auto_expired_at
+            resume_file, esignature_file, submission_date, submission_month, submission_year, application_status
         ) VALUES (
             $user_id, '$surname', '$firstname', '$middlename', '$suffix', '$dob', '$sex', '$religion', '$civilstatus', '$street', '$barangay', '$municipality', '$province', '$tin', '$height', '$contact', '$email',
             $hasDisability, $disability_speech, $disability_hearing, $disability_visual, $disability_mental, $disability_others, '$disability_other',
@@ -1195,7 +1119,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             '$company_name_2', '$company_address_2', '$position_2', '$months_2', '$status_2',
             '$company_name_3', '$company_address_3', '$position_3', '$months_3', '$status_3',
             $skill_auto_mechanic, $skill_electrician, $skill_photography, $skill_beautician, $skill_embroidery, $skill_plumbing, $skill_carpentry, $skill_gardening, $skill_sewing, $skill_computer, $skill_masonry, $skill_stenography, $skill_domestic, $skill_painter, $skill_tailoring, $skill_driver, $skill_painting, '$skill_others',
-            '$resume_filename', '$valid_id_filename', '$esignature_filename', '$submission_date', $submission_month, $submission_year, 'Pending', 0, NULL
+            '$resume_filename', '$esignature_filename', '$submission_date', $submission_month, $submission_year, 'Pending'
         )";
     }
 
@@ -3364,11 +3288,6 @@ $conn->close();
               <input type="file" id="resume_file" name="resume_file" class="resume-upload-input" accept=".pdf,.doc,.docx" <?php echo (empty($existingResumeFile)) ? 'required' : ''; ?>>
               <span class="resume-upload-hint">Accepted formats: PDF, DOC, DOCX only. Max size: 5MB.</span>
             </div>
-            <div class="form-row resume-upload-row">
-              <label for="valid_id_file" class="resume-upload-label"><strong>Upload valid ID:</strong></label>
-              <input type="file" id="valid_id_file" name="valid_id_file" class="resume-upload-input" accept=".pdf,.jpg,.jpeg,.png" <?php echo (empty($existingValidIdFile)) ? 'required' : ''; ?>>
-              <span class="resume-upload-hint">Accepted formats: PDF, JPG, PNG only. Max size: 5MB.</span>
-            </div>
             </fieldset>
             <div class="form-actions">
               <button type="button" class="back-btn" onclick="showPreviousSection()">Back</button>
@@ -3399,7 +3318,6 @@ $conn->close();
         const AUTO_LOAD_FORM = <?php echo json_encode($autoLoadForm); ?>;
         const COOLDOWN_REMAINING = <?php echo json_encode($cooldownRemaining); ?>;
         const EXISTING_RESUME_FILE = <?php echo json_encode($existingResumeFile ?? null); ?>;
-        const EXISTING_VALID_ID_FILE = <?php echo json_encode($existingValidIdFile ?? null); ?>;
         const EXISTING_ESIGNATURE_FILE = <?php echo json_encode($existingEsignatureFile ?? null); ?>;
       </script>
       
@@ -5667,12 +5585,6 @@ $conn->close();
     const resumeInput = document.getElementById('resume_file');
     const resumeContainer = resumeInput ? resumeInput.closest('.form-row') : null;
     const existingResumeInput = document.querySelector('input[name="existing_resume_file"]');
-    const validIdInput = document.getElementById('valid_id_file');
-    const validIdContainer = validIdInput ? validIdInput.closest('.form-row') : null;
-    const existingValidIdInput = document.querySelector('input[name="existing_valid_id_file"]');
-    const validIdInput = document.getElementById('valid_id_file');
-    const validIdContainer = validIdInput ? validIdInput.closest('.form-row') : null;
-    const existingValidIdInput = document.querySelector('input[name="existing_valid_id_file"]');
     
     // Check for new file upload
     const hasNewFile = resumeInput && resumeInput.files && resumeInput.files.length > 0;
@@ -5683,19 +5595,12 @@ $conn->close();
     // Check for hidden input with existing filename
     const hasHiddenInput = existingResumeInput && existingResumeInput.value && existingResumeInput.value.trim() !== '';
     
-    const hasNewValidIdFile = validIdInput && validIdInput.files && validIdInput.files.length > 0;
-    const hasExistingValidIdDisplay = validIdContainer && validIdContainer.querySelector('.existing-valid-id-display');
-    const hasValidIdHiddenInput = existingValidIdInput && existingValidIdInput.value && existingValidIdInput.value.trim() !== '';
-
-    if (!hasNewFile && !hasExistingResumeDisplay && !hasHiddenInput) {
-      return { valid: false, message: 'Resume upload is required.' };
+    // If any of these conditions are true, we have a valid resume
+    if (hasNewFile || hasExistingResumeDisplay || hasHiddenInput) {
+      return { valid: true, message: '' };
     }
-
-    if (!hasNewValidIdFile && !hasExistingValidIdDisplay && !hasValidIdHiddenInput) {
-      return { valid: false, message: 'Valid ID upload is required.' };
-    }
-
-    return { valid: true, message: '' };
+    
+    return { valid: false, message: 'Resume upload is required.' };
   }
   
   // Navigate to a specific step with validation
@@ -7359,25 +7264,10 @@ $conn->close();
       });
       return;
     }
-
-    const hasNewValidIdFile = validIdInput && validIdInput.files && validIdInput.files.length > 0;
-    const hasExistingValidIdDisplay = validIdContainer && validIdContainer.querySelector('.existing-valid-id-display');
-    const hasValidIdHiddenInput = existingValidIdInput && existingValidIdInput.value && existingValidIdInput.value.trim() !== '';
-    if (!hasNewValidIdFile && !hasExistingValidIdDisplay && !hasValidIdHiddenInput) {
-      Swal.fire({
-        title: 'Valid ID Required!',
-        text: 'Please upload your valid ID before submitting the form.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-        confirmButtonColor: '#ff9800'
-      });
-      return;
-    }
     
     // Define variables to check if existing files are present (used in validation loop)
     const hasExistingEsignature = hasNewFile || hasExistingPreview || hasHiddenInput || hasImageSource;
     const hasExistingResume = hasNewResumeFile || hasExistingResumeDisplay || hasResumeHiddenInput;
-    const hasExistingValidId = hasNewValidIdFile || hasExistingValidIdDisplay || hasValidIdHiddenInput;
     
     // Only validate required fields in visible sections
     let valid = true;
@@ -7390,7 +7280,6 @@ $conn->close();
           if (field.type === 'file') {
             if (field.id === 'esignature' && hasExistingEsignature) return;
             if (field.id === 'resume_file' && hasExistingResume) return;
-            if (field.id === 'valid_id_file' && hasExistingValidId) return;
           }
           
           if (field.type === 'checkbox' || field.type === 'radio') {
@@ -7431,9 +7320,6 @@ $conn->close();
      if (existingResumeInput && existingResumeInput.value) {
        formData.append('existing_resume_file', existingResumeInput.value);
      }
-    if (existingValidIdInput && existingValidIdInput.value) {
-      formData.append('existing_valid_id_file', existingValidIdInput.value);
-    }
 
      await wcCompressEsignatureForUpload(formData, form);
      await wcNormalizeResumeForMobileUpload(formData, form);
@@ -8453,33 +8339,6 @@ $conn->close();
                 resumeInput.parentNode.appendChild(hiddenInput);
               }
               hiddenInput.value = nrsp.resume_file;
-            }
-          }
-        }
-
-        // Display existing valid ID file if available
-        if (nrsp.valid_id_file) {
-          const validIdInput = document.getElementById('valid_id_file');
-          if (validIdInput) {
-            const validIdContainer = validIdInput.closest('.form-row');
-            if (validIdContainer) {
-              let existingValidIdDiv = validIdContainer.querySelector('.existing-valid-id-display');
-              if (!existingValidIdDiv) {
-                existingValidIdDiv = document.createElement('div');
-                existingValidIdDiv.className = 'existing-valid-id-display';
-                existingValidIdDiv.style.cssText = 'margin-top: 10px; padding: 10px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 5px;';
-                existingValidIdDiv.innerHTML = '<strong>Current Valid ID:</strong> ' + nrsp.valid_id_file + ' <span style="color: #666; font-size: 0.9rem;">(Upload a new file to replace)</span>';
-                validIdContainer.appendChild(existingValidIdDiv);
-              }
-              validIdInput.removeAttribute('required');
-              let hiddenInput = document.querySelector('input[name="existing_valid_id_file"]');
-              if (!hiddenInput) {
-                hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.name = 'existing_valid_id_file';
-                validIdInput.parentNode.appendChild(hiddenInput);
-              }
-              hiddenInput.value = nrsp.valid_id_file;
             }
           }
         }
